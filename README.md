@@ -8,6 +8,12 @@ Current Goal:
   <li>Calendar with all of the Scheduled Posts</li>
   <li>Calendar Sharing</li>
   <li>Accept, Reject, and Comment for Calendar Sharing</li>
+    <ul>
+        <li>Accept Post: Continue with Posting</li>
+        <li>Reject Post: Put an X on Post</li>
+        <li>Comment: Add a comment on each post</li>
+        <li>Can be Global Accept and Reject aswell for the entire calendar</li>
+    </ul>
 </ul>
 
 
