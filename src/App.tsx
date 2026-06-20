@@ -5,6 +5,7 @@ import Scheduling from "./pages/Scheduling";
 import PrivacySection from './pages/PrivacySection';
 import TermsOfService from './pages/TermsOfService';
 import NotFoundPage from './pages/NotFound';
+import Calendar from './pages/Calendar';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { StrictMode } from 'react';
 const router = createBrowserRouter([
@@ -12,6 +13,7 @@ const router = createBrowserRouter([
   {path:"/dashboard", element:<Scheduling></Scheduling>},
   {path:"/privacy", element:<PrivacySection/>},
   {path:"/terms", element:<TermsOfService/>},
+  {path:"/calendar", element:<Calendar/>},
   {path:"*", element:<NotFoundPage/>}
 ])
 //Routing 
