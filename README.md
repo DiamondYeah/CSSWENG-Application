@@ -6,6 +6,7 @@
 - Logging in to TikTok Account
 - Obtaining OAuth Token and Refreshing Token if Expired
 - Obtaining User Information
+- Database for said User Information (Mainly on Tokens and Access IDs rather than name and followers cause those can be fetched)
 - Obtaining User Query (Options for posting)
 - Video Initial Upload Details (Posting ID and Upload_URL)
 - Video Uploading and Posting
