@@ -1,73 +1,72 @@
-# React + TypeScript + Vite
+# TikTok API Testing Project
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**Mainly for Performing and testing the TikTok API for AgilaPost.**
 
-Currently, two official plugins are available:
+## Features
+- Logging in to TikTok Account
+- Obtaining OAuth Token and Refreshing Token if Expired
+- Obtaining User Information
+- Obtaining User Query (Options for posting)
+- Video Initial Upload Details (Posting ID and Upload_URL)
+- Video Uploading and Posting
+- JSON Data and Message Display
+- Console.Log displaying Fetch Info and Errors
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Project Structure
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+tiktok_api/
+├── frontend/
+│   └── src/
+│       ├── components/        # Reusable UI (only buttons at the moment)
+│       ├── controller/        # Performs backend API calls
+│       └── pages/             # Page components
+│
+└── server/
+    ├── routes/                # HTTP route handlers
+    ├── dbcontrollers/         # Database CRUD logic
+    ├── models/                # Mongoose schemas 
+    ├── database/              # MongoDB connection setup
+    └── publicfiles/           # Static folder for serving uploaded photos publicly
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Prerequisites
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+- Node.js 
+- MongoDB running locally (Use Compass to view database)
+- [ngrok](https://ngrok.com/) account (free tier works). Needed because TikTok requires a public HTTPS redirect URI, which `localhost` can't satisfy
+- A TikTok Developer account at https://developers.tiktok.com
+- A TikTok app registered in the Developer Portal with:
+  - Login Kit enabled
+  - Content Posting API enabled (with Direct Post configuration turned on)
+  - Scopes added: `user.info.basic`, `user.info.profile`, `user.info.stats`, `video.publish`, `video.upload`
+- **Your TikTok test account must be set to a Private account**
+- A lot of installs for stuff like ngrok
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## Setup
+
+1. Add you tiktok account in Sandbox Settings for testing
+   - **Must be set private**
+3. Clone the repo, run `npm install` in both `/server` and `/frontend`
+4. Copy `.env.example` to `.env` in `/server` and fill in:
+   - `TIKTOK_CLIENT_KEY` / `TIKTOK_CLIENT_SECRET` (from TikTok Developer Portal)
+   - `MONGODB_URI=mongodb://localhost:27017/tiktok_api`
+   - `BASE_URL=http://localhost:5173` (NO TRAILING SLASH BECAUSE IT WILL BREAK CORS)
+   - `REDIRECT_URI` and `PORT` — see below
+5. Download ngrok and create an account to get an authtoken in dashboard (https://dashboard.ngrok.com/get-started/setup/windows)
+6. Start ngrok: `ngrok http 5000` (or whatever port your server uses)
+7. Copy the ngrok HTTPS URL it gives you
+8. In TikTok Developer Portal, set the **Redirect URI** under the login kit to:
+   `https://<your-ngrok-url>/logAuth/oauth2/callback`
+9. Set `REDIRECT_URI` in your `.env` to match exactly
+   - **ngrok's free-tier URL changes every time you restart it.** 
+10. Run the backend: `npm run dev` (in `/server`)
+11. Run the frontend: `npm run dev` (in `/frontend`)
+12. Visit `http://localhost:5173`, click "Log In"
+
+## Known limitations
+
+- Photo posting (`PULL_FROM_URL`) requires a **verified domain** in TikTok's 
+  Developer Portal — ngrok's rotating domain can't be verified, so photo 
+  posting won't work out of the box without your own stable domain. So we need a live domain.
+- Posts are restricted to private until we pass the review process for our application
