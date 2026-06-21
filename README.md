@@ -1,4 +1,4 @@
-# TikTok API Testing Project
+# TikTok API Testing for AgilaPost
 
 **Mainly for Performing and testing the TikTok API for AgilaPost.**
 
