@@ -64,9 +64,15 @@ tiktok_api/
 11. Run the frontend: `npm run dev` (in `/frontend`)
 12. Visit `http://localhost:5173`, click "Log In"
 
-## Known limitations
+## Current Limitations
 
 - Photo posting (`PULL_FROM_URL`) requires a **verified domain** in TikTok's 
   Developer Portal — ngrok's rotating domain can't be verified, so photo 
   posting won't work out of the box without your own stable domain. So we need a live domain.
 - Posts are restricted to private until we pass the review process for our application
+
+## Future Updates
+
+- SOLID Principles
+- Post Storing
+
