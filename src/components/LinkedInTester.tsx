@@ -17,7 +17,7 @@ export default function LinkedInTester() {
   const [authorUrn, setAuthorUrn] = useState("");
   const [profile, setProfile] = useState<any>(null);
 
-  const [commentary, setCommentary] = useState("Write a post here...");
+  const [commentary, setCommentary] = useState(""); // Common text content for posts *sample body*
   const [mediaType, setMediaType] = useState<"TEXT" | "IMAGE" | "VIDEO">("TEXT");
   const [file, setFile] = useState<File | null>(null);
 
@@ -191,12 +191,12 @@ export default function LinkedInTester() {
           <hr style={styles.hr}/>
 
           <h3>3. Production Posting Pipeline</h3>
-          <input placeholder="Commentary text content..." value={commentary} onChange={e=>setCommentary(e.target.value)} style={styles.input}/>
+          <input placeholder="Write a post here..." value={commentary} onChange={e=>setCommentary(e.target.value)} style={styles.input}/>
           <div style={{...styles.row, marginTop: '8px'}}>
             <select value={mediaType} onChange={e=>setMediaType(e.target.value as any)} style={styles.input}>
-              <option value="TEXT">Text Base Composition</option>
-              <option value="IMAGE">Image File Content Stream</option>
-              <option value="VIDEO">Video File Content Stream</option>
+              <option value="TEXT">Write a post </option>
+              <option value="IMAGE">Upload Image</option>
+              <option value="VIDEO">Upload Video</option>
             </select>
             {mediaType !== 'TEXT' && <input type="file" accept={mediaType==='IMAGE'?'image/*':'video/*'} onChange={e=>setFile(e.target.files?e.target.files[0]:null)} style={styles.input}/>}
           </div>
