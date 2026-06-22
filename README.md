@@ -38,8 +38,8 @@ A LinkedIn Developer Account at https://developer.linkedin.com.
 
 A LinkedIn App registered in the Developer Portal with:
 
-Sign In with LinkedIn using OpenID Connect enabled.  
-Share on LinkedIn or Community Management API permissions enabled.  
+- Sign In with LinkedIn using OpenID Connect enabled.  
+- Share on LinkedIn or Community Management API permissions enabled.  
 
 ## Setup
 Clone the repository and install dependencies in the root directory: npm install
