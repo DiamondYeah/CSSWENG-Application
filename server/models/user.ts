@@ -2,7 +2,7 @@ import mongoose, { Schema, Document } from "mongoose";
 
 
 // Create interface for User type-safety
-export interface IUser{
+export interface IUser extends Document{
 
     tiktokOpenID: string;
     accessToken: string;

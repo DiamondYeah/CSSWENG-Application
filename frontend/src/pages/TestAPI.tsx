@@ -160,7 +160,7 @@ function TestAPI(): React.JSX.Element{
 
         // Upload photos via uploadPhotos and store info result
         const photoFilesData = await uploadPhotos(photoFiles, "Test Photo Title", "Test Description");
-        setPhotoFiles(photoFilesData);
+        setPhotoFiles([]);
 
         // Show info result in text area
         if(displayPhotoUploadInfo.current)

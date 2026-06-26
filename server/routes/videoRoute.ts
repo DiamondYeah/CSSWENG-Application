@@ -6,8 +6,14 @@ import multer from "multer";
 // Load env file
 dotenv.config();
 
-// Import Controller Functions
-import {checkTokenIfExpired} from "../dbcontrollers/userController.ts";
+// Import IUser interface
+import {type IUser} from "../models/user.ts"
+
+// Import Service Functions, Middleware Functions, Database Controller Functions, and Util Functions
+import {obtainInitialUpload, uploadVideo, obtainPostStatus} from "../server_services/tiktokVideoService.ts"
+import {findUserAuth, type AuthUserRequest} from "../middleware/tiktokAuthMiddleware.ts";
+import {createUserPost, updatePostStatus} from "../dbcontrollers/postRepository.ts";
+import {mapTikTokPostStatus} from "../utilities/videoUtilities.ts"
 
 // Creater router
 const { Router } = pkg;
@@ -22,73 +28,10 @@ const upload = multer({storage: multer.memoryStorage()})
 
 
 
-router.get("/queryinfo", async (req: Request, res: Response) => {
+router.post("/initupload", findUserAuth, async (req: AuthUserRequest, res: Response) => {
     
-    // Get session user id from cookies and check if empty
-    const userID = req.cookies.session_user_id;
-    if(!userID)
-        return res.status(401).json({ success: false, message: "Session User ID not Found!" });
-
-    // Get user info from database and check if empty
-    const user = await checkTokenIfExpired(userID as string);
-    if(!user)
-        return res.status(401).json({ success: false, message: "User not Found with Session User ID!" });
-
-
-    // Try-catch getting user information basic and profile from Tiktok API
-    try{
-
-        const userCreatorQuery = await fetch("https://open.tiktokapis.com/v2/post/publish/creator_info/query/", 
-            {
-
-                method: "POST",
-                headers:{
-
-                    "Authorization": `Bearer ${user.accessToken}`,
-                    "Content-Type": "application/json; charset=UTF-8",
-
-                }
-            }
-        );
-
-        // Convert the fetch to JSON and store it in const. Print details aswell
-        const userQuery = await userCreatorQuery.json();
-        console.log("User Query Details: ", userQuery);
-
-        // Check if there is error when fetching information
-        if(userQuery.error && userQuery.error.code != "ok")
-            return res.status(401).json({ success: false, message: "userQuery error." });
-
-
-        // Send successful JSON 
-        return res.json({ success: true, message: userQuery.data})
-
-
-
-
-    }catch(err){
-
-        console.error("Error: " + err);
-        return res.status(500).json({ success: false, message: "Unexpected error when fetching information!" });
-
-    }
-
-
-});
-
-
-router.post("/initupload", async (req: Request, res: Response) => {
-    
-    // Get session user id from cookies and check if empty
-    const userID = req.cookies.session_user_id;
-    if(!userID)
-        return res.status(401).json({ success: false, message: "Session User ID not Found!" });
-
-    // Get user info from database and check if empty
-    const user = await checkTokenIfExpired(userID as string);
-    if(!user)
-        return res.status(401).json({ success: false, message: "User not Found with Session User ID!" });
-
+    // Get user from req
+    const user: IUser = req.user as IUser;
 
     // Get info from request
     const {title, privacyLevel, videoSize} = req.body;
@@ -97,53 +40,34 @@ router.post("/initupload", async (req: Request, res: Response) => {
     // Try-catch getting user information basic and profile from Tiktok API
     try{
 
-        const userInitUploadFetch = await fetch("https://open.tiktokapis.com/v2/post/publish/video/init/", 
-            {
-
-                method: "POST",
-                headers:{
-
-                    "Authorization": `Bearer ${user.accessToken}`,
-                    "Content-Type": "application/json; charset=UTF-8"
-
-                },
-                body: JSON.stringify({
-                    
-                post_info:{
-
-                    title: title,
-                    privacy_level: privacyLevel,
-                    disable_duet: false,
-                    disable_comment: false,
-                    disable_stitch: false,
-                    video_cover_timestamp_ms: 1000
-
-                },
-                source_info:{
-
-                    source: "FILE_UPLOAD",
-                    video_size: videoSize,
-                    chunk_size:  videoSize,
-                    total_chunk_count: 1
+        // Get user TikTok initial upload info results by calling obtainInitialUpload and passing arguments below and return result
+        const userInitUpload = await obtainInitialUpload({ user: user, title: title, 
+                                                     privacyLevel: privacyLevel, videoSize: videoSize})
 
 
-                }
+        if(userInitUpload){
 
-                })
-            }
-        );
+            // Create document of initial post status by callindgcareateUserPost from db controller repo
+            await createUserPost({
 
-        // Convert the fetch to JSON and store it in const. Print details aswell
-        const userInitUpload = await userInitUploadFetch.json();
-        console.log("User Initial Upload Details: ", userInitUpload);
+                userID: user._id,
+                platform: "tiktok",
+                postType: "video",
+                publishID: userInitUpload.data.publish_id,
+                status: "pending",
+                title: title,
 
-        // Check if there is error when fetching information
-        if(userInitUpload.error && userInitUpload.error.code != "ok")
-            return res.status(401).json({ success: false, message: "userInitUpload error." });
+            });
 
 
-        // Send successful JSON 
-        return res.json({ success: true, data: userInitUpload.data})
+            // Send successful JSON 
+            return res.json({ success: true, data: userInitUpload.data})
+
+        }
+  
+
+        // Fallback in case nothing was returned
+        return res.json({ success: false, message: "userInitUpload returned with no data from service call!"});
 
     }catch(err){
 
@@ -157,16 +81,7 @@ router.post("/initupload", async (req: Request, res: Response) => {
 
 
 
-router.post("/upload", upload.single('videoFile'), async (req: Request, res: Response) => {
-
-    const userID = req.cookies.session_user_id;
-    if(!userID)
-        return res.status(401).json({ success: false, message: "Session User ID not Found!" });
-
-    // Get user info from database and check if empty
-    const user = await checkTokenIfExpired(userID as string);
-    if(!user)
-        return res.status(401).json({ success: false, message: "User not Found with Session User ID!" });
+router.post("/upload", findUserAuth, upload.single('videoFile'), async (req: AuthUserRequest, res: Response) => {
 
     // Get upload url from request and videoFile
     const {uploadURL} = req.body;
@@ -179,38 +94,16 @@ router.post("/upload", upload.single('videoFile'), async (req: Request, res: Res
     // Try-catch for uploading video to Tiktok API
     try{
 
-        const userUploadFetch = await fetch(uploadURL, 
-            {
-
-                method: "PUT",
-                headers:{
-
-                    "Content-Type": "video/mp4",
-                    "Content-Length": `${videoFile.size}`,
-                    "Content-Range": `bytes 0-${videoFile.size - 1}/${videoFile.size}`,
-
-                },
-                body: new Uint8Array(videoFile.buffer),
-
-            }
-        );
-
-
-        // DEBUG
-        console.log("Upload Status: ", userUploadFetch.status);
-
-
-        // Check if there is error when fetching information
-        if(!userUploadFetch.ok){
-
-            console.log("Upload Error:", userUploadFetch);
-            return res.status(400).json({ success: false, message: "Video upload to TikTok error!" });
-
-        }
+        // Upload user videos to the user's TikTok account by calling obtainInitialUpload with the arguments below and return result
+        const userUpload = await uploadVideo(videoFile, uploadURL);
 
 
         // Send successful JSON 
-        return res.json({ success: true, message: "Video upload to TikTok successful!"})
+        if(userUpload)
+            return res.json({ success: true, message: "Video upload to TikTok successful!"})
+
+        // Fallback in case nothing was returned
+        return res.json({ success: false, message: "userUpload returned with no data from service call!"});
 
     }catch(err){
 
@@ -223,19 +116,11 @@ router.post("/upload", upload.single('videoFile'), async (req: Request, res: Res
 
 
 
-router.post("/poststatus", async (req: Request, res: Response) => {
+router.post("/poststatus", findUserAuth, async (req: AuthUserRequest, res: Response) => {
     
-    // Get session user id from cookies and check if empty
-    const userID = req.cookies.session_user_id;
-    if(!userID)
-        return res.status(401).json({ success: false, message: "Session User ID not Found!" });
+    // Get user from req
+    const user: IUser = req.user as IUser;
 
-    // Get user info from database and check if empty
-    const user = await checkTokenIfExpired(userID as string);
-    if(!user)
-        return res.status(401).json({ success: false, message: "User not Found with Session User ID!" });
-
-    
     // Get publish id from req body
     const {publishID} = req.body;
 
@@ -243,31 +128,28 @@ router.post("/poststatus", async (req: Request, res: Response) => {
     // Try-catch getting user information basic and profile from Tiktok API
     try{
 
-        const userStatusUploadFetch = await fetch("https://open.tiktokapis.com/v2/post/publish/status/fetch/", 
-            {
-
-                method: "POST",
-                headers:{
-
-                    "Authorization": `Bearer ${user.accessToken}`,
-                    "Content-Type": "application/json; charset=UTF-8"
-
-                },
-                body: JSON.stringify({"publish_id": publishID})
-            }
-        );
-
-        // Convert the fetch to JSON and store it in const. Print details aswell
-        const userStatusUpload = await userStatusUploadFetch.json();
-        console.log("User Status Upload Details: ", userStatusUpload);
-
-        // Check if there is error when fetching information
-        if(userStatusUpload.error && userStatusUpload.error.code != "ok")
-            return res.status(401).json({ success: false, message: "userStatusUpload error." });
+        // Get user TikTok initial upload info results by calling obtainPostStatus and passing user and publishID and return status result
+        const userStatusUpload = await obtainPostStatus(user, publishID);
 
 
-        // Send successful JSON 
-        return res.json({ success: true, data: userStatusUpload.data})
+        if(userStatusUpload){
+
+            await updatePostStatus({
+
+                publishID: publishID,
+                status: mapTikTokPostStatus(userStatusUpload.data.status),
+                rawResponse: userStatusUpload.data
+            });
+
+
+            // Send successful JSON 
+            return res.json({ success: true, data: userStatusUpload.data})
+
+        }
+
+
+        // Fallback in case nothing was returned
+        return res.json({ success: false, message: "userStatusUpload returned with no data from service call!"});
 
     }catch(err){
 

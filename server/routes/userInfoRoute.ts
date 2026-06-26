@@ -5,8 +5,12 @@ import dotenv from "dotenv";
 // Load env file
 dotenv.config();
 
-// Import Controller Functions
-import {checkTokenIfExpired} from "../dbcontrollers/userController.ts";
+// Import IUser interface
+import {type IUser} from "../models/user.ts"
+
+// Import Service Functions, and Middleware Functions
+import {obtainUserInfo, obtainQueryInfo} from "../server_services/tiktokUserService.ts"
+import {findUserAuth, type AuthUserRequest} from "../middleware/tiktokAuthMiddleware.ts";
 
 // Creater router
 const { Router } = pkg;
@@ -14,45 +18,50 @@ const router = Router();
 
 
 
-router.get("/getuserinfo", async (req: Request, res: Response) => {
+router.get("/getuserinfo", findUserAuth, async (req: AuthUserRequest, res: Response) => {
         
-    // Get session user id from cookies and check if empty
-    const userID = req.cookies.session_user_id;
-    if(!userID)
-        return res.status(401).json({ success: false, message: "Session User ID not Found!" });
+    // Get user from req
+    const user: IUser = req.user as IUser;
 
-    // Get user info from database and check if empty
-    const user = await checkTokenIfExpired(userID as string);
-    if(!user)
-        return res.status(401).json({ success: false, message: "User not Found with Session User ID!" });
-
-
-    // Try-catch getting user information basic and profile from Tiktok API
     try{
 
-        const userInfoFetch = await fetch(`https://open.tiktokapis.com/v2/user/info/?fields=${process.env.USER_INFO_FIELDS as string}`, 
-            {
-
-                method: "GET",
-                headers:{
-
-                    Authorization: `Bearer ${user.accessToken}`
-
-                }
-            }
-        )
-
-        // Convert the fetch to JSON and store it in const. Print details aswell
-        const userInfo = await userInfoFetch.json();
-        console.log("User Info Details: ", userInfo);
-
-        // Check if there is error when fetching information
-        if(userInfo.error && userInfo.error.code != "ok")
-            return res.status(401).json({ success: false, message: "userInfo error." });
+        // Get user TikTok info by calling obtainUserInfo and passing user as argument
+        const userInfo = await obtainUserInfo(user);
 
         // Send successful JSON 
-        return res.json({ success: true, message: userInfo.data.user})
+        if(userInfo)
+            return res.json({ success: true, data: userInfo.data.user})
 
+        // Fallback in case nothing was returned
+        return res.json({ success: false, message: "userInfo returned with no data from service call!"});
+
+    }catch(err){
+
+        console.error("Error: " + err);
+        return res.status(500).json({ success: false, message: "Unexpected error when fetching information!" });
+
+    }
+
+});
+
+
+
+router.get("/queryinfo", findUserAuth, async (req: AuthUserRequest, res: Response) => {
+    
+    // Get user from req
+    const user: IUser = req.user as IUser;
+
+    try{
+
+         // Get user TikTok query by calling obtainQueryInfo and passing user as argument
+        const userQuery = await obtainQueryInfo(user);
+
+        // Send successful JSON 
+        if(userQuery)
+            return res.json({ success: true, data: userQuery.data})
+
+        // Fallback in case nothing was returned
+        return res.json({ success: false, message: "userQuery returned with no data from service call!"});
 
     }catch(err){
 
@@ -63,6 +72,7 @@ router.get("/getuserinfo", async (req: Request, res: Response) => {
 
 
 });
+
 
 
 export default router;

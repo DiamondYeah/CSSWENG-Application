@@ -1,17 +1,12 @@
 // fetchController.ts
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
-const LOGINREDIRECT = `${API_BASE}/logAuth/tiktoklogin`;
 const USERINFO_API = `${API_BASE}/userInfo/getuserinfo`;
-const QUERY_DIRECT = `${API_BASE}/videoUpload/queryinfo`;
+const QUERY_DIRECT = `${API_BASE}/userInfo/queryinfo`;
 const INITIAL_UPLOAD_DIRECT = `${API_BASE}/videoUpload/initupload`;
 const UPLOAD_VIDEO_DIRECT = `${API_BASE}/videoUpload/upload`;
 const UPLOAD_STATUS_DIRECT = `${API_BASE}/videoUpload/poststatus`;
 const UPLOAD_PHOTOS_DIRECT = `${API_BASE}/photoUpload/photoUpload`;
-
-
-
-
 
 
 // Function calls router user info from API to display user information

@@ -4,6 +4,11 @@ import type { Application, Request, Response } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import path from "path";
+import dotenv from "dotenv";
+
+// Load env file
+dotenv.config();
+console.log("BASE_URL loaded as:", process.env.BASE_URL);
 
 // Import routes
 import loginRoute from "./routes/loginRoute.ts";
