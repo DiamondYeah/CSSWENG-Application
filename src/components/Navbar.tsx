@@ -22,7 +22,7 @@ function Navbar() {
             <li><a href="#"><IoMailOutline /> Social Inbox</a></li>
         </ul>
 
-        <button type="button" className="navPostButton"><FaRegEdit size={20} /> Create a post</button>
+         <button type="button" className="navPostButton" onClick={() => ("/create-post")}><FaRegEdit size={20} /><a href="create-post">Create Post </a></button>
     
         <div className="settings-icon"> 
           <CiSettings />
