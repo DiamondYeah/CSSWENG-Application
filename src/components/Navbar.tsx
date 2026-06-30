@@ -12,11 +12,11 @@ import { FaRegEdit } from "react-icons/fa";
 function Navbar() {
   return (
     <nav className ="navbar">
-        <a href="#" className="nav-name">AgilaPost</a>
+        <a href="/dashboard" className="nav-name">AgilaPost</a>
         
         <h2>Overview</h2>
         <ul>
-            <li><a href="#"><VscAccount /> Accounts</a></li>
+            <li><a href="/accounts"><VscAccount /> Accounts</a></li>
             <li><a href="#"><AiOutlineSchedule /> Scheduling</a></li>
             <li><a href="#"><MdOutlineAnalytics /> Analytics</a></li>
             <li><a href="#"><IoMailOutline /> Social Inbox</a></li>

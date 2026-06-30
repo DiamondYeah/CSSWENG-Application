@@ -22,7 +22,8 @@ function Scheduling() {
         
 
       <div className="scheduling-tabs">
-        <div className="tab">Queue</div>
+        <div className="tab"><a href="/create-post">Queue</a></div>
+        <div className="tab"><a href="/accounts">Accounts</a></div>
         <div className="tab"><a href="/calendar">Calendar</a></div>
         <div className="tab">Category</div>
         <div className="tab">Timeslots</div>
@@ -102,7 +103,7 @@ function Scheduling() {
             <div className="empty-buttons">
               <div className="left-post-btn">
                 <FaPlus className="middle-post-btn" size={12}/>
-                Create a post
+                <a href="create-post">Create a post</a>
               </div>
 
               <div className="left-bulk-btn">
