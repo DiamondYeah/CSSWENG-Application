@@ -1,0 +1,16 @@
+.cp-btn-button {
+  background: linear-gradient(135deg, #6d28d9, #3b82f6);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 11px 24px;
+  cursor: pointer;
+  transition: filter 0.15s, transform 0.15s;
+}
+
+.cp-btn-button:hover {
+  filter: brightness(0.92);
+  transform: translateY(-1px);
+}

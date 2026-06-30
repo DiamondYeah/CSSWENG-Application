@@ -376,6 +376,81 @@
   transform: translateY(-1px);
 }
 
+
+/*Additions from Dev*/
+.cp-dropzone:hover{
+
+  cursor: pointer;
+
+}
+
+
+#media-upload{
+
+  width: 200px;
+  display: none;
+
+}
+
+
+.cp-dropzone{
+
+  width: 100%;
+  padding-top: 15px;
+  padding-left: 360px;
+  padding-right: 360px;
+  padding-bottom: 70px;
+
+}
+
+.cp-dropzone-icon{
+
+  display: inline-block
+
+}
+
+
+.cp-upload-status{
+
+  font-weight: 500;
+
+}
+
+.cp-status-failed{
+
+  color: darkred;
+
+}
+
+.cp-status-success{
+
+  color: darkgreen;
+
+}
+
+
+
+.cp-btn-login {
+  background: linear-gradient(135deg, #6d28d9, #3b82f6);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 11px 24px;
+  cursor: pointer;
+  transition: filter 0.15s, transform 0.15s;
+}
+
+.cp-btn-login:hover {
+  filter: brightness(0.92);
+  transform: translateY(-1px);
+}
+
+
+/**/
+
+
 @media (max-width: 860px) {
   .cp-compose-layout {
     grid-template-columns: 1fr;
