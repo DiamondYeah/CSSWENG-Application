@@ -11,41 +11,63 @@ import { BsHash } from "react-icons/bs";
 import Navbar from "../components/Navbar";
 import emptyPfp from "../assets/emptyPfp.jpg";
 
-// Changed to let instead of const to be editable
-let ACCOUNTS = [
-  { id: "1", name: "AgilaPost Official", handle: "@agilapost" },
-  { id: "2", name: "Account 2", handle: "@accountTwo" },
-  { id: "3", name: "Account 3", handle: "@accountThree" },
-];
-
-// Import button for TikTok Functionality
-import Button from "../components/loginButton.tsx"
-
-// Import functions from controller
-import {fetchUserInfo, initializeUploadPost, uploadToTikTok, checkUploadStatus} from "../controller/fetchController.ts" 
 
 
-// Imp
+// Import functions from controller, hooks and utilities
+import {useConnectAccounts} from "../hooks/connectAccounts.ts";
+import {useUserQueryInfo} from "../hooks/userQueryInfo.ts"
+import {usePostUpload} from "../hooks/postUpload.ts"
 
-// Constants for TikTok API
-const LOGINREDIRECT = "https://smilingly-breeches-amusable.ngrok-free.dev/logAuth/tiktoklogin";
+
+// Import TikTok Settings Component
+import { TikTokSettings } from "../components/TikTokSettings.tsx";
+
+
+
+// ---------- Constants for media posting ---------- //
+
+// Title and Caption Length
+const MAX_TITLE_LENGTH: number = 2200;
+const MAX_CAPTION_LENGTH: number = 2200;
+
 
 function CreatePost() {
 
 
   const navigate = useNavigate();
-  const [caption, setCaption] = useState("");
-  const [selectedAccounts, setSelectedAccounts] = useState<string[]>(["1"]);
+  const {accounts, isLoading: accountsLoading, error: accountsError} = useConnectAccounts();
+  const {queryInfo} = useUserQueryInfo();
+  const {isUploading, uploadStatus, uploadPost} = usePostUpload();
+
+  const [caption, setCaption] = useState<string>("");
+  const [title, setTitle] = useState<string>(""); // Added for post that have title field
+  const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
   const [scheduleMode, setScheduleMode] = useState<"now" | "schedule" | "queue">("schedule");
 
 
     // Stateful const that store info user and video info fetched from TikTokAPI
-    const [isUploading, setIsUploading] = useState<boolean>(false);
-    const [uploadStatus, setUploadStatus] = useState<string>("");
-    const [userInfo, setUserInfo] = useState<any>();
     const [mediaFile, setMediaFile] = useState<File | null>(null);
+
+    // TO BE ADDED FOR CALENDAR SCHEDULING
     const [scheduleDate, setScheduleDate] = useState<Date>();
     const [scheduleTime, setScheduleTime] = useState<string>("");
+
+  
+    // Stateful const for query info settings
+    const [privacyLevel, setPrivacyLevel] = useState<string>("");
+    const [allowComments, setAllowComments] = useState<boolean>(false);
+    const [allowDuet, setAllowDuet] = useState<boolean>(false);
+    const [allowStitch, setAllowStitch] = useState<boolean>(false);
+
+    // Stateful consts for storing errors in input
+    const [validationMessage, setValidationMessage] = useState<string>("");
+    const [titleError, setTitleError] = useState<boolean>(false);
+    const [mediaError, setMediaError] = useState<boolean>(false);
+    const [privacyError, setPrivacyError] = useState<boolean>(false);
+
+    // Status to show to user when something occurs in the post page.
+    const statusToView = validationMessage || uploadStatus; // ValidationMessage takes priority
+
 
 
   function toggleAccount(id: string) {
@@ -54,93 +76,110 @@ function CreatePost() {
     );
   }
 
-
-  async function loginTikTokAccount(){
-
-
-    window.location.href = LOGINREDIRECT;
-
-    // Get user info from fetchUserInfo and store info result
-    const fetchedUserData = await fetchUserInfo();
-    setUserInfo(fetchedUserData);
-
-    if(userInfo)
-      // Push new account to element to show user details
-      ACCOUNTS.push({id: userInfo.data.user.open_id as string , name: userInfo.data.user.username, handle: "@account4"})
-
-
-  }
-
-
   // Function handles any file uploads in HTML input file and stores it in mediaFile const
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>){
 
-      if(e.target.files && e.target.files != null){
+      const file = e.target.files?.[0]; // Get file and store it in const
 
-          setMediaFile(e.target.files[0]); // Store file
-          console.log("Selected File:", e.target.files[0]); // Debug
-          setUploadStatus("");
+      // Return if no file
+      if(!file)
+        return;
 
+      if(queryInfo){
+
+        // Create new video document and assign its source to the url of a file
+        const video = document.createElement("video");
+        video.src = URL.createObjectURL(file)
+        video.onloadedmetadata = () => {
+
+        // Check if video duration exceeds the maximum allowed limit for the user's TikTok Account
+        if(video.duration > queryInfo.max_video_post_duration_sec){
+
+          // Revoke and show error if there is an error
+          setMediaError(true)
+          setValidationMessage(`Video exceeds maximum duration of TikTok's allowed post duration of ${queryInfo.max_video_post_duration_sec} seconds.`)
+          URL.revokeObjectURL(video.src);
+          return
+
+        }
+
+        setMediaFile(file); // Store file
+        setValidationMessage("");
+        setMediaError(false) // Clear error
+        URL.revokeObjectURL(video.src);
+            
       }
 
-  }
 
+
+      }
+      else // If query information does not exist
+        setMediaFile(file); // Store file
+
+  }
 
 
   // Function handles the uploading of post with the given info
-  async function handleMediaUpload(){
+  async function handleSubmitUpload(){
 
-    if(!mediaFile)
-      return alert("Please upload a media for upload!")
+    // Store boolean result if title and/or media is empty 
+    const missingTitle = !title.trim();
+    const missingMedia = !mediaFile;
+    const missingPrivacy = !privacyLevel;
 
+    setTitleError(missingTitle);
+    setMediaError(missingMedia);
+    setPrivacyError(missingPrivacy);
+
+
+    // PLEASE FIX TO MAKE IT MUCH BETTER. I GOT SO LAZY HERE :P
+    // Validation checking if media and/or title is empty
+    if(missingTitle && missingMedia && privacyError)
+      return setValidationMessage("Please enter a title, upload a media and select a privacy level before posting!")
+
+    if(missingTitle && missingMedia)
+      return setValidationMessage("Please enter a title before posting and upload a media!")
+
+    if(missingMedia && privacyError)
+      return setValidationMessage("Please upload a media and select a privacy level before posting!")
+
+    if(missingTitle && privacyError)
+      return setValidationMessage("Please enter a title before posting and select a privacy level before posting!")
+
+    if(missingTitle)
+      return setValidationMessage("Please enter a title before posting!")
+
+    if(missingMedia)
+      return setValidationMessage("Please upload a media before posting!")
+
+    if(missingPrivacy)
+      return setValidationMessage("Please select a privacy level before posting!")
+
+    // Validation checking if selected accounts is 0
     if(selectedAccounts.length === 0)
-      return alert("Please select an account to upload to!")
-
-    // Set values of isUploading to true and change status of upload on each step of the upload process
-    setIsUploading(true);
-    setUploadStatus("Preparing Upload")
-
-    try{
-
-      // Get initial upload info from initializeUploadPost and store info result
-      const initUploadResult = await initializeUploadPost("Test Title", "SELF_ONLY", mediaFile.size);
-
-      if(!initUploadResult?.data?.upload_url)
-        return alert("No upload url found from initial upload!");
+      return setValidationMessage("Please select an account to upload to!")
 
 
-      // Upload video to the TikTok API given upload url found from initUploadResult
-      setUploadStatus("Uploading...")
-      await uploadToTikTok(mediaFile, initUploadResult.data.upload_url);
+    // Clear validation messages and remove errors
+    setValidationMessage("")
+    setTitleError(false);
+    setMediaError(false);
+    setPrivacyError(false)
+  
+  
+    // Perform media upload
+    await uploadPost({
 
-      // Check upload status of video 
-      setUploadStatus("Checking upload status...")
-      const videoStatus = await checkUploadStatus(initUploadResult.data.publish_id);
+      title: title, 
+      mediaFile: mediaFile!, 
+      privacyLevel: privacyLevel, 
+      allowComments: allowComments,
+      allowDuet: allowDuet,
+      allowStitch: allowStitch
 
-      // Store final video status in a const and update both uploadStatus and provide alert to user
-      const finalVideoStatus = `Upload Done! | Status: ${videoStatus.data.status || "Unknown"}`
-      setUploadStatus(finalVideoStatus)
-      alert(finalVideoStatus); // Alert result of upload
-
-
-    }
-    catch(e){
-
-      alert("Error: " + e);
-      setUploadStatus("Upload Failed! Please check error for more details!")
-
-    }
-    finally{
-
-      setIsUploading(false);
-      
-    }
-
-
+    })
 
   }
-
-
 
 
   return (
@@ -165,7 +204,19 @@ function CreatePost() {
               <div className="cp-section-sub">Select one or more accounts</div>
 
               <div className="cp-account-list">
-                {ACCOUNTS.map((acc) => {
+
+                {/** Added for when accounts are loading or an error occurs */}
+                {accountsLoading && <div className = "cp-section-sub"> Loading accounts... </div>}
+
+                {accountsError && (<div className = "cp-section-sub"> Error in loading accounts. Please refresh! </div>)}
+
+
+                {!accountsLoading && !accountsError && accounts.length == 0 && 
+                (<div className = "cp-section-sub"> No accounts connected to. </div>)}
+
+
+                {/** Changed mapping to use the loaded accounts instead of fake ones */}
+                {accounts.map((acc) => {
                   const selected = selectedAccounts.includes(acc.id);
                   return (
                     <div
@@ -180,6 +231,7 @@ function CreatePost() {
                       <div className="cp-account-info">
                         <span className="cp-account-name">{acc.name}</span>
                         <span className="cp-account-handle">{acc.handle}</span>
+                        <span className="cp-account-platform">{acc.platform}</span>
                       </div>
                     </div>
                   );
@@ -195,31 +247,18 @@ function CreatePost() {
             {/* Right: main compose panel */}
             <div className="cp-main-col">
 
-
-
-              {/** Added for logging in to TikTok account */}
-              <div className = "cp-card">
-                <div className="cp-section-title">Log in To TikTok Account</div>
-                <div className="cp-section-sub">
-
-                  <Button onClick = {loginTikTokAccount} buttonLabel = "Log In To TikTok"></Button>
-
-                </div>
-
-              </div>
-
-
-              <div className="cp-card">
-                <div className="cp-section-title">Caption</div>
-                <div className="cp-section-sub">This caption will be used across selected accounts</div>
+              {/** Added title enter field */}
+              <div className= {`cp-card ${titleError ? "cp-card-error" : ""}`}>
+                <div className="cp-section-title">Title<span className="required">*</span></div>
+                <div className="cp-section-sub">Enter the title of your post</div>
 
                 <div className="cp-textarea-wrapper">
                   <textarea
                     className="cp-textarea"
                     placeholder="What do you want to share?"
-                    value={caption}
-                    onChange={(e) => setCaption(e.target.value)}
-                    maxLength={2200}
+                    value={title}
+                    onChange={(e) => {setTitle(e.target.value); setTitleError(false)}}
+                    maxLength={MAX_TITLE_LENGTH}
                   />
                 </div>
 
@@ -235,14 +274,45 @@ function CreatePost() {
                       <BsHash size={16} />
                     </button>
                   </div>
-                  <span className="cp-char-count">{caption.length}/2200</span>
+                  <span className="cp-char-count">{title.length}/{MAX_TITLE_LENGTH}</span>
+                </div>
+              </div>
+
+
+              <div className="cp-card">
+                <div className="cp-section-title">Caption</div>
+                <div className="cp-section-sub">This caption will be used across selected accounts</div>
+
+                <div className="cp-textarea-wrapper">
+                  <textarea
+                    className="cp-textarea"
+                    placeholder="What do you want to share?"
+                    value={caption}
+                    onChange={(e) => setCaption(e.target.value)}
+                    maxLength={MAX_CAPTION_LENGTH}
+                  />
+                </div>
+
+                <div className="cp-textarea-footer">
+                  <div className="cp-toolbar">
+                    <button className="cp-toolbar-btn" type="button" title="Add emoji">
+                      <MdOutlineEmojiEmotions size={16} />
+                    </button>
+                    <button className="cp-toolbar-btn" type="button" title="Mention">
+                      <MdOutlineAlternateEmail size={16} />
+                    </button>
+                    <button className="cp-toolbar-btn" type="button" title="Hashtag">
+                      <BsHash size={16} />
+                    </button>
+                  </div>
+                  <span className="cp-char-count">{caption.length}/{MAX_CAPTION_LENGTH}</span>
                 </div>
               </div>
 
               {/** Wired to a file input now */}
-              <div className="cp-card">
+              <div className= {`cp-card ${mediaError ? "cp-card-error" : ""}`}>
 
-                <div className="cp-section-title">Media</div>
+                <div className="cp-section-title">Media<span className="required">*</span></div>
                 <div className="cp-section-sub">Attach images or video to your post</div>
 
                 {/** Converted div to label*/}
@@ -272,7 +342,23 @@ function CreatePost() {
                     
               </div>
 
+              {/** Import TikTok Settings Component */}
+              <TikTokSettings
+              
+                queryInfo = {queryInfo}
+                privacyLevel = {privacyLevel}
+                // If there is val, then value was selected and no error must occur.
+                setPrivacyLevel = {(val) => {setPrivacyLevel(val); setPrivacyError(false)}} 
+                privacyError = {privacyError}
+                allowComments = {allowComments}
+                setAllowComments = {setAllowComments}
+                allowDuet = {allowDuet}
+                setAllowDuet = {setAllowDuet}
+                allowStitch = {allowStitch}
+                setAllowStitch = {setAllowStitch}
+              ></TikTokSettings>
 
+ 
 
               <div className="cp-card">
                 <div className="cp-section-title">When to post</div>
@@ -318,10 +404,11 @@ function CreatePost() {
                 <div className="cp-section-title">Upload Status</div>
                 <div className="cp-section-sub">
 
-                  { uploadStatus && (
+                  { statusToView && (
 
-                    <div className =  {`cp-upload-status ${uploadStatus.includes("Failed")? "cp-status-failed" : "cp-status-success"}`} > 
-                      {uploadStatus}
+                    <div className =  {`cp-upload-status ${statusToView.toLowerCase().includes("failed") 
+                    || statusToView.toLowerCase().includes("please")? "cp-status-failed" : "cp-status-success"}`} > 
+                      {statusToView}
                     </div>
 
 
@@ -341,7 +428,7 @@ function CreatePost() {
                 <div className="cp-actions">
                   <button className="cp-btn-draft">Save as Draft</button>
                   {/** Disabled when uploading video */}
-                  <button className="cp-btn-schedule" onClick = {() => handleMediaUpload()} disabled = {isUploading}>
+                  <button className="cp-btn-schedule" onClick = {() => handleSubmitUpload()} disabled = {isUploading}>
                     {scheduleMode === "now" ? "Post Now" : scheduleMode === "queue" ? "Add to Queue" : "Schedule Post"}
                   </button>
                 </div>

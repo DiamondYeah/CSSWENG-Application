@@ -10,11 +10,13 @@ import {type IUser} from "../models/user.ts"
 // Interface for video upload
 interface TikTokVideoUpload{
 
-
     user: IUser;
     title: string;
     privacyLevel: string;
     videoSize: number;
+    allowComments: boolean;
+    allowDuet: boolean;
+    allowStitch: boolean;
     
 }
 
@@ -45,9 +47,9 @@ export async function obtainInitialUpload(video: TikTokVideoUpload){
 
                 title: video.title,
                 privacy_level: video.privacyLevel,
-                disable_duet: false,
-                disable_comment: false,
-                disable_stitch: false,
+                disable_duet: !video.allowDuet,
+                disable_comment: !video.allowComments,
+                disable_stitch: !video.allowStitch,
                 video_cover_timestamp_ms: 1000
 
             },

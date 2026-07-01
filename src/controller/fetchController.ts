@@ -8,16 +8,21 @@ const UPLOAD_VIDEO_DIRECT = `${API_BASE}/videoUpload/upload`;
 const UPLOAD_STATUS_DIRECT = `${API_BASE}/videoUpload/poststatus`;
 const UPLOAD_PHOTOS_DIRECT = `${API_BASE}/photoUpload/photoUpload`;
 
+// CORS BASE HEADER
+const CORS_HEADER: Record<string, string> = { "ngrok-skip-browser-warning": "true"}
+ 
 
 // Function calls router user info from API to display user information
 export async function fetchUserInfo(){
 
     // Fetch router with credentials
-    const res = await fetch(USERINFO_API, {
+    const res = await fetch(USERINFO_API, 
+    {
+        credentials: "include",
+        headers: CORS_HEADER
 
-        credentials: "include"
-
-    })
+    },
+   )
 
     // Convert res to json and return
     const userInfo = await res.json();
@@ -32,7 +37,8 @@ export async function fetchQueryInfo(){
     // Fetch router with credentials
     const res = await fetch(QUERY_DIRECT, {
 
-        credentials: "include"
+        credentials: "include",
+        headers: CORS_HEADER
 
     })
 
@@ -45,19 +51,23 @@ export async function fetchQueryInfo(){
 
 
 // Function calls router to prepare video for upload from API by giving parameter details to obtain publishID and uploadURL
-export async function initializeUploadPost(title: string, privacyLevel: string, videoSize: number){
+export async function initializeUploadPost(title: string, privacyLevel: string, videoSize: number, allowComments: boolean,
+                                            allowDuet: boolean, allowStitch: boolean){
 
     // Fetch router with credentials
     const res = await fetch(INITIAL_UPLOAD_DIRECT, {
 
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: { ...CORS_HEADER, "Content-Type": "application/json" },
         body: JSON.stringify({
 
             title: title,
             privacyLevel: privacyLevel,
-            videoSize: videoSize
+            videoSize: videoSize,
+            allowComments: allowComments,
+            allowDuet: allowDuet,
+            allowSwitch: allowStitch
 
         })
 
@@ -84,6 +94,7 @@ export async function uploadToTikTok(videoFile: File, uploadURL: string){
 
         method: "POST",
         credentials: "include",
+        headers: CORS_HEADER,
         body: formData
 
     })
@@ -104,7 +115,7 @@ export async function checkUploadStatus(publishID: string){
 
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: { ...CORS_HEADER, "Content-Type": "application/json" },
         body: JSON.stringify({publishID})
 
     })
@@ -134,6 +145,7 @@ export async function uploadPhotos(photos: File[], title: string, description: s
 
         method: "POST",
         credentials: "include",
+        headers: CORS_HEADER,
         body: formData
 
     })
