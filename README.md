@@ -19,16 +19,19 @@
 tiktok_api/
 ├── frontend/
 │   └── src/
-│       ├── components/        # Reusable UI (only buttons at the moment)
-│       ├── controller/        # Performs backend API calls
-│       └── pages/             # Page components
+│       ├── components/      # Reusable UI (only buttons at the moment)
+│       ├── controller/      # Performs backend API calls
+│       └── pages/           # Page components
 │
 └── server/
-    ├── routes/                # HTTP route handlers
-    ├── dbcontrollers/         # Database CRUD logic
-    ├── models/                # Mongoose schemas 
-    ├── database/              # MongoDB connection setup
-    └── publicfiles/           # Static folder for serving uploaded photos publicly
+    ├── routes/              # HTTP route handlers
+    ├── dbcontrollers/       # Database CRUD logic
+    ├── models/              # Mongoose schemas
+    ├── server_services/     # External API call logic to TikTok API
+    ├── utilities/           # Helper functions
+    ├── middleware/          # Auth/request middleware for routes
+    ├── database/            # MongoDB connection setup
+    └── publicfiles/         # Static folder for serving uploaded photos publicly
 ```
 
 ## Prerequisites
