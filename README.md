@@ -66,6 +66,7 @@ Repo for version control for the development of the application. Description wil
 <ul>
   <li> What I'll do Next </li>
   <ul>
+    <li>Fix the stupid CORS issue </li>
     <li>Add Music Usage Confirmation declaration above post button (required for TikTok approval)</li>
     <li>Add Commercial Content Disclosure component when you toggle "Your Brand" and "Branded Content" checkboxes (required for TikTok approval)</li>
     <li>Post prevental check when user has reached their daily posting limit (required for TikTok approval)</li>
@@ -77,6 +78,7 @@ Repo for version control for the development of the application. Description wil
     <li>Calendar Scheduling with proper hooking to scheduleDate and scheduleTime</li>
     <li>Add Instagram and YouTube platform support following the same pattern as TikTok (useInstagramUpload, InstagramSettings.tsx)</li>
     <li>Fix UserPost.tsx to make it cleaner and less cluttered (Tbh it's still cluttered even with my changes :/)</li>
+    <li>Live Domain</li>
     <li>Calendar Approval/Denial with Comments</li>
     <li>Music Picker</li>
   </ul>
@@ -136,7 +138,50 @@ tiktok_api/
     </ul>
 </ul>
 
-
 <b>Frontend:</b> React with either JavaScript or TypeScript
 <br>
 <b>Backend:</b> MongoDB (May change)
+
+## Prerequisites
+
+### General
+- Node.js 
+- MongoDB running locally (Use Compass to view the database)
+- [ngrok](https://ngrok.com/) account (free tier works). Needed because TikTok requires a public HTTPS redirect URI, which `localhost` can't satisfy
+
+### For TikTok
+- A TikTok Developer account at https://developers.tiktok.com
+- A TikTok app registered in the Developer Portal with:
+  - Login Kit enabled
+  - Content Posting API enabled (with Direct Post configuration turned on)
+  - Scopes added: `user.info.basic`, `user.info.profile`, `user.info.stats`, `video.publish`, `video.upload`
+- **Your TikTok test account must be set to a Private account**
+- A lot of installs for stuff like ngrok
+
+## Setup (TikTok)
+1. Add you tiktok account in Sandbox Settings for testing
+   - **Must be set private**
+3. Clone the repo, run `npm install` in both `/server` and `/frontend`
+4. Copy `.env.example` to `.env` in `/server` and fill in:
+   - `TIKTOK_CLIENT_KEY` / `TIKTOK_CLIENT_SECRET` (from TikTok Developer Portal)
+   - `MONGODB_URI=mongodb://localhost:27017/tiktok_api`
+   - `BASE_URL=http://localhost:5173` (NO TRAILING SLASH BECAUSE IT WILL BREAK CORS)
+   - `REDIRECT_URI`, `PUBLIC_URL` and `PORT` — see below
+5. Download ngrok and create an account to get an authtoken in dashboard (https://dashboard.ngrok.com/get-started/setup/windows)
+6. Start ngrok: `ngrok http 5000` (or whatever port your server uses)
+7. Copy the ngrok HTTPS URL it gives you
+8. In TikTok Developer Portal, set the **Redirect URI** under the login kit to:
+   `https://<your-ngrok-url>/logAuth/oauth2/callback`
+9. Set `REDIRECT_URI` and `PUBLIC_URL` in your `.env` to match exactly
+   - **ngrok's free-tier URL changes every time you restart it.** 
+10. Run the backend: `npm run dev` (in `/server`)
+11. Run the frontend: `npm run dev` (in `./`) (Just run it in the base folder)
+12. Visit `http://localhost:5173`, click "Log In"
+
+## Current Limitations
+
+- Photo posting (`PULL_FROM_URL`) requires a **verified domain** in TikTok's 
+  Developer Portal — ngrok's rotating domain can't be verified, so photo 
+  posting won't work out of the box without your own stable domain. So we need a live domain.
+- Posts are restricted to private until we pass the review process for our application
+- Using an ngrok domain instead of a live one in the internet. Required to run ngrok everytime
