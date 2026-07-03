@@ -1,6 +1,15 @@
-import { useState, type JSX } from "react";
+import { useEffect, useState, type JSX } from "react";
 import Navbar from "../components/Navbar";
 import "./Accounts.css";
+
+// Import functions from controller
+import { fetchQueryInfo, fetchUserInfo } from "../controller/fetchController.ts";
+
+/* ---------- API Logic ---------- */
+
+// Constants for TikTok API
+const LOGINREDIRECT = "https://smilingly-breeches-amusable.ngrok-free.dev/logAuth/tiktoklogin";
+
 
 /* ---------- Types ---------- */
 
@@ -136,7 +145,88 @@ export default function AgilaPostConnectAccounts() {
     (list) => list.length > 0
   ).length;
 
-  const handleConnect = (platformId: PlatformId) => {
+
+
+  // useEffect to handle redirect back (Checks cookie if user just returned from an OAuth Login)
+  useEffect(() => {
+
+    // Function to load TikTok Information
+    async function loadTikTokAccount(){
+
+      try{
+
+        // Call function to get user info
+        const userInfo = await fetchUserInfo();
+        console.log("Raw userInfo response:", userInfo);
+
+        // Silently return if open id not found
+        if(!userInfo?.data?.open_id)
+          return;
+
+        const queryInfo = await fetchQueryInfo();
+        console.log("Raw queryInfo response:", queryInfo)
+
+        setAccounts((prev) => {
+
+          const user = userInfo.data;
+
+          // Check if user already exists within accounts variable. If they do, just return.
+          const userAlreadyAdded = prev.tiktok.some(a => a.id == user.open_id);
+
+          if(userAlreadyAdded)
+            return prev;
+
+          // Create new account while keeping other accounts in the array with ...
+          return{
+
+            ...prev,
+            tiktok: [
+              ...prev.tiktok,
+              {
+
+                id: user.open_id,
+                handle: `@${user.username ?? "unknown"}`,
+                label: user.display_name ?? "unkonwn"
+
+              }
+
+            ]
+
+          }
+
+        });
+
+      }
+      catch(e){
+
+        alert("Error: " + e);
+
+      }
+
+    }
+
+    // Call function
+    loadTikTokAccount();
+
+  }, [])
+
+
+
+  // Changed to function
+  function handleConnect(platformId: PlatformId){
+
+
+    switch(platformId){
+
+
+      case "tiktok":
+        window.location.href = LOGINREDIRECT;
+        return
+
+    }
+
+
+
     setConnectingPlatform(platformId);
     // Simulated OAuth round trip — swap for your real redirect/popup flow.
     // Each successful connect appends a new account rather than replacing one,

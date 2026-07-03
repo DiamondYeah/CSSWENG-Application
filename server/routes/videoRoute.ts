@@ -13,7 +13,7 @@ import {type IUser} from "../models/user.ts"
 import {obtainInitialUpload, uploadVideo, obtainPostStatus} from "../server_services/tiktokVideoService.ts"
 import {findUserAuth, type AuthUserRequest} from "../middleware/tiktokAuthMiddleware.ts";
 import {createUserPost, updatePostStatus} from "../dbcontrollers/postRepository.ts";
-import {mapTikTokPostStatus} from "../utilities/videoUtilities.ts"
+import {mapTikTokPostStatus, mapPostStatusToView} from "../server_utilities/videoUtilities.ts"
 
 // Creater router
 const { Router } = pkg;
@@ -34,15 +34,21 @@ router.post("/initupload", findUserAuth, async (req: AuthUserRequest, res: Respo
     const user: IUser = req.user as IUser;
 
     // Get info from request
-    const {title, privacyLevel, videoSize} = req.body;
+    const {title, privacyLevel, videoSize, allowComments, allowDuet, allowStitch} = req.body;
 
 
     // Try-catch getting user information basic and profile from Tiktok API
     try{
 
         // Get user TikTok initial upload info results by calling obtainInitialUpload and passing arguments below and return result
-        const userInitUpload = await obtainInitialUpload({ user: user, title: title, 
-                                                     privacyLevel: privacyLevel, videoSize: videoSize})
+        const userInitUpload = await obtainInitialUpload({ 
+            user: user, 
+            title: title, 
+            privacyLevel: privacyLevel, 
+            videoSize: videoSize,
+            allowComments: allowComments,
+            allowDuet: allowDuet,
+            allowStitch: allowStitch})
 
 
         if(userInitUpload){
@@ -142,8 +148,15 @@ router.post("/poststatus", findUserAuth, async (req: AuthUserRequest, res: Respo
             });
 
 
-            // Send successful JSON 
-            return res.json({ success: true, data: userStatusUpload.data})
+            // Send successful JSON and map status
+            return res.json({ success: true, data: {
+
+                ...userStatusUpload.data,
+                status: mapPostStatusToView(userStatusUpload.data.status)
+                
+                }  
+        
+            })
 
         }
 

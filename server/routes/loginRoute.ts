@@ -70,7 +70,7 @@ router.get("/oauth2/callback", async (req: Request, res: Response) => {
         res.cookie("session_user_id", user._id.toString(), {httpOnly: true, secure: true, sameSite: "none", path: "/"})
 
         // Redirect user back
-        res.redirect(process.env.BASE_URL as string);
+        res.redirect(process.env.ACCOUNTS_REIDRECT_URL as string);
 
 
     }catch(err){

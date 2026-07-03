@@ -74,5 +74,35 @@ router.get("/queryinfo", findUserAuth, async (req: AuthUserRequest, res: Respons
 });
 
 
+// UPDATE ROUTE FOR OTHER APIs
+router.get("/getconnectedaccounts", findUserAuth, async (req: AuthUserRequest, res: Response) => {
+
+    const user:IUser = req.user as IUser;
+
+
+    // Empty array holding account information
+    const accounts = [];
+
+    // Currently has TikTok but other APIs can be added here
+    if(user.accessToken){ // TikTok API check
+
+        const tiktokInfo = await obtainUserInfo(user);
+        accounts.push({
+
+            platform: "tiktok",
+            id: tiktokInfo.data.open_id,
+            name: `@${tiktokInfo.data.username ?? "unknown"}`,
+            handle: tiktokInfo.data.display_name ?? "unkonwn"
+
+        });
+
+
+        return res.json({ success: true, data: tiktokInfo.data.user})
+    }
+
+
+})
+
+
 
 export default router;
