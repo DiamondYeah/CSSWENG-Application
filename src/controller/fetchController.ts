@@ -1,16 +1,37 @@
 // fetchController.ts
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
+const DISCONNECT_DIRECT = `${API_BASE}/logAuth/disconnect`;
 const USERINFO_API = `${API_BASE}/userInfo/getuserinfo`;
 const QUERY_DIRECT = `${API_BASE}/userInfo/queryinfo`;
 const INITIAL_UPLOAD_DIRECT = `${API_BASE}/videoUpload/initupload`;
 const UPLOAD_VIDEO_DIRECT = `${API_BASE}/videoUpload/upload`;
 const UPLOAD_STATUS_DIRECT = `${API_BASE}/videoUpload/poststatus`;
 const UPLOAD_PHOTOS_DIRECT = `${API_BASE}/photoUpload/photoUpload`;
+const SCHEDULED_POSTS_DIRECT = `${API_BASE}/postInfo/getscheduledposts`;
 
 // CORS BASE HEADER
 const CORS_HEADER: Record<string, string> = { "ngrok-skip-browser-warning": "true"}
  
+
+// Funcation calls router to disconnect TikTok user
+export async function disconnectTikTokUser(){
+
+    const res = await fetch(DISCONNECT_DIRECT,
+    {
+
+        method: "POST",
+        credentials: "include",
+
+
+    })
+
+    // Convert res to json and return
+    const disconnectInfo = await res.json();
+
+    return disconnectInfo;
+
+}
 
 // Function calls router user info from API to display user information
 export async function fetchUserInfo(){
@@ -21,11 +42,11 @@ export async function fetchUserInfo(){
         credentials: "include",
         headers: CORS_HEADER
 
-    },
-   )
+    })
 
     // Convert res to json and return
     const userInfo = await res.json();
+
     return userInfo;
 
 }
@@ -42,6 +63,7 @@ export async function fetchQueryInfo(){
 
     })
 
+    // Convert res to json and return
     const queryInfo = await res.json();
 
     return queryInfo;
@@ -52,7 +74,7 @@ export async function fetchQueryInfo(){
 
 // Function calls router to prepare video for upload from API by giving parameter details to obtain publishID and uploadURL
 export async function initializeUploadPost(title: string, privacyLevel: string, videoSize: number, allowComments: boolean,
-                                            allowDuet: boolean, allowStitch: boolean){
+                                            allowDuet: boolean, allowStitch: boolean, scheduleDate?: Date){
 
     // Fetch router with credentials
     const res = await fetch(INITIAL_UPLOAD_DIRECT, {
@@ -67,12 +89,14 @@ export async function initializeUploadPost(title: string, privacyLevel: string, 
             videoSize: videoSize,
             allowComments: allowComments,
             allowDuet: allowDuet,
-            allowSwitch: allowStitch
+            allowSwitch: allowStitch,
+            scheduleDate: scheduleDate?.toISOString() ?? null
 
         })
 
     })
 
+    // Convert res to json and return
     const intialUploadInfo = await res.json();
 
     return intialUploadInfo;
@@ -99,6 +123,7 @@ export async function uploadToTikTok(videoFile: File, uploadURL: string){
 
     })
 
+    // Convert res to json and return
     const uploadInfo = await res.json();
 
     return uploadInfo;
@@ -120,6 +145,7 @@ export async function checkUploadStatus(publishID: string){
 
     })
 
+    // Convert res to json and return
     const statusInfo = await res.json();
 
     return statusInfo;
@@ -151,9 +177,26 @@ export async function uploadPhotos(photos: File[], title: string, description: s
     })
 
     const photosInfo = await res.json();
-    console.log("Photo Info Result: ", photosInfo);
 
     return photosInfo;
 
+
+}
+
+
+export async function fetchScheduledPosts(){
+
+    // Fetch router with credentials
+    const res = await fetch(SCHEDULED_POSTS_DIRECT, 
+    {
+        credentials: "include",
+        headers: CORS_HEADER
+
+    })
+
+    // Convert res to json and return
+    const scheduledPostInfo = await res.json();
+
+    return scheduledPostInfo;
 
 }

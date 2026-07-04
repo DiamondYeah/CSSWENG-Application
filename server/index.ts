@@ -15,6 +15,7 @@ import loginRoute from "./routes/loginRoute.ts";
 import userInfoRoute from "./routes/userInfoRoute.ts";
 import videoRoute from "./routes/videoRoute.ts";
 import photoRoute from "./routes/photoRoute.ts";
+import postRoute from "./routes/postRoute.ts";
 
 // Import database
 import connectDB from "./database/db.ts"
@@ -41,6 +42,7 @@ app.use("/logAuth", loginRoute);
 app.use("/userInfo", userInfoRoute);
 app.use("/videoUpload", videoRoute);
 app.use("/photoUpload", photoRoute);
+app.use("/postInfo", postRoute);
 
 // Access files stored in /publicfiles in browser
 app.use("/publicfiles", express.static(path.join(process.cwd(), "publicfiles"))); 

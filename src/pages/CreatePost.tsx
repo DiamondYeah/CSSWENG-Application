@@ -22,8 +22,6 @@ import {usePostUpload} from "../hooks/postUpload.ts"
 // Import TikTok Settings Component
 import { TikTokSettings } from "../components/TikTokSettings.tsx";
 
-
-
 // ---------- Constants for media posting ---------- //
 
 // Title and Caption Length
@@ -49,7 +47,7 @@ function CreatePost() {
     const [mediaFile, setMediaFile] = useState<File | null>(null);
 
     // TO BE ADDED FOR CALENDAR SCHEDULING
-    const [scheduleDate, setScheduleDate] = useState<Date>();
+    const [scheduleDate, setScheduleDate] = useState<string>("");
     const [scheduleTime, setScheduleTime] = useState<string>("");
 
   
@@ -64,6 +62,7 @@ function CreatePost() {
     const [titleError, setTitleError] = useState<boolean>(false);
     const [mediaError, setMediaError] = useState<boolean>(false);
     const [privacyError, setPrivacyError] = useState<boolean>(false);
+    const [scheduleError, setScheduleError] = useState<boolean>(false);
 
     // Status to show to user when something occurs in the post page.
     const statusToView = validationMessage || uploadStatus; // ValidationMessage takes priority
@@ -75,6 +74,7 @@ function CreatePost() {
       prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id]
     );
   }
+
 
   // Function handles any file uploads in HTML input file and stores it in mediaFile const
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>){
@@ -126,10 +126,12 @@ function CreatePost() {
     const missingTitle = !title.trim();
     const missingMedia = !mediaFile;
     const missingPrivacy = !privacyLevel;
+    const missingSchedule = (scheduleMode == "schedule" && (!scheduleDate || !scheduleTime))
 
     setTitleError(missingTitle);
     setMediaError(missingMedia);
     setPrivacyError(missingPrivacy);
+    setScheduleError(missingSchedule);
 
 
     // PLEASE FIX TO MAKE IT MUCH BETTER. I GOT SO LAZY HERE :P
@@ -155,6 +157,10 @@ function CreatePost() {
     if(missingPrivacy)
       return setValidationMessage("Please select a privacy level before posting!")
 
+    if(missingSchedule)
+      return setValidationMessage("Please select a date and/or time to schedule your post!")
+
+
     // Validation checking if selected accounts is 0
     if(selectedAccounts.length === 0)
       return setValidationMessage("Please select an account to upload to!")
@@ -175,7 +181,10 @@ function CreatePost() {
       privacyLevel: privacyLevel, 
       allowComments: allowComments,
       allowDuet: allowDuet,
-      allowStitch: allowStitch
+      allowStitch: allowStitch,
+      // Ternary opertaor to send undefined if scheduleDate has no value and user is not in scheduleMode (User chose Post Now)
+      scheduleDate: scheduleMode == "schedule" && scheduleDate
+      ? new Date(`${scheduleDate}T${scheduleTime|| "00:00"}`): undefined 
 
     })
 
@@ -360,14 +369,14 @@ function CreatePost() {
 
  
 
-              <div className="cp-card">
+              <div className= {`cp-card ${scheduleError ? "cp-card-error" : ""}`}>
                 <div className="cp-section-title">When to post</div>
                 <div className="cp-section-sub">Choose when this post should go out</div>
 
                 <div className="cp-schedule-options">
                   <div
                     className={`cp-schedule-pill${scheduleMode === "now" ? " active" : ""}`}
-                    onClick={() => setScheduleMode("now")}
+                    onClick={() => {setScheduleMode("now"); setScheduleError(false)}}
                   >
                     Post now
                   </div>
@@ -379,7 +388,7 @@ function CreatePost() {
                   </div>
                   <div
                     className={`cp-schedule-pill${scheduleMode === "queue" ? " active" : ""}`}
-                    onClick={() => setScheduleMode("queue")}
+                    onClick={() => {setScheduleMode("queue"); setScheduleError(false)}}
                   >
                     Add to queue
                   </div>
@@ -389,11 +398,12 @@ function CreatePost() {
                   <div className="cp-schedule-row">
                     <div className="cp-field">
                       <label>Date</label>
-                      <input type="date" />
+                      <input type="date" value = {scheduleDate}
+                      onChange = {(e) => {setScheduleDate(e.target.value); setScheduleError(false);}}/>
                     </div>
                     <div className="cp-field">
-                      <label>Time</label>
-                      <input type="time" />
+                      <label> Time - <span className = "cp-section-sub">{Intl.DateTimeFormat().resolvedOptions().timeZone}</span></label>
+                      <input type="time" value = {scheduleTime} onChange = {(e) => {setScheduleTime(e.target.value); setScheduleError(false);}}/>
                     </div>
                   </div>
                 )}

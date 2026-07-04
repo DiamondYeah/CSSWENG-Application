@@ -18,6 +18,7 @@ interface PostUpload{
     allowComments: boolean;
     allowDuet: boolean;
     allowStitch: boolean;
+    scheduleDate?: Date;
 
 }
 
@@ -39,7 +40,8 @@ export function usePostUpload(){
     
           // Get initial upload info from initializeUploadPost and store info result
           const initUploadResult = await initializeUploadPost(postDetails.title, postDetails.privacyLevel, postDetails.mediaFile.size, 
-                                                                postDetails.allowComments, postDetails.allowDuet, postDetails.allowStitch);
+                                                                postDetails.allowComments, postDetails.allowDuet, postDetails.allowStitch,
+                                                                postDetails.scheduleDate);
     
           if(!initUploadResult?.data?.upload_url)
             throw new Error("No upload url found from initial upload!");

@@ -12,7 +12,7 @@ import {type IUser} from "../models/user.ts"
 // Import Service Functions, Middleware Functions, Database Controller Functions, and Util Functions
 import {obtainInitialUpload, uploadVideo, obtainPostStatus} from "../server_services/tiktokVideoService.ts"
 import {findUserAuth, type AuthUserRequest} from "../middleware/tiktokAuthMiddleware.ts";
-import {createUserPost, updatePostStatus} from "../dbcontrollers/postRepository.ts";
+import {createUserPost, updatePostSchedule, updatePostStatus} from "../dbcontrollers/postRepository.ts";
 import {mapTikTokPostStatus, mapPostStatusToView} from "../server_utilities/videoUtilities.ts"
 
 // Creater router
@@ -34,7 +34,7 @@ router.post("/initupload", findUserAuth, async (req: AuthUserRequest, res: Respo
     const user: IUser = req.user as IUser;
 
     // Get info from request
-    const {title, privacyLevel, videoSize, allowComments, allowDuet, allowStitch} = req.body;
+    const {title, privacyLevel, videoSize, allowComments, allowDuet, allowStitch, scheduleDate} = req.body;
 
 
     // Try-catch getting user information basic and profile from Tiktok API
@@ -57,11 +57,13 @@ router.post("/initupload", findUserAuth, async (req: AuthUserRequest, res: Respo
             await createUserPost({
 
                 userID: user._id,
+                platformAccountID: user.tiktokOpenID,
                 platform: "tiktok",
                 postType: "video",
                 publishID: userInitUpload.data.publish_id,
                 status: "pending",
                 title: title,
+                scheduledDate: scheduleDate ? new Date(scheduleDate) : undefined
 
             });
 
@@ -173,5 +175,6 @@ router.post("/poststatus", findUserAuth, async (req: AuthUserRequest, res: Respo
 
 
 });
+
 
 export default router;

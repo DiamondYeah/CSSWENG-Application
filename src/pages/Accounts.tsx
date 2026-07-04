@@ -3,7 +3,7 @@ import Navbar from "../components/Navbar";
 import "./Accounts.css";
 
 // Import functions from controller
-import { fetchQueryInfo, fetchUserInfo } from "../controller/fetchController.ts";
+import { disconnectTikTokUser, fetchQueryInfo, fetchUserInfo } from "../controller/fetchController.ts";
 
 /* ---------- API Logic ---------- */
 
@@ -218,7 +218,6 @@ export default function AgilaPostConnectAccounts() {
 
     switch(platformId){
 
-
       case "tiktok":
         window.location.href = LOGINREDIRECT;
         return
@@ -250,12 +249,24 @@ export default function AgilaPostConnectAccounts() {
     }, 1000);
   };
 
-  const handleDisconnect = (platformId: PlatformId, accountId: string) => {
+
+  // Changed to function
+  async function handleDisconnect(platformId: PlatformId, accountId: string){
+
+    
+    switch(platformId){
+
+      case "tiktok":
+        await disconnectTikTokUser();
+
+    }
+
     setAccounts((prev) => ({
       ...prev,
       [platformId]: prev[platformId].filter((a) => a.id !== accountId),
     }));
   };
+
 
   return (
     <div className="agp-layout">

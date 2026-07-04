@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -8,6 +8,12 @@ import {
   Check,
 } from "lucide-react";
 import "./Calendar.css";
+
+
+// Import functions from controller, hooks and utilities
+import {useConnectAccounts} from "../hooks/connectAccounts.ts";
+import { useScheduledPosts, type ScheduledPost } from "../hooks/getScheduledPost";
+
 
 // ---------------------------------------------------------------
 // platform icons
@@ -87,6 +93,7 @@ export interface Account {
   name: string;
   platform: Platform;
 }
+
 
 export interface Post {
   id: string;
@@ -217,12 +224,24 @@ function PostCard({
 // ---------------------------------------------------------------
 
 export default function AgilaPostCalendar({
-  accounts = [],
-  posts = [],
-  timezone = "Asia/Manila",
+  timezone = Intl.DateTimeFormat().resolvedOptions().timeZone, // Changed to this so it always show local timezone
   onConnectAccount,
   onSelectPost,
-}: AgilaPostCalendarProps) {
+}: Omit<AgilaPostCalendarProps, "accounts" | "posts">) {
+  const {accounts: unmappedAccounts} = useConnectAccounts();
+  const {posts, isLoading: postsLoading, error: postsError} = useScheduledPosts();
+
+
+  const accounts: Account[] = unmappedAccounts.map(account => ({
+
+    id: account.id,
+    name: account.name,
+    platform: account.platform.toLowerCase().trim() as Platform
+
+  }));
+
+
+
   const today = useMemo(() => new Date(), []);
   const [cursorDate, setCursorDate] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
   const [view, setView] = useState<"month" | "week">("month");
@@ -240,17 +259,24 @@ export default function AgilaPostCalendar({
 
   const weeks = useMemo(() => buildMonthGrid(year, month), [year, month]);
 
+
+  useEffect(() => {
+
+    setCheckedAccounts(accounts.reduce((acc, a) => ({...acc, [a.id]: true}), {}))
+
+  }, [accounts]);
+
   const accountsById = useMemo(
     () => Object.fromEntries(accounts.map((a) => [a.id, a])),
     [accounts]
   );
 
   const postsByDate = useMemo(() => {
-    const map: Record<string, Post[]> = {};
+    const map: Record<string, ScheduledPost[]> = {};
     for (const p of posts) {
       if (checkedAccounts[p.accountId] === false) continue;
-      if (!map[p.date]) map[p.date] = [];
-      map[p.date].push(p);
+      if (!map[p.date!]) map[p.date!] = [];
+      map[p.date!].push(p);
     }
     return map;
   }, [posts, checkedAccounts]);

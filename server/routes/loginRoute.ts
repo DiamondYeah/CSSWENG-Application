@@ -2,12 +2,15 @@ import pkg from "express";
 import type { Request, Response } from "express";
 import dotenv from "dotenv";
 
+import {type IUser} from "../models/user.ts"
+
 // Load env file
 dotenv.config();
 
 // Import Database Functions and Service Functions
 import {createOrSaveUserTokensFromSeconds} from "../dbcontrollers/userRepository.ts";
-import {createTikTokAuth, obtainTikTokToken} from "../server_services/tiktokAuthService.ts";
+import {createTikTokAuth, disconnectTikTokAuth, obtainTikTokToken} from "../server_services/tiktokAuthService.ts";
+import { type AuthUserRequest, findUserAuth } from "../middleware/tiktokAuthMiddleware.ts";
 
 // Creater router
 const { Router } = pkg;
@@ -81,6 +84,28 @@ router.get("/oauth2/callback", async (req: Request, res: Response) => {
 
 });
 
+
+router.post("/disconnect", findUserAuth, async (req: AuthUserRequest, res: Response) => {
+
+    const user = req.user as IUser;
+
+    try{
+
+        const disconnectUser = await disconnectTikTokAuth(user);
+
+        // Remove session_user_id from cookies
+        res.clearCookie('session_user_id', {path: "/", secure: true, sameSite: "none"});
+
+        return res.json({ success: true, message: "User was disconnected successfully!", data: disconnectUser})
+
+
+    }catch(err){
+
+        return res.status(500).json({ success: false, message: "Failed to disconnect user!" });
+    }
+
+    
+});
 
 
 export default router;
