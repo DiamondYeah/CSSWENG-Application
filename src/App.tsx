@@ -9,6 +9,7 @@ import SignIn from './pages/SignIn';
 import SignUp from './pages/SignUp';
 import Calendar from './pages/Calendar';
 import Accounts from './pages/Accounts'
+import Category from './pages/Category'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { StrictMode } from 'react';
 const router = createBrowserRouter([
@@ -21,6 +22,7 @@ const router = createBrowserRouter([
   {path:"/terms", element:<TermsOfService/>},
   {path:"/calendar", element:<Calendar/>},
   {path:"/accounts", element:<Accounts/>},
+  {path:"/category", element:<Category/>},
   {path:"*", element:<NotFoundPage/>}
 ])
 //Routing 
