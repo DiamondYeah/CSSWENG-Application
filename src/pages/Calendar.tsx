@@ -6,6 +6,7 @@ import {
   FileText,
   MessageCircle,
   Check,
+  Share2,
 } from "lucide-react";
 import "./Calendar.css";
 
@@ -14,6 +15,9 @@ import "./Calendar.css";
 import {useConnectAccounts} from "../hooks/connectAccounts.ts";
 import { useScheduledPosts, type ScheduledPost } from "../hooks/getScheduledPost";
 
+import "./Scheduling.css";
+
+import Navbar from "../components/Navbar";
 
 // ---------------------------------------------------------------
 // platform icons
@@ -114,6 +118,7 @@ export interface AgilaPostCalendarProps {
   timezone?: string;
   onConnectAccount?: () => void;
   onSelectPost?: (post: Post) => void;
+  onShareCalendar?: () => void;
 }
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -295,197 +300,218 @@ export default function AgilaPostCalendar({
     );
 
   return (
-    <div className="ap-calendar">
-      {/* top bar */}
-      <div className="ap-topbar">
-        <div>
-          <div className="ap-topbar__brand">
-            Agila<span>Post</span>
+    <div>
+      <Navbar />
+      <main className="main-content">
+        <div className="scheduling-page">
+          <div className="scheduling-tabs">
+            <div className="tab"><a href="/create-post">Queue</a></div>
+            <div className="tab"><a href="/accounts">Accounts</a></div>
+            <div className="tab"><a href="/calendar">Calendar</a></div>
+            <div className="tab">Category</div>
+            <div className="tab">Timeslots</div>
           </div>
-          <div className="ap-topbar__subtitle">Content Calendar</div>
+
+      <div className="ap-calendar">
+        {/* top bar */}
+        <div className="ap-topbar">
+          <div>
+            <div className="ap-topbar__brand">
+              Agila<span>Post</span>
+            </div>
+            <div className="ap-topbar__subtitle">Content Calendar</div>
+          </div>
+          <div className="ap-topbar__right">
+            <div className="ap-topbar__meta">Timezone: {timezone}</div>
+            <button className="ap-share-btn" onClick="">
+              <Share2 size={14} />
+              Share Calendar
+            </button>
+          </div>
         </div>
-        <div className="ap-topbar__meta">Timezone: {timezone}</div>
-      </div>
 
-      <div className="ap-body">
-        {/* sidebar */}
-        <aside className="ap-sidebar">
-          <button className="ap-sidebar__collapse" aria-label="Collapse sidebar">
-            <ChevronLeft size={16} />
-          </button>
+        <div className="ap-body">
+          {/* sidebar */}
+          <aside className="ap-sidebar">
+            <button className="ap-sidebar__collapse" aria-label="Collapse sidebar">
+              <ChevronLeft size={16} />
+            </button>
 
-          <h2 className="ap-sidebar__title">Social Accounts</h2>
+            <h2 className="ap-sidebar__title">Social Accounts</h2>
 
-          <div className="ap-accounts-header">
-            <span className="ap-accounts-header__label">Accounts</span>
-            {accounts.length > 0 && (
-              <button className="ap-select-all" onClick={toggleSelectAll}>
-                <span className={`ap-checkbox ${allChecked ? "is-checked" : ""}`}>
-                  {allChecked && <Check size={11} color="#fff" />}
-                </span>
-                Select All
-              </button>
-            )}
-          </div>
+            <div className="ap-accounts-header">
+              <span className="ap-accounts-header__label">Accounts</span>
+              {accounts.length > 0 && (
+                <button className="ap-select-all" onClick={toggleSelectAll}>
+                  <span className={`ap-checkbox ${allChecked ? "is-checked" : ""}`}>
+                    {allChecked && <Check size={11} color="#fff" />}
+                  </span>
+                  Select All
+                </button>
+              )}
+            </div>
 
-          <div className="ap-accounts-list">
-            {accounts.length === 0 ? (
-              <div className="ap-accounts-empty">
-                <p className="ap-accounts-empty__text">
-                  No accounts connected yet.
-                  <br />
-                  Connect a Facebook, Instagram, LinkedIn, or TikTok account to start scheduling.
-                </p>
-                <button className="ap-connect-btn" onClick={onConnectAccount}>
-                  + Connect Account
+            <div className="ap-accounts-list">
+              {accounts.length === 0 ? (
+                <div className="ap-accounts-empty">
+                  <p className="ap-accounts-empty__text">
+                    No accounts connected yet.
+                    <br />
+                    Connect a Facebook, Instagram, LinkedIn, or TikTok account to start scheduling.
+                  </p>
+                  <button className="ap-connect-btn" onClick={onConnectAccount}>
+                    + Connect Account
+                  </button>
+                </div>
+              ) : (
+                accounts.map((acc) => {
+                  const { Icon, color } = PLATFORM_META[acc.platform];
+                  const checked = checkedAccounts[acc.id] !== false;
+                  return (
+                    <label key={acc.id} className="ap-account-row">
+                      <span
+                        className={`ap-account-toggle ${checked ? "is-checked" : ""}`}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          toggleAccount(acc.id);
+                        }}
+                      >
+                        {checked && <Check size={10} color="#fff" />}
+                      </span>
+                      <span className="ap-account-avatar">
+                        <span className="ap-account-avatar__circle">
+                          {acc.name.slice(0, 2).toUpperCase()}
+                        </span>
+                        <span
+                          className="ap-account-avatar__badge"
+                          style={{ backgroundColor: color }}
+                        >
+                          <Icon size={8} color="#fff" />
+                        </span>
+                      </span>
+                      <span className="ap-account-name">{acc.name}</span>
+                    </label>
+                  );
+                })
+              )}
+            </div>
+
+            <div className="ap-sidebar__options">
+              <label className="ap-option">
+                <input
+                  type="checkbox"
+                  checked={showFutureRepeats}
+                  onChange={() => setShowFutureRepeats((v) => !v)}
+                />
+                Show future instances of repeating posts
+              </label>
+              <label className="ap-option">
+                <input
+                  type="checkbox"
+                  checked={expandAll}
+                  onChange={() => setExpandAll((v) => !v)}
+                />
+                Expand all posts
+              </label>
+              <label className="ap-option">
+                <input
+                  type="checkbox"
+                  checked={showDrafts}
+                  onChange={() => setShowDrafts((v) => !v)}
+                />
+                Show drafts in Calendar
+              </label>
+            </div>
+          </aside>
+
+          {/* main calendar */}
+          <main className="ap-main">
+            <div className="ap-toolbar">
+              <div className="ap-toggle-group">
+                <button
+                  className={`ap-toggle-group__btn ${view === "month" ? "is-active" : ""}`}
+                  onClick={() => setView("month")}
+                >
+                  month
+                </button>
+                <button
+                  className={`ap-toggle-group__btn ${view === "week" ? "is-active" : ""}`}
+                  onClick={() => setView("week")}
+                >
+                  week
                 </button>
               </div>
-            ) : (
-              accounts.map((acc) => {
-                const { Icon, color } = PLATFORM_META[acc.platform];
-                const checked = checkedAccounts[acc.id] !== false;
-                return (
-                  <label key={acc.id} className="ap-account-row">
-                    <span
-                      className={`ap-account-toggle ${checked ? "is-checked" : ""}`}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        toggleAccount(acc.id);
-                      }}
-                    >
-                      {checked && <Check size={10} color="#fff" />}
-                    </span>
-                    <span className="ap-account-avatar">
-                      <span className="ap-account-avatar__circle">
-                        {acc.name.slice(0, 2).toUpperCase()}
-                      </span>
-                      <span
-                        className="ap-account-avatar__badge"
-                        style={{ backgroundColor: color }}
-                      >
-                        <Icon size={8} color="#fff" />
-                      </span>
-                    </span>
-                    <span className="ap-account-name">{acc.name}</span>
-                  </label>
-                );
-              })
-            )}
-          </div>
 
-          <div className="ap-sidebar__options">
-            <label className="ap-option">
-              <input
-                type="checkbox"
-                checked={showFutureRepeats}
-                onChange={() => setShowFutureRepeats((v) => !v)}
-              />
-              Show future instances of repeating posts
-            </label>
-            <label className="ap-option">
-              <input
-                type="checkbox"
-                checked={expandAll}
-                onChange={() => setExpandAll((v) => !v)}
-              />
-              Expand all posts
-            </label>
-            <label className="ap-option">
-              <input
-                type="checkbox"
-                checked={showDrafts}
-                onChange={() => setShowDrafts((v) => !v)}
-              />
-              Show drafts in Calendar
-            </label>
-          </div>
-        </aside>
+              <div className="ap-month-nav">
+                <button className="ap-month-nav__btn" onClick={goPrevMonth} aria-label="Previous month">
+                  <ChevronLeft size={20} />
+                </button>
+                <span className="ap-month-nav__label">{monthLabel}</span>
+                <button className="ap-month-nav__btn" onClick={goNextMonth} aria-label="Next month">
+                  <ChevronRight size={20} />
+                </button>
+              </div>
 
-        {/* main calendar */}
-        <main className="ap-main">
-          <div className="ap-toolbar">
-            <div className="ap-toggle-group">
-              <button
-                className={`ap-toggle-group__btn ${view === "month" ? "is-active" : ""}`}
-                onClick={() => setView("month")}
-              >
-                month
-              </button>
-              <button
-                className={`ap-toggle-group__btn ${view === "week" ? "is-active" : ""}`}
-                onClick={() => setView("week")}
-              >
-                week
-              </button>
+              <div className="ap-toggle-group">
+                <button
+                  className={`ap-toggle-group__btn ${postsView === "scheduled" ? "is-active" : ""}`}
+                  onClick={() => setPostsView("scheduled")}
+                >
+                  Scheduled Posts {postsView === "scheduled" && <Check size={13} />}
+                </button>
+                <button
+                  className={`ap-toggle-group__btn ${postsView === "published" ? "is-active" : ""}`}
+                  onClick={() => setPostsView("published")}
+                >
+                  Published Posts
+                </button>
+              </div>
             </div>
 
-            <div className="ap-month-nav">
-              <button className="ap-month-nav__btn" onClick={goPrevMonth} aria-label="Previous month">
-                <ChevronLeft size={20} />
-              </button>
-              <span className="ap-month-nav__label">{monthLabel}</span>
-              <button className="ap-month-nav__btn" onClick={goNextMonth} aria-label="Next month">
-                <ChevronRight size={20} />
-              </button>
-            </div>
+            <div className="ap-grid">
+              <div className="ap-grid__weekdays">
+                {WEEKDAYS.map((d) => (
+                  <div key={d} className="ap-grid__weekday">
+                    {d}
+                  </div>
+                ))}
+              </div>
 
-            <div className="ap-toggle-group">
-              <button
-                className={`ap-toggle-group__btn ${postsView === "scheduled" ? "is-active" : ""}`}
-                onClick={() => setPostsView("scheduled")}
-              >
-                Scheduled Posts {postsView === "scheduled" && <Check size={13} />}
-              </button>
-              <button
-                className={`ap-toggle-group__btn ${postsView === "published" ? "is-active" : ""}`}
-                onClick={() => setPostsView("published")}
-              >
-                Published Posts
-              </button>
-            </div>
-          </div>
-
-          <div className="ap-grid">
-            <div className="ap-grid__weekdays">
-              {WEEKDAYS.map((d) => (
-                <div key={d} className="ap-grid__weekday">
-                  {d}
+              {weeks.map((week, wi) => (
+                <div key={wi} className="ap-grid__week">
+                  {week.map(({ date, inMonth }, di) => {
+                    const isToday = isSameDay(date, today);
+                    const dayPosts = postsByDate[toDateKey(date)] || [];
+                    return (
+                      <div key={di} className={`ap-day-cell ${isToday ? "is-today" : ""}`}>
+                        <div className="ap-day-cell__date-row">
+                          <span
+                            className={`ap-day-cell__date ${isToday ? "is-today" : ""} ${
+                              !inMonth ? "is-outside" : ""
+                            }`}
+                          >
+                            {date.getDate()}
+                          </span>
+                        </div>
+                        {dayPosts.map((p) => (
+                          <PostCard
+                            key={p.id}
+                            post={p}
+                            accountName={accountsById[p.accountId]?.name ?? "Unknown account"}
+                            onSelect={onSelectPost}
+                          />
+                        ))}
+                      </div>
+                    );
+                  })}
                 </div>
               ))}
             </div>
-
-            {weeks.map((week, wi) => (
-              <div key={wi} className="ap-grid__week">
-                {week.map(({ date, inMonth }, di) => {
-                  const isToday = isSameDay(date, today);
-                  const dayPosts = postsByDate[toDateKey(date)] || [];
-                  return (
-                    <div key={di} className={`ap-day-cell ${isToday ? "is-today" : ""}`}>
-                      <div className="ap-day-cell__date-row">
-                        <span
-                          className={`ap-day-cell__date ${isToday ? "is-today" : ""} ${
-                            !inMonth ? "is-outside" : ""
-                          }`}
-                        >
-                          {date.getDate()}
-                        </span>
-                      </div>
-                      {dayPosts.map((p) => (
-                        <PostCard
-                          key={p.id}
-                          post={p}
-                          accountName={accountsById[p.accountId]?.name ?? "Unknown account"}
-                          onSelect={onSelectPost}
-                        />
-                      ))}
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-        </main>
+          </main>
+        </div>
       </div>
+        </div>
+      </main>
     </div>
   );
 }

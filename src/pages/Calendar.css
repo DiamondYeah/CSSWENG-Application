@@ -49,6 +49,29 @@
   color: var(--ap-text-muted);
 }
 
+.ap-topbar__right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.ap-share-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #fff;
+  background: var(--ap-blue);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.ap-share-btn:hover {
+  filter: brightness(1.08);
+}
+
 /* ---------- layout ---------- */
 
 .ap-body {
