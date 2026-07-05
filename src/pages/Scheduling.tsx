@@ -22,7 +22,7 @@ function Scheduling() {
         
 
       <div className="scheduling-tabs">
-        <div className="tab"><a href="/create-post">Queue</a></div>
+        <div className="tab"><a href="/queue">Queue</a></div>
         <div className="tab"><a href="/accounts">Accounts</a></div>
         <div className="tab"><a href="/calendar">Calendar</a></div>
         <div className="tab">Category</div>
