@@ -8,7 +8,7 @@ import {
   Check,
 } from "lucide-react";
 import "./Calendar.css";
-
+import SchedulingTabs from "../components/SchedulingTabs"; // NEW: replaces hardcoded tab divs
 // ---------------------------------------------------------------
 // platform icons
 // lucide-react dropped brand/social icons a while back, so these
@@ -269,7 +269,9 @@ export default function AgilaPostCalendar({
     );
 
   return (
+    
     <div className="ap-calendar">
+      <SchedulingTabs/>
       {/* top bar */}
       <div className="ap-topbar">
         <div>

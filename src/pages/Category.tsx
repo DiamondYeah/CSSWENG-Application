@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { Plus, Check, Trash2, Pencil, X } from "lucide-react";
 import "./Category.css";
 
-import Navbar from "../components/Navbar";
+import SchedulingTabs from "../components/SchedulingTabs"; // NEW: replaces hardcoded tab divs
 
 // ---------------------------------------------------------------
 // types
@@ -277,7 +277,7 @@ export default function CategoryPage({
 
   return (
     <div>
-      <Navbar />
+      <SchedulingTabs/>
       <main className="main-content">
         <div className="cat-page">
           <div className="cat-page__header">
