@@ -67,6 +67,9 @@ function CreatePost() {
 
     // Status to show to user when something occurs in the post page.
     const statusToView = validationMessage || uploadStatus; // ValidationMessage takes priority
+    const selectedPlatforms = accounts
+    .filter(acc => selectedAccounts.includes(acc.id))
+    .map(acc => acc.platform.toLowerCase());
 
 
 
@@ -124,7 +127,7 @@ function CreatePost() {
 
     // Store boolean result if title and/or media is empty 
     const missingTitle = !title.trim();
-    const missingMedia = !mediaFile;
+    const missingMedia = selectedPlatforms.includes("tiktok") && !mediaFile;
     const missingPrivacy = !privacyLevel;
 
     setTitleError(missingTitle);
@@ -152,8 +155,8 @@ function CreatePost() {
     if(missingMedia)
       return setValidationMessage("Please upload a media before posting!")
 
-    if(missingPrivacy)
-      return setValidationMessage("Please select a privacy level before posting!")
+    // if(missingPrivacy)
+    //   return setValidationMessage("Please select a privacy level before posting!")
 
     // Validation checking if selected accounts is 0
     if(selectedAccounts.length === 0)
@@ -169,15 +172,14 @@ function CreatePost() {
   
     // Perform media upload
     await uploadPost({
-
-      title: title, 
-      mediaFile: mediaFile!, 
-      privacyLevel: privacyLevel, 
-      allowComments: allowComments,
-      allowDuet: allowDuet,
-      allowStitch: allowStitch
-
-    })
+        title: title,
+        mediaFile: mediaFile!,
+        privacyLevel: privacyLevel,
+        allowComments: allowComments,
+        allowDuet: allowDuet,
+        allowStitch: allowStitch,
+        platforms: selectedPlatforms
+    });
 
   }
 

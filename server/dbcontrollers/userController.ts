@@ -8,29 +8,32 @@ import {refreshTikTokToken} from "../server_services/tiktokAuthService.ts"
 
 
 // Function refereshes user token to prevent relogin when expired
-export async function checkTokenIfExpired(userID: string): Promise<IUser | null>{
-
+export async function checkTokenIfExpired(userID: string): Promise<IUser | null> {
 
     let user = await findUserByID(userID);
 
-    if(!user){
-
+    if (!user) {
         console.log("User not found with given ID!");
         return null;
-
     }
 
-    if(user.tokenExpiresIn < new Date()){
+    // Only attempt TikTok refresh for users that actually have a TikTok identity
+    if (user.tiktokOpenID && user.tokenExpiresIn < new Date()) {
 
-        user = await refreshTikTokToken(user);
+        const refreshedUser = await refreshTikTokToken(user);
 
-        // If not null, update user's API
-        if(user)
-            user = await createOrSaveUserTokens(user);
+        if (refreshedUser && refreshedUser.tiktokOpenID) {
+            user = await createOrSaveUserTokens({
+                tiktokOpenID: refreshedUser.tiktokOpenID,
+                accessToken: refreshedUser.accessToken,
+                refreshToken: refreshedUser.refreshToken,
+                scope: refreshedUser.scope,
+                tokenExpiresIn: refreshedUser.tokenExpiresIn,
+                refreshExpiresIn: refreshedUser.refreshExpiresIn,
+            });
+        }
 
     }
-
-
 
     return user;
 };

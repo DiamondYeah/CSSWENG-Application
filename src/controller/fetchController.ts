@@ -2,11 +2,15 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
 const USERINFO_API = `${API_BASE}/userInfo/getuserinfo`;
+const LINKEDIN_USERINFO_API = `${API_BASE}/userInfo/linkedin`;
 const QUERY_DIRECT = `${API_BASE}/userInfo/queryinfo`;
+
 const INITIAL_UPLOAD_DIRECT = `${API_BASE}/videoUpload/initupload`;
 const UPLOAD_VIDEO_DIRECT = `${API_BASE}/videoUpload/upload`;
 const UPLOAD_STATUS_DIRECT = `${API_BASE}/videoUpload/poststatus`;
 const UPLOAD_PHOTOS_DIRECT = `${API_BASE}/photoUpload/photoUpload`;
+
+const LINKEDIN_UPLOAD_DIRECT = `${API_BASE}/linkedinPost/upload`;
 
 // CORS BASE HEADER
 const CORS_HEADER: Record<string, string> = { "ngrok-skip-browser-warning": "true"}
@@ -29,6 +33,19 @@ export async function fetchUserInfo(){
     return userInfo;
 
 }
+
+export async function fetchLinkedInUserInfo() {
+
+    const res = await fetch(LINKEDIN_USERINFO_API, {
+        credentials: "include",
+        headers: CORS_HEADER
+    });
+
+    const userInfo = await res.json();
+    return userInfo;
+
+}
+
 
 
 // Function calls router to fetch query info of user from API to determine publish and video settings
@@ -155,5 +172,29 @@ export async function uploadPhotos(photos: File[], title: string, description: s
 
     return photosInfo;
 
+
+}
+
+export async function uploadToLinkedIn(
+    title: string,
+    mediaFile?: File
+) {
+
+    const formData = new FormData();
+
+    formData.append("title", title);
+
+    if (mediaFile) {
+        formData.append("media", mediaFile);
+    }
+
+    const res = await fetch(LINKEDIN_UPLOAD_DIRECT, {
+        method: "POST",
+        credentials: "include",
+        headers: CORS_HEADER,
+        body: formData
+    });
+
+    return res.json();
 
 }

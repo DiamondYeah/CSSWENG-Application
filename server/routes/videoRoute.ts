@@ -29,16 +29,17 @@ const upload = multer({storage: multer.memoryStorage()})
 
 
 router.post("/initupload", findUserAuth, async (req: AuthUserRequest, res: Response) => {
-    
-    // Get user from req
+
     const user: IUser = req.user as IUser;
 
-    // Get info from request
+    // This route is TikTok-only — bail early if the session's user has no TikTok identity
+    if (!user.tiktokOpenID || !user.accessToken) {
+        return res.status(400).json({ success: false, message: "No TikTok account linked for this session." });
+    }
+
     const {title, privacyLevel, videoSize, allowComments, allowDuet, allowStitch} = req.body;
 
-
-    // Try-catch getting user information basic and profile from Tiktok API
-    try{
+    try {
 
         // Get user TikTok initial upload info results by calling obtainInitialUpload and passing arguments below and return result
         const userInitUpload = await obtainInitialUpload({ 

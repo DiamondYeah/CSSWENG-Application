@@ -18,18 +18,24 @@ export interface AuthUserRequest extends Request{
 // Checks if ID is available and has an associated user in the database. Also resets userID if expired
 export async function findUserAuth(req: AuthUserRequest, res: Response, next: NextFunction){
 
-    // Get session user id from cookies and check if empty
     const userID = req.cookies.session_user_id;
     if(!userID)
         return res.status(401).json({ success: false, message: "Session User ID not Found!" });
 
-    // Get user info from database and check if empty
-    const user: IUser | null = await checkTokenIfExpired(userID as string);
-    if(!user)
-        return res.status(401).json({ success: false, message: "User not Found with Session User ID!" });
+    try {
 
-    // If both checks pass return user data
-    req.user = user;
-    next();
+        const user: IUser | null = await checkTokenIfExpired(userID as string);
+        if(!user)
+            return res.status(401).json({ success: false, message: "User not Found with Session User ID!" });
+
+        req.user = user;
+        next();
+
+    } catch (err) {
+
+        console.error("Error in findUserAuth: " + err);
+        return res.status(500).json({ success: false, message: "Unexpected error while verifying session." });
+
+    }
 
 }

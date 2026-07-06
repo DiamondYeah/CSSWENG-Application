@@ -35,24 +35,29 @@ export function useConnectAccounts(){
                 if(!accountFetch.ok)
                     throw new Error(`Request Failed: ${accountFetch.status}`);
 
-
                 // Convert fetch to json and get data
                 const accountFetchInfo = await accountFetch.json();
 
-                const connectedAccount: socialAccountInfo = {
+                // Backend now returns an array of accounts, one entry per connected provider
+                const incomingAccounts: socialAccountInfo[] = (accountFetchInfo.data ?? []).map((acc: any) => ({
+                    id: acc.id,
+                    name: acc.name ?? "unknown",
+                    handle: acc.handle ?? "unknown",
+                    platform: acc.platform ?? "unknown"
+                }));
 
-                    id: accountFetchInfo.data.open_id,
-                    name: accountFetchInfo.data.display_name ?? "unknown",
-                    handle: `@${accountFetchInfo.data.username ?? "unknown"}`,
-                    platform: "TikTok"
-
-                }
-
-                // Add new account if not duplicate (Added checking to be idempotent). Return previous list if duplicate.
+                // Merge in new accounts, skipping duplicates by id
                 setAccounts(prevA => {
 
-                    const alreadyExists = prevA.some(prevA => prevA.id == connectedAccount.id);
-                    return alreadyExists ? prevA : [...prevA, connectedAccount];
+                    const merged = [...prevA];
+
+                    incomingAccounts.forEach(newAcc => {
+                        const alreadyExists = merged.some(existing => existing.id === newAcc.id);
+                        if (!alreadyExists)
+                            merged.push(newAcc);
+                    });
+
+                    return merged;
 
                 });
 
@@ -65,7 +70,6 @@ export function useConnectAccounts(){
             }
             finally{
 
-                console.log("Accounts stored: ", accounts);
                 setIsLoading(false);
 
             }

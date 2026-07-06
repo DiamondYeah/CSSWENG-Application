@@ -4,17 +4,19 @@ import type { Application, Request, Response } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import path from "path";
-import dotenv from "dotenv";
+import dotenv from "dotenv"
 
 // Load env file
 dotenv.config();
-console.log("BASE_URL loaded as:", process.env.BASE_URL);
+console.log("BASE_URL loaded as:", process.env.BASE_URL)
 
 // Import routes
 import loginRoute from "./routes/loginRoute.ts";
+import linkedinAuthRoute from "./routes/linkedinAuthRoutes.ts";
 import userInfoRoute from "./routes/userInfoRoute.ts";
 import videoRoute from "./routes/videoRoute.ts";
 import photoRoute from "./routes/photoRoute.ts";
+import linkedinPostRoute from "./routes/linkedinPostRoute.ts";
 
 // Import database
 import connectDB from "./database/db.ts"
@@ -31,16 +33,16 @@ const app: Application = express();
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
-
-    // Allows cookies to be send along domains
     origin: process.env.BASE_URL,
     credentials: true
-
 }));
+
 app.use("/logAuth", loginRoute);
+app.use("/auth", linkedinAuthRoute);
 app.use("/userInfo", userInfoRoute);
 app.use("/videoUpload", videoRoute);
 app.use("/photoUpload", photoRoute);
+app.use("/linkedinPost", linkedinPostRoute);
 
 // Access files stored in /publicfiles in browser
 app.use("/publicfiles", express.static(path.join(process.cwd(), "publicfiles"))); 

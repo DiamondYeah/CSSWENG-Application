@@ -3,12 +3,12 @@ import Navbar from "../components/Navbar";
 import "./Accounts.css";
 
 // Import functions from controller
-import { fetchQueryInfo, fetchUserInfo } from "../controller/fetchController.ts";
+import { fetchQueryInfo, fetchUserInfo, fetchLinkedInUserInfo } from "../controller/fetchController.ts";
+
 
 /* ---------- API Logic ---------- */
-
-// Constants for TikTok API
 const LOGINREDIRECT = "https://smilingly-breeches-amusable.ngrok-free.dev/logAuth/tiktoklogin";
+const LINKEDIN_LOGINREDIRECT = "https://spyglass-employee-probable.ngrok-free.dev/auth/linkedinlogin";
 
 
 /* ---------- Types ---------- */
@@ -171,10 +171,11 @@ export default function AgilaPostConnectAccounts() {
           const user = userInfo.data;
 
           // Check if user already exists within accounts variable. If they do, just return.
-          const userAlreadyAdded = prev.tiktok.some(a => a.id == user.open_id);
+        //  const userAlreadyAdded = prev.tiktok.some(a => a.id == user.open_id);
 
-          if(userAlreadyAdded)
-            return prev;
+         // if(userAlreadyAdded)
+           // return prev;
+        
 
           // Create new account while keeping other accounts in the array with ...
           return{
@@ -205,8 +206,49 @@ export default function AgilaPostConnectAccounts() {
 
     }
 
-    // Call function
+
+    async function loadLinkedInAccount() {
+
+        try {
+
+            const userInfo = await fetchLinkedInUserInfo();
+            console.log("Raw LinkedIn userInfo response:", userInfo);
+
+            if (!userInfo?.data?.sub)
+                return;
+
+            setAccounts((prev) => {
+
+                const user = userInfo.data;
+
+                const userAlreadyAdded = prev.linkedin.some(a => a.id == user.sub);
+
+                if (userAlreadyAdded)
+                    return prev;
+
+                return {
+                    ...prev,
+                    linkedin: [
+                        ...prev.linkedin,
+                        {
+                           // id: user.sub,
+                            id: `${user.sub}-${Date.now()}`,
+                            handle: user.email ?? "unknown",
+                            label: user.name ?? "unknown"
+                        }
+                    ]
+                };
+
+            });
+
+        } catch (e) {
+            alert("Error: " + e);
+        }
+
+    }
+
     loadTikTokAccount();
+  loadLinkedInAccount(); 
 
   }, [])
 
@@ -214,18 +256,17 @@ export default function AgilaPostConnectAccounts() {
 
   // Changed to function
   function handleConnect(platformId: PlatformId){
+    switch (platformId) {
 
+        case "tiktok":
+            window.location.href = LOGINREDIRECT;
+            return;
 
-    switch(platformId){
-
-
-      case "tiktok":
-        window.location.href = LOGINREDIRECT;
-        return
+        case "linkedin":
+            window.location.href = LINKEDIN_LOGINREDIRECT;
+            return;
 
     }
-
-
 
     setConnectingPlatform(platformId);
     // Simulated OAuth round trip — swap for your real redirect/popup flow.
