@@ -13,6 +13,8 @@ import Category from './pages/Category';
 import Queue from './pages/Queue';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { StrictMode } from 'react';
+import { SAMPLE_ACCOUNTS, SAMPLE_POSTS } from './data/sampleCalendarData'; // NEW: sample data for calendar testing
+
 const router = createBrowserRouter([
   {path: "/", element: <LandingPage />},
   {path:"/dashboard", element:<Scheduling></Scheduling>},
@@ -21,7 +23,7 @@ const router = createBrowserRouter([
   { path: "/create-post", element: <CreatePost /> },
   {path:"/privacy", element:<PrivacySection/>},
   {path:"/terms", element:<TermsOfService/>},
-  {path:"/calendar", element:<Calendar/>},
+  {path:"/calendar", element:<Calendar accounts={SAMPLE_ACCOUNTS} posts={SAMPLE_POSTS} />}, // CHANGED: pass sample props
   {path:"/accounts", element:<Accounts/>},
   {path:"/category", element:<Category/>},
   { path: "/queue", element: <Queue /> },
@@ -42,4 +44,3 @@ function App() {
 }
 
 export default App;
-

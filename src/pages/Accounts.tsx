@@ -1,5 +1,5 @@
 import { useEffect, useState, type JSX } from "react";
-import Navbar from "../components/Navbar";
+import SchedulingTabs from "../components/SchedulingTabs"; // NEW: replaces hardcoded tab divs
 import "./Accounts.css";
 
 // Import functions from controller
@@ -259,7 +259,7 @@ export default function AgilaPostConnectAccounts() {
 
   return (
     <div className="agp-layout">
-      <Navbar />
+      <SchedulingTabs/>
 
       <div className="agp">
         <main className="agp-main">

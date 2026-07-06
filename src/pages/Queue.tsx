@@ -9,7 +9,7 @@ import { IoChatbubbleOutline, IoEyeOutline } from "react-icons/io5";
 import { FiExternalLink } from "react-icons/fi";
 import { FaFacebookF, FaInstagram, FaLinkedinIn, FaTiktok } from "react-icons/fa";
 import emptyPfp from "../assets/emptyPfp.jpg";
-import Navbar from "../components/Navbar";
+import SchedulingTabs from "../components/SchedulingTabs"; // NEW: replaces hardcoded tab divs
 
 // ---------- Types ---------- //
 
@@ -178,7 +178,7 @@ function Queue() {
 
   return (
     <div>
-      <Navbar />
+      <SchedulingTabs/>
       <main className="main-content">
         <div className="queue-page">
           <div className="queue-layout">

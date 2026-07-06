@@ -10,13 +10,15 @@ import { IoArrowForward } from "react-icons/io5";
 import { FaPlus } from "react-icons/fa";
 import { MdOutlineFileUpload } from "react-icons/md";
 import emptyPfp from "../assets/emptyPfp.jpg";
+import Navbar from "../components/Navbar";
 import SchedulingTabs from "../components/SchedulingTabs"; // NEW: replaces hardcoded tab divs
 
 function Scheduling() {
   return (
       
       <div>
-       
+      <Navbar/>
+        <main className="main-content">
                <div className="scheduling-page">
                 
         
@@ -210,7 +212,7 @@ function Scheduling() {
       </div>
 
     </div>
-       
+          </main>
         </div>  
    
         
