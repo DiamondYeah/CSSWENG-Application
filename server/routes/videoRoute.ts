@@ -6,12 +6,13 @@ import multer from "multer";
 // Load env file
 dotenv.config();
 
-// Import IUser interface
+// Import types
 import {type IUser} from "../models/user.ts"
+import {type AuthUserRequest} from "../types/express.ts"
 
 // Import Service Functions, Middleware Functions, Database Controller Functions, and Util Functions
 import {obtainInitialUpload, uploadVideo, obtainPostStatus} from "../server_services/tiktokVideoService.ts"
-import {findUserAuth, type AuthUserRequest} from "../middleware/tiktokAuthMiddleware.ts";
+import {findUserAuth} from "../middleware/tiktokAuthMiddleware.ts";
 import {createUserPost, updatePostSchedule, updatePostStatus} from "../dbcontrollers/postRepository.ts";
 import {mapTikTokPostStatus, mapPostStatusToView} from "../server_utilities/videoUtilities.ts"
 
@@ -34,7 +35,8 @@ router.post("/initupload", findUserAuth, async (req: AuthUserRequest, res: Respo
     const user: IUser = req.user as IUser;
 
     // Get info from request
-    const {title, privacyLevel, videoSize, allowComments, allowDuet, allowStitch, scheduleDate} = req.body;
+    const {title, privacyLevel, videoSize, allowComments, allowDuet, allowStitch, isYourOwnBrand, 
+            isBrandedContent, scheduleDate} = req.body;
 
 
     // Try-catch getting user information basic and profile from Tiktok API
@@ -48,7 +50,9 @@ router.post("/initupload", findUserAuth, async (req: AuthUserRequest, res: Respo
             videoSize: videoSize,
             allowComments: allowComments,
             allowDuet: allowDuet,
-            allowStitch: allowStitch})
+            allowStitch: allowStitch,
+            isYourOwnBrand: isYourOwnBrand,
+            isBrandedContent: isBrandedContent})
 
 
         if(userInitUpload){
@@ -80,6 +84,14 @@ router.post("/initupload", findUserAuth, async (req: AuthUserRequest, res: Respo
     }catch(err){
 
         console.error("Error: " + err);
+
+        if((err as Error).message == "POSTING CAP REACHED")
+            return res.status(429).json({ success: false, code: "POSTING_CAP_REACHED", message: "You have reached your posting limit. Please try again later."})
+        else if((err as Error).message == "BANNED FROM POSTING")
+            return res.status(429).json({ success: false, code: "BANNED_FROM_POSTING", message: "Your account is banned from posting. Please use a different account."})
+
+
+
         return res.status(500).json({ success: false, message: "Unexpected error when performing upload!" });
 
     }
@@ -142,19 +154,31 @@ router.post("/poststatus", findUserAuth, async (req: AuthUserRequest, res: Respo
 
         if(userStatusUpload){
 
-            await updatePostStatus({
+            const mappedStatus = mapTikTokPostStatus(userStatusUpload.data.status)
 
-                publishID: publishID,
-                status: mapTikTokPostStatus(userStatusUpload.data.status),
-                rawResponse: userStatusUpload.data
-            });
+            // Perform nested try-catch to check if there are any database errors
+            try{
+
+                await updatePostStatus({
+
+                    publishID: publishID,
+                    status: mappedStatus,
+                    rawResponse: userStatusUpload.data
+
+                });
+
+            }catch(dbErr){
+
+                console.log("Failed to update DB error: ", dbErr);
+
+            }
 
 
             // Send successful JSON and map status
             return res.json({ success: true, data: {
 
                 ...userStatusUpload.data,
-                status: mapPostStatusToView(userStatusUpload.data.status)
+                status: mapPostStatusToView(mappedStatus)
                 
                 }  
         
@@ -168,7 +192,8 @@ router.post("/poststatus", findUserAuth, async (req: AuthUserRequest, res: Respo
 
     }catch(err){
 
-        console.error("Error: " + err);
+        console.error("Full error object:", err);
+        console.error("Cause:", (err as Error).cause);
         return res.status(500).json({ success: false, message: "Unexpected error when getting post status!" });
 
     }

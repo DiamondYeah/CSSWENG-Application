@@ -78,7 +78,7 @@ export async function updatePostSchedule(postUpdateDetails: PostScheduleUpdate):
 // Create new document if ID not found
     return await Post.findOneAndUpdate(
 
-        {userID: postUpdateDetails.publishID},  // Identifier
+        {publishID: postUpdateDetails.publishID},  // Identifier
         {scheduleDate: postUpdateDetails.scheduleDate, rawResponse: postUpdateDetails.rawResponse}, // Update with new values
         {returnDocument: 'after'} // Return modified document
     

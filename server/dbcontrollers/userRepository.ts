@@ -66,9 +66,30 @@ export async function createOrSaveUserTokensFromSeconds(tiktokAPI: TiktokAPIResp
 
 
 // Function returns User Info by checking userID parameter
-// Mongoose and schema already provide implicit annotation of type
 export async function findUserByID(userID: string): Promise<IUser | null>{
 
     return await User.findById(userID);
+
+}
+
+
+// Function returns User Info by checking token parameter and using it to find a similar shareToken from database
+export async function findUserByShareToken(token: string): Promise<IUser | null>{
+
+    return await User.findOne({shareToken: token});
+
+}
+
+
+// Function finds a user and updates said user to include a shareToken and expiration date of said shareToken
+// Returns updated user
+export async function createUserShareToken(userID: string, crytoToken: string, expireDate: Date){
+
+    return await User.findByIdAndUpdate(userID, {
+
+        shareToken: crytoToken,
+        shareTokenExpiresIn: expireDate,
+
+    })
 
 }

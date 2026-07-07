@@ -6,12 +6,13 @@ import multer from "multer";
 // Load env file
 dotenv.config();
 
-// Import IUser interface
+// Import types
 import {type IUser} from "../models/user.ts"
+import {type AuthUserRequest} from "../types/express.ts"
 
 // Import Service Functions, and Middleware Functions
 import {uploadUserPhoto} from "../server_services/tiktokPhotoService.ts"
-import {findUserAuth, type AuthUserRequest} from "../middleware/tiktokAuthMiddleware.ts";
+import {findUserAuth} from "../middleware/tiktokAuthMiddleware.ts";
 
 // Creater router
 const { Router } = pkg;
@@ -34,7 +35,7 @@ const upload = multer({ storage: photoStorage });
 
 
 
-router.post("/photoUpload", upload.array("photos", 35), findUserAuth, async (req: AuthUserRequest, res: Response) => {
+router.post("/photoUpload", findUserAuth, upload.array("photos", 35), async (req: AuthUserRequest, res: Response) => {
 
     // Get user from req
     const user: IUser = req.user as IUser;

@@ -2,7 +2,9 @@ import pkg from "express";
 import type { Request, Response } from "express";
 import dotenv from "dotenv";
 
+// Import types
 import {type IUser} from "../models/user.ts"
+import {type AuthUserRequest} from "../types/express.ts"
 
 // Load env file
 dotenv.config();
@@ -10,7 +12,7 @@ dotenv.config();
 // Import Database Functions and Service Functions
 import {createOrSaveUserTokensFromSeconds} from "../dbcontrollers/userRepository.ts";
 import {createTikTokAuth, disconnectTikTokAuth, obtainTikTokToken} from "../server_services/tiktokAuthService.ts";
-import { type AuthUserRequest, findUserAuth } from "../middleware/tiktokAuthMiddleware.ts";
+import { findUserAuth } from "../middleware/tiktokAuthMiddleware.ts";
 
 // Creater router
 const { Router } = pkg;

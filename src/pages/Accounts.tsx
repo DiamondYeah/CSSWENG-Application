@@ -197,9 +197,9 @@ export default function AgilaPostConnectAccounts() {
         });
 
       }
-      catch(e){
+      catch(err){
 
-        alert("Error: " + e);
+        alert("Error: " + err);
 
       }
 

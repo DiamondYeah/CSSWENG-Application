@@ -1,10 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 import {
   ChevronLeft,
-  ChevronRight,
-  Clock,
-  FileText,
-  MessageCircle,
   Check,
   Share2,
 } from "lucide-react";
@@ -13,11 +9,24 @@ import "./Calendar.css";
 
 // Import functions from controller, hooks and utilities
 import {useConnectAccounts} from "../hooks/connectAccounts.ts";
-import { useScheduledPosts, type ScheduledPost } from "../hooks/getScheduledPost";
+import {useScheduledPosts} from "../hooks/getScheduledPost";
+import {generateShareCalenderToken} from "../controller/fetchController.ts";
+
+// Import utility for platform icons
+import { PLATFORM_META} from "../frontend_utilities/platformIcons.tsx"
+
+// Import types
+import {type Platform, type Account} from "../types/account.ts"
+
 
 import "./Scheduling.css";
 
 import Navbar from "../components/Navbar";
+
+
+// Import CalendarGrid from components
+import { CalendarGrid } from "../components/CalendarGrid.tsx";
+
 
 // ---------------------------------------------------------------
 // platform icons
@@ -26,77 +35,12 @@ import Navbar from "../components/Navbar";
 // Swap in your own brand assets if you need pixel-perfect logos.
 // ---------------------------------------------------------------
 
-interface IconProps {
-  size?: number;
-  color?: string;
-}
 
-function FacebookIcon({ size = 16, color = "currentColor" }: IconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <path
-        d="M14 8.5h-1.6c-.6 0-1.1.4-1.1 1.2V11H14l-.3 2.2h-2.4V19H9V13.2H7.2V11H9V9.4C9 7 10.4 5 12.8 5H14v3.5z"
-        fill={color}
-      />
-    </svg>
-  );
-}
-
-function InstagramIcon({ size = 16, color = "currentColor" }: IconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <rect x="4" y="4" width="16" height="16" rx="5" stroke={color} strokeWidth="1.8" />
-      <circle cx="12" cy="12" r="3.4" stroke={color} strokeWidth="1.8" />
-      <circle cx="16.5" cy="7.5" r="1" fill={color} />
-    </svg>
-  );
-}
-
-function LinkedinIcon({ size = 16, color = "currentColor" }: IconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <text
-        x="12"
-        y="16.5"
-        textAnchor="middle"
-        fontSize="11"
-        fontWeight="700"
-        fontFamily="Arial, Helvetica, sans-serif"
-        fill={color}
-      >
-        in
-      </text>
-    </svg>
-  );
-}
-
-function TiktokIcon({ size = 16, color = "currentColor" }: IconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <circle cx="9" cy="17" r="3" fill={color} />
-      <path d="M12 4v13" stroke={color} strokeWidth="2" strokeLinecap="round" />
-      <path
-        d="M12 4c0 3 2.5 5 5 5"
-        stroke={color}
-        strokeWidth="2"
-        strokeLinecap="round"
-        fill="none"
-      />
-    </svg>
-  );
-}
 
 // ---------------------------------------------------------------
 // types
 // ---------------------------------------------------------------
 
-export type Platform = "facebook" | "linkedin" | "instagram" | "tiktok";
-
-export interface Account {
-  id: string;
-  name: string;
-  platform: Platform;
-}
 
 
 export interface Post {
@@ -121,108 +65,43 @@ export interface AgilaPostCalendarProps {
   onShareCalendar?: () => void;
 }
 
-const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-const PLATFORM_META: Record<Platform, { Icon: React.ComponentType<IconProps>; color: string }> = {
-  facebook: { Icon: FacebookIcon, color: "#1877F2" },
-  linkedin: { Icon: LinkedinIcon, color: "#0A66C2" },
-  instagram: { Icon: InstagramIcon, color: "#E1306C" },
-  tiktok: { Icon: TiktokIcon, color: "#000000" },
-};
 
 // ---------------------------------------------------------------
-// date helpers
+// Shared Calendar Posting Functions
 // ---------------------------------------------------------------
 
-interface GridDay {
-  date: Date;
-  inMonth: boolean;
-}
+// Function handles the generation of a link for sharing schedule of calendar to others
+async function generateCalendarShare(){
 
-function buildMonthGrid(year: number, month: number): GridDay[][] {
-  const firstOfMonth = new Date(year, month, 1);
-  const jsDay = firstOfMonth.getDay(); // 0=Sun..6=Sat
-  const mondayOffset = (jsDay + 6) % 7;
-  const gridStart = new Date(year, month, 1 - mondayOffset);
+  try{
 
-  const weeks: GridDay[][] = [];
-  const cursor = new Date(gridStart);
-  for (let w = 0; w < 6; w++) {
-    const week: GridDay[] = [];
-    for (let d = 0; d < 7; d++) {
-      week.push({ date: new Date(cursor), inMonth: cursor.getMonth() === month });
-      cursor.setDate(cursor.getDate() + 1);
-    }
-    weeks.push(week);
+    const res = await generateShareCalenderToken();
+
+    if(!res.success)
+      throw new Error("Failed to generate link!");
+
+    // Create the link for the calendar view and add it to clipboard copy
+    const calendarShareUrl = `${window.location.origin}/calendar/share/${res.data.cryptoToken}`
+    await navigator.clipboard.writeText(calendarShareUrl);
+
+    // Create expiry
+    const expiry = new Date(res.data.expireDate).toLocaleDateString("en-US", {
+        month: "long", day: "numeric", year: "numeric"
+    });
+
+    alert(`Share link generated and copied to clipboard! Link expires on ${expiry}`)
+
+  }catch(err){
+
+    throw new Error("Failed to generate share link! Please try again!")
+
   }
-  return weeks;
+
+
+
 }
 
-function isSameDay(a: Date, b: Date): boolean {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
-}
-
-function toDateKey(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
-// ---------------------------------------------------------------
-// post card
-// ---------------------------------------------------------------
-
-function PostCard({
-  post,
-  accountName,
-  onSelect,
-}: {
-  post: Post;
-  accountName: string;
-  onSelect?: (post: Post) => void;
-}) {
-  const { Icon, color } = PLATFORM_META[post.platform];
-  return (
-    <div className="ap-post-card" onClick={() => onSelect?.(post)}>
-      <div className="ap-post-card__header">
-        <span className="ap-post-card__platform">
-          <Icon size={10} color={color} />
-        </span>
-        <span className="ap-post-card__account">{accountName}</span>
-      </div>
-
-      <div className="ap-post-card__body">
-        <div className="ap-post-card__text">
-          {post.title && <p className="ap-post-card__title">{post.title}</p>}
-          {post.snippet && <p className="ap-post-card__snippet">{post.snippet}</p>}
-          {post.hasDocument && (
-            <div className="ap-post-card__doc">
-              <FileText size={11} />
-              <span>View Document</span>
-            </div>
-          )}
-        </div>
-
-        {post.hasImage && (
-          <div className="ap-post-card__thumb">
-            <div className="ap-post-card__thumb-inner" />
-          </div>
-        )}
-      </div>
-
-      <div className="ap-post-card__footer">
-        <Clock size={10} />
-        <span>{post.time}</span>
-        {post.hasComment && <MessageCircle size={10} style={{ marginLeft: 6 }} />}
-      </div>
-    </div>
-  );
-}
 
 // ---------------------------------------------------------------
 // main component
@@ -237,20 +116,16 @@ export default function AgilaPostCalendar({
   const {posts, isLoading: postsLoading, error: postsError} = useScheduledPosts();
 
 
-  const accounts: Account[] = unmappedAccounts.map(account => ({
+  // Use useMemo to avoid heavy recalculations so refernce only changes when accounts actually change data
+  // No useEffect as that causes an infinite loop with setCheckedAccounts
+  const accounts: Account[] = useMemo(() => unmappedAccounts.map(account => ({
 
     id: account.id,
     name: account.name,
     platform: account.platform.toLowerCase().trim() as Platform
 
-  }));
+  })), [unmappedAccounts]);
 
-
-
-  const today = useMemo(() => new Date(), []);
-  const [cursorDate, setCursorDate] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
-  const [view, setView] = useState<"month" | "week">("month");
-  const [postsView, setPostsView] = useState<"scheduled" | "published">("scheduled");
   const [checkedAccounts, setCheckedAccounts] = useState<Record<string, boolean>>(
     () => accounts.reduce((acc, a) => ({ ...acc, [a.id]: true }), {} as Record<string, boolean>)
   );
@@ -258,38 +133,8 @@ export default function AgilaPostCalendar({
   const [showDrafts, setShowDrafts] = useState(false);
   const [showFutureRepeats, setShowFutureRepeats] = useState(false);
 
-  const year = cursorDate.getFullYear();
-  const month = cursorDate.getMonth();
-  const monthLabel = cursorDate.toLocaleString("en-US", { month: "long", year: "numeric" });
-
-  const weeks = useMemo(() => buildMonthGrid(year, month), [year, month]);
-
-
-  useEffect(() => {
-
-    setCheckedAccounts(accounts.reduce((acc, a) => ({...acc, [a.id]: true}), {}))
-
-  }, [accounts]);
-
-  const accountsById = useMemo(
-    () => Object.fromEntries(accounts.map((a) => [a.id, a])),
-    [accounts]
-  );
-
-  const postsByDate = useMemo(() => {
-    const map: Record<string, ScheduledPost[]> = {};
-    for (const p of posts) {
-      if (checkedAccounts[p.accountId] === false) continue;
-      if (!map[p.date!]) map[p.date!] = [];
-      map[p.date!].push(p);
-    }
-    return map;
-  }, [posts, checkedAccounts]);
 
   const allChecked = accounts.length > 0 && accounts.every((a) => checkedAccounts[a.id] !== false);
-
-  const goPrevMonth = () => setCursorDate(new Date(year, month - 1, 1));
-  const goNextMonth = () => setCursorDate(new Date(year, month + 1, 1));
 
   const toggleAccount = (id: string) =>
     setCheckedAccounts((prev) => ({ ...prev, [id]: !(prev[id] !== false) }));
@@ -323,7 +168,7 @@ export default function AgilaPostCalendar({
           </div>
           <div className="ap-topbar__right">
             <div className="ap-topbar__meta">Timezone: {timezone}</div>
-            <button className="ap-share-btn" onClick="">
+            <button className="ap-share-btn" onClick = {() => generateCalendarShare()}>
               <Share2 size={14} />
               Share Calendar
             </button>
@@ -365,7 +210,12 @@ export default function AgilaPostCalendar({
                 </div>
               ) : (
                 accounts.map((acc) => {
-                  const { Icon, color } = PLATFORM_META[acc.platform];
+
+                  const meta = PLATFORM_META[acc.platform]
+                  if(!meta)
+                    return null;
+
+                  const { Icon, color } = meta;
                   const checked = checkedAccounts[acc.id] !== false;
                   return (
                     <label key={acc.id} className="ap-account-row">
@@ -425,89 +275,8 @@ export default function AgilaPostCalendar({
           </aside>
 
           {/* main calendar */}
-          <main className="ap-main">
-            <div className="ap-toolbar">
-              <div className="ap-toggle-group">
-                <button
-                  className={`ap-toggle-group__btn ${view === "month" ? "is-active" : ""}`}
-                  onClick={() => setView("month")}
-                >
-                  month
-                </button>
-                <button
-                  className={`ap-toggle-group__btn ${view === "week" ? "is-active" : ""}`}
-                  onClick={() => setView("week")}
-                >
-                  week
-                </button>
-              </div>
+          <CalendarGrid posts={posts.filter(p => checkedAccounts[p.accountId] !== false)} readOnly = {false}></CalendarGrid>
 
-              <div className="ap-month-nav">
-                <button className="ap-month-nav__btn" onClick={goPrevMonth} aria-label="Previous month">
-                  <ChevronLeft size={20} />
-                </button>
-                <span className="ap-month-nav__label">{monthLabel}</span>
-                <button className="ap-month-nav__btn" onClick={goNextMonth} aria-label="Next month">
-                  <ChevronRight size={20} />
-                </button>
-              </div>
-
-              <div className="ap-toggle-group">
-                <button
-                  className={`ap-toggle-group__btn ${postsView === "scheduled" ? "is-active" : ""}`}
-                  onClick={() => setPostsView("scheduled")}
-                >
-                  Scheduled Posts {postsView === "scheduled" && <Check size={13} />}
-                </button>
-                <button
-                  className={`ap-toggle-group__btn ${postsView === "published" ? "is-active" : ""}`}
-                  onClick={() => setPostsView("published")}
-                >
-                  Published Posts
-                </button>
-              </div>
-            </div>
-
-            <div className="ap-grid">
-              <div className="ap-grid__weekdays">
-                {WEEKDAYS.map((d) => (
-                  <div key={d} className="ap-grid__weekday">
-                    {d}
-                  </div>
-                ))}
-              </div>
-
-              {weeks.map((week, wi) => (
-                <div key={wi} className="ap-grid__week">
-                  {week.map(({ date, inMonth }, di) => {
-                    const isToday = isSameDay(date, today);
-                    const dayPosts = postsByDate[toDateKey(date)] || [];
-                    return (
-                      <div key={di} className={`ap-day-cell ${isToday ? "is-today" : ""}`}>
-                        <div className="ap-day-cell__date-row">
-                          <span
-                            className={`ap-day-cell__date ${isToday ? "is-today" : ""} ${
-                              !inMonth ? "is-outside" : ""
-                            }`}
-                          >
-                            {date.getDate()}
-                          </span>
-                        </div>
-                        {dayPosts.map((p) => (
-                          <PostCard
-                            key={p.id}
-                            post={p}
-                            accountName={accountsById[p.accountId]?.name ?? "Unknown account"}
-                            onSelect={onSelectPost}
-                          />
-                        ))}
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
-          </main>
         </div>
       </div>
         </div>

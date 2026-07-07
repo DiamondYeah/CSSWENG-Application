@@ -6,12 +6,13 @@ import multer from "multer";
 // Load env file
 dotenv.config();
 
-// Import IUser interface
+// Import types
 import {type IUser} from "../models/user.ts"
+import {type AuthUserRequest} from "../types/express.ts"
 
 // Import Service Functions, Middleware Functions, Database Controller Functions, and Util Functions
 import {obtainInitialUpload, uploadVideo, obtainPostStatus} from "../server_services/tiktokVideoService.ts"
-import {findUserAuth, type AuthUserRequest} from "../middleware/tiktokAuthMiddleware.ts";
+import {findUserAuth} from "../middleware/tiktokAuthMiddleware.ts";
 import {createUserPost, findScheduledPosts, updatePostSchedule, updatePostStatus} from "../dbcontrollers/postRepository.ts";
 import {mapTikTokPostStatus, mapPostStatusToView} from "../server_utilities/videoUtilities.ts"
 

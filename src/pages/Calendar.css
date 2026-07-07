@@ -513,3 +513,22 @@
   margin-top: 6px;
   color: rgba(255, 255, 255, 0.82);
 }
+
+/* ADDED FOR SHARED CALENDAR */
+.ap-topbar__middle {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ap-text);
+}
+
+.ap-topbar__middle span {
+  color: var(--ap-blue);
+}
+
+
+.ap-topbar__subtitle{
+
+  font-style: italic;
+
+}

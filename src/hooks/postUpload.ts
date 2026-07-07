@@ -6,8 +6,8 @@ import {timer} from "../frontend_utilities//genericUtilities.ts";
 
 // Constants for Status Checking
 const TERMINAL_STATUS: string[] = ["Your upload is now live!", "Your media upload failed. Try uploading again."];
-const MAX_LOOP_CHECKS = 1; // How many loops before status checking stops (1 to not poll)
-const POLL_INTERVALS = 5000; // 1000 = 1 second
+const MAX_LOOP_CHECKS: number = 15; // How many loops before status checking stops (1 to not poll)
+const POLL_INTERVALS = 12000; // 1000 = 1 second
 
 // Interface for Post Upload
 interface PostUpload{
@@ -18,6 +18,8 @@ interface PostUpload{
     allowComments: boolean;
     allowDuet: boolean;
     allowStitch: boolean;
+    isYourOwnBrand: boolean,
+    isBrandedContent: boolean,
     scheduleDate?: Date;
 
 }
@@ -33,7 +35,7 @@ export function usePostUpload(){
     async function uploadPost(postDetails: PostUpload){
 
         setIsUploading(true);
-        setUploadStatus("Preparing Upload")
+        setUploadStatus("Preparing Upload - it may take a few minutes for the content to appear on your profile")
 
 
         try{
@@ -41,8 +43,14 @@ export function usePostUpload(){
           // Get initial upload info from initializeUploadPost and store info result
           const initUploadResult = await initializeUploadPost(postDetails.title, postDetails.privacyLevel, postDetails.mediaFile.size, 
                                                                 postDetails.allowComments, postDetails.allowDuet, postDetails.allowStitch,
-                                                                postDetails.scheduleDate);
-    
+                                                                postDetails.isYourOwnBrand, postDetails.isBrandedContent, postDetails.scheduleDate);
+
+          if(initUploadResult?.code == "POSTING_CAP_REACHED")  
+            return setUploadStatus(initUploadResult.message ?? "You have reached your posting limit. Please try again later.");                                                        
+          else if(initUploadResult?.code == "BANNED_FROM_POSTING")  
+            return setUploadStatus(initUploadResult.message ?? "Your account is banned from posting. Please use a different account.");  
+
+
           if(!initUploadResult?.data?.upload_url)
             throw new Error("No upload url found from initial upload!");
     
@@ -78,16 +86,6 @@ export function usePostUpload(){
         // Initial sstatus
         setUploadStatus("Processing...")
 
-        // If max loop checks is 1, dont loop and just return successful message
-        if(MAX_LOOP_CHECKS == 1){
-
-            await timer(POLL_INTERVALS);
-            const successfulMessage = TERMINAL_STATUS[0];
-            setUploadStatus(successfulMessage)
-            return successfulMessage;
-
-        }
-        
 
         // Loop through checks until status returns one from the terminal array or timed out.
         for(let i = 0; i < MAX_LOOP_CHECKS; i++){
@@ -97,10 +95,8 @@ export function usePostUpload(){
 
         // fetch videoStatus result and obtain the status result
         const videoStatusFetch = await checkUploadStatus(initUploadResult.data.publish_id);
-        console.log("Raw status response:", videoStatusFetch); // add this
         const status = videoStatusFetch.data.status;
-        console.log("Status value:", status, "| Type:", typeof status);
-        setUploadStatus(`Processing... (${status})`);
+        setUploadStatus(status);
 
 
         // If status rettained is includes in the terminalStatus array, then set the upload status and stop.

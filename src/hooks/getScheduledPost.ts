@@ -1,19 +1,11 @@
 import {useState, useEffect} from "react";
+
+// Import controller and utilities functions needed 
 import {fetchScheduledPosts} from "../controller/fetchController";
+import { mapPostToSchedulePost } from "../frontend_utilities/calendarUtilities";
 
-export type Platform = "facebook" | "linkedin" | "instagram" | "tiktok";
-
-export interface ScheduledPost {
-
-  id: string;
-  accountId: string;
-  platform: Platform;
-  date: string;
-  time: string;
-  title?: string;
-  snippet?: string;
-
-}
+// Import types
+import {type ScheduledPost} from "../types/post.ts"
 
 
 export function useScheduledPosts(){
@@ -37,29 +29,10 @@ export function useScheduledPosts(){
                     throw new Error("Failed to fetch scheduled posts!");
 
                 // Get data of fetch return
-                const scheduledPostsInfo = await postsFetch.data;
-
+                const scheduledPostsInfo = postsFetch.data ?? [];
 
                 // Create a const that mapps the posts from fetch as ScheduledPost array
-                const mappedPosts: ScheduledPost[] = scheduledPostsInfo.map((post: any) => {
-
-                    const date = new Date(post.scheduledDate);
-                    
-                    // Return a mapped version of post instance to ScheduledPost
-                    return{
-
-                        id: post._id,
-                        accountId: post.platformAccountID,
-                        platform: post.platform as Platform,
-                        date: date.toLocaleDateString("en-CA"),
-                        time: date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', }),
-                        title: post.title ?? "No Title",
-                        snippet: post.description || undefined,
-
-
-                    }
-
-                });
+                const mappedPosts: ScheduledPost[] = scheduledPostsInfo.map(mapPostToSchedulePost);
 
                 // Add to scheduledPots
                 if(!ignore) 

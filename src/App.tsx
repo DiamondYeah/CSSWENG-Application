@@ -11,6 +11,7 @@ import Calendar from './pages/Calendar';
 import Accounts from './pages/Accounts'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { StrictMode } from 'react';
+import SharedCalendar from './pages/SharedCalendar';
 const router = createBrowserRouter([
   {path: "/", element: <LandingPage />},
   {path:"/dashboard", element:<Scheduling></Scheduling>},
@@ -21,10 +22,12 @@ const router = createBrowserRouter([
   {path:"/terms", element:<TermsOfService/>},
   {path:"/calendar", element:<Calendar/>},
   {path:"/accounts", element:<Accounts/>},
-  {path:"*", element:<NotFoundPage/>}
+  {path:"*", element:<NotFoundPage/>},
+  {path:"/calendar/share/:token", element:<SharedCalendar/>},
 ])
 //Routing 
-function App() {
+function App(){
+
   return (
     <StrictMode>
      

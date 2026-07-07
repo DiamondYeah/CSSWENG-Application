@@ -1,17 +1,11 @@
 import type { Request, Response, NextFunction } from "express";
 
-// Import IUser interface
-import type { IUser } from "../models/user.ts";
+// Import types
+import {type IUser} from "../models/user.ts"
+import {type AuthUserRequest} from "../types/express.ts"
 
 // Import Controller Functions
 import {checkTokenIfExpired} from "../dbcontrollers/userController.ts";
-
-
-// AuthUserRequest adds a user field to the request call so if checks pass, req will return with user info
-export interface AuthUserRequest extends Request{
-
-    user?: IUser;
-}
 
 
 // Middleware function before every route is performed to check validaity of session user id.
