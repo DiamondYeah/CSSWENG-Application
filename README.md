@@ -1,6 +1,114 @@
 # CSSWENG-Application - AgilaPost
 Repo for version control for the development of the application. Description will change for any additions and updates to the app.
 
+## Update - 1.2 (Calendar Post View and Sharing & TikTok Settings for Approval)
+<details>
+<summary><b>Update Details</b></summary>
+
+### Additions
+
+<ol>
+<li>Working Calendar View</li>
+    <ul>
+        <li>When adding a schedule for Posting, it will now show up when u open up the Calendar view</li>
+        <li>Details of the post will be shown in the cell where you scheduled the post in the Calendar via a red block component </li>
+        <li>The scheduled post will include details such as Title, Platform (Icon not yet added), Captions (if any), and the time for when it will be posted</li>
+        <li>Multiple posts can occupy the same cell if they are both on the same date.</li>
+    </ul>
+
+<li>Calendar Sharing via Link</li>
+    <ul>
+        <li>The top-right calendar view now features a share button that when pressed, shows an alert saying that a link has been created to the clipboard with an expiry date</li>
+        <li>Updated user model to include new shareToken and shareTokenExpiresIn for storing share calendar links</li>
+        <li>Opening link to the browser will load a simplified view of just the calendar with all of the scheduled posts linked to the user who shared the token</li>
+        <li>NOTE1: Top-middle shows SampleAccount. Will eventually update to include the Account name once Registration/Login is added</li>
+        <li>NOTE2: Will include approval, denial, comment system here</li>
+    </ul>
+<li>New Post Field - Commercial Content & Consent Compliance for TikTok Approval</li>
+    <ul>
+        <li>Added a new sub-component field in TikTok Settings of the Post page: TikTok Commercial Content disclosure and compliance agreements</li>
+        <li>Users can now toggle for the TikTok video to disclose that it is for promotional content of either their own brand, third-party, or both</li>
+        <li>When clicking "Disclose Video for Commercial Content," a dropdown appears with 2 new checkboxes for what type of promotions w/ descriptions</li>
+        <li>Will display a notice depending on how your post will be treated as commercial content, whether you selected Promote Your Brand, Promote Branded Content, or both</li>
+        <li>Above the Upload Post Button, there will now be a dynamic consent declaration notice indicating whether Branded Content is selected (Music Usage Confirmation vs. Branded Content Policy + Music Usage Confirmation)</li>
+        <li>Selecting Branded Content disabled SELF_ONLY posting as part of TikTok compliance guidelines</li>
+        <li>Added new fields for the commercial content fields themselves through the different functions, and routed to let the API know about the promotion</li>
+        <li>Videos on TikTok will actually show if they're promotional content or not</li>
+    </ul>
+
+<li>Post Page Update</li>
+    <ul>
+        <li>Loaded posts in the page are updated to better reflect live information depending on the connected API. (TikTok is currently implemented)</li>
+        <li>TikTok - Post page now displays the connected creator's live nickname and avatar from the API for compliance guidelines</li>
+        <li>TikTok - Added new errors and notices connected to commercial content and whether the account is allowed to post or not</li>
+        <li>TikTok - Disable Posting if TikTok account is not allowed to post based on fetched query information</li>
+        <li>Upload status polling now correctly reflects real-time TikTok status instead of getting stuck on "Processing..." infinitely</li>
+    </ul>
+<li>Account Page Update</li>
+    <ul>
+        <li>Working Logout Button removes the account, and logging in redirects you back to the login page</li>
+    </ul>
+<li>New Folders</li>
+    <ul>
+        <li>types (src and server) - Stores files of different interfaces if multiple files are referencing said interface to avoid being tightly coupled</li>
+    </ul>
+</ol>
+
+
+### Changes
+<ul>
+    <li>Added * for Date and Time as they are required</li>
+    <li>Adjusted sizes of fonts in the Post page</li>
+    <li>Moved types that are referenced by multiple files into their own types folder to avoid being tightly coupled.</li>
+    <li>Increased POLL_INTERVAL for checking the status of the post to stay within TikTok's checking rate limit</li>
+    <li>Added isYourOwnBrand and isBrandedContent fields for the posting interface and the system to reflect on the TikTok App</li>
+    <li>Added inner try-catch on videoRoute.ts /poststatus so DB write issue can no longer block user from seeing real TikTok status</li>
+    <li>Updated README with new Changes</li>
+</ul>
+
+### Fixes
+<ul>
+    <li>Account information is not showing in AgilaPost as the data returned from the router is stored in an array.</li>
+    <li>Swapped the order of the router for photoRoute so that findUserAuth is checked first before getting the photos</li>
+    <li>Post status issue repeatedly saying Processing... when uploading post as the router was mapping the return status to the raw response status from the TikTok API.</li>
+    <li>Double "@" appearing in account handles as a prefix is being added in multiple layers</li>
+    <li></li>
+    
+</ul>
+
+### Next Goals
+<ul>
+  <li> What I'll do Next (Alot of stuff :\ )</li>
+  <ul>
+    <li>Prepare for Live Domain (So I can finally add Photo Upload)</li>
+    <li>Account Model and Login/Registration</li>
+    <li>Show Account Name in shared calendar view</li>
+    <li>Video preview in media field instead of name and size (still includes name and size for details)</li>
+    <li>Add remaining TikTok error codes (unaudited_client_can_only_post_to_private_accounts, etc.</li>
+    <li>Fix the hover effect as it still works on disabled checkboxes</li>
+    <li>Update the design for the checkboxes?</li>
+  </ul>
+  <li> Preparation for Going to a Live Domain - via Render.com </li>
+  <ul>
+    <li>Remove console logs that show sensitive information</li>
+    <li>Remove ngrok dependency entirely and point VITE_API_BASE_URL / REDIRECT_URI at real domain</li>
+    <li>Configure Express CORS middleware for the real frontend origin specifically</li>
+    <li>Verify photo upload domain with TikTok for PULL_FROM_URL support</li>
+    <li>Switch multer video storage from memoryStorage to diskStorage for live domain</li>
+    <li>Confirm .env files are untracked in git</li>
+    <li>Randomize photo/video? filenames and add a way to clean up any public files</li>
+  </ul>
+  <li> Future Additions/To Do List </li>
+  <ul>
+    <li>Adding Design Changes for TikTok Approval</li>
+    <li>Add Instagram and YouTube platform support following the same pattern as TikTok (useInstagramUpload, InstagramSettings.tsx)</li>
+    <li>Fix UserPost.tsx to make it cleaner and less cluttered (Tbh it's still cluttered even with my changes :/)</li>
+    <li>Calendar Approval/Denial with Comments</li>
+    <li>Music Picker</li>
+  </ul>
+</ul>
+</details>
+
 ## Update - 1.1 (TikTok Integration)
 <details>
 <summary><b>Update Details</b></summary>
@@ -66,7 +174,7 @@ Repo for version control for the development of the application. Description wil
 <ul>
   <li> What I'll do Next </li>
   <ul>
-    <li>Fix the stupid CORS issue </li>
+    <li>Prepare for Live Domain</li>
     <li>Add Music Usage Confirmation declaration above post button (required for TikTok approval)</li>
     <li>Add Commercial Content Disclosure component when you toggle "Your Brand" and "Branded Content" checkboxes (required for TikTok approval)</li>
     <li>Post prevental check when user has reached their daily posting limit (required for TikTok approval)</li>
@@ -89,7 +197,7 @@ Repo for version control for the development of the application. Description wil
 ## Features
 - UI Pages (Landing Page, Dashboard, Accounts, Post Page, etc.)
 - Calendar Page with date Navigation
-- Account Page to connect to various social media accounts (TikTok works only so far)
+- Account Page to connect to various social media accounts (TikTok works only so far) w/ LogOut
 - Obtaining OAuth token and refreshing token if expired (TikTok)
 - CSRF Safety
 - Models for Database storing of said User and Post Information (Made to be generalized to be used by various APIS)
@@ -97,6 +205,8 @@ Repo for version control for the development of the application. Description wil
 - Semi-working post page with fields (Title, Caption, Video Upload, TikTok API Settings)
 - Field Validation for Post Page
 - Publishing and Uploading Videos to TikTok
+- Calendar Post View and Sharing
+- TikTok Commercial Content and Disclosure Settings
 
 ## Project Structure
 
@@ -110,6 +220,7 @@ tiktok_api/
 │       ├── frontend_utilities/      # Helper functions for the frontend, such as a timer
 │       ├── hooks/                   # Custom React hooks (Run on mount and update UI)
 │       └── pages/                   # Page components
+|       └── pages/                   # Interfaces
 │
 └── server/
     ├── database/                    # MongoDB connection setup
@@ -120,6 +231,7 @@ tiktok_api/
     ├── routes/                      # HTTP route handlers
     ├── server_services/             # External API call logic
     ├── server_utilities/            # Helper functions
+    └── pages/                   # Interfaces
     └── index.ts                     # Creation and entry point for server
 ```
 
