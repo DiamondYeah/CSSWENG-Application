@@ -87,6 +87,7 @@ Repo for version control for the development of the application. Description wil
     <li>Add remaining TikTok error codes (unaudited_client_can_only_post_to_private_accounts, etc.</li>
     <li>Fix the hover effect as it still works on disabled checkboxes</li>
     <li>Update the design for the checkboxes?</li>
+    <li>Make sure posts actually don't immediately post if they have a schedule</li>
   </ul>
   <li> Preparation for Going to a Live Domain - via Render.com </li>
   <ul>
