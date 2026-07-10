@@ -8,10 +8,13 @@ import CreatePost from './pages/CreatePost';
 import SignIn from './pages/SignIn';
 import SignUp from './pages/SignUp';
 import Calendar from './pages/Calendar';
-import Accounts from './pages/Accounts'
+import Accounts from './pages/Accounts';
+import Category from './pages/Category';
+import Queue from './pages/Queue';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { StrictMode } from 'react';
-import SharedCalendar from './pages/SharedCalendar';
+import { SAMPLE_ACCOUNTS, SAMPLE_POSTS } from './data/sampleCalendarData'; // NEW: sample data for calendar testing
+
 const router = createBrowserRouter([
   {path: "/", element: <LandingPage />},
   {path:"/dashboard", element:<Scheduling></Scheduling>},
@@ -20,14 +23,16 @@ const router = createBrowserRouter([
   { path: "/create-post", element: <CreatePost /> },
   {path:"/privacy", element:<PrivacySection/>},
   {path:"/terms", element:<TermsOfService/>},
-  {path:"/calendar", element:<Calendar/>},
+  {path:"/calendar", element:<Calendar accounts={SAMPLE_ACCOUNTS} posts={SAMPLE_POSTS} />}, // CHANGED: pass sample props
   {path:"/accounts", element:<Accounts/>},
-  {path:"*", element:<NotFoundPage/>},
-  {path:"/calendar/share/:token", element:<SharedCalendar/>},
+  {path:"/category", element:<Category/>},
+  { path: "/queue", element: <Queue /> },
+   { path: "/signin", element: <SignIn /> },
+   { path: "/signup", element: <SignUp /> },
+  {path:"*", element:<NotFoundPage/>}
 ])
 //Routing 
-function App(){
-
+function App() {
   return (
     <StrictMode>
      
@@ -41,4 +46,3 @@ function App(){
 }
 
 export default App;
-
