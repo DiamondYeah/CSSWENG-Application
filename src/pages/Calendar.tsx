@@ -275,9 +275,6 @@ export default function AgilaPostCalendar({
       {/* top bar */}
       <div className="ap-topbar">
         <div>
-          <div className="ap-topbar__brand">
-            Agila<span>Post</span>
-          </div>
           <div className="ap-topbar__subtitle">Content Calendar</div>
         </div>
         <div className="ap-topbar__meta">Timezone: {timezone}</div>

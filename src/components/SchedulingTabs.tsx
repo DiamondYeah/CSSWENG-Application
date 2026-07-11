@@ -3,7 +3,6 @@ import "./SchedulingTabs.css";
 
 // Tab definitions — add/remove entries here to change what shows up
 const TABS = [
-  { label: "Dashboard", path: "/dashboard" },
   { label: "Queue", path: "/queue" },
   { label: "Accounts", path: "/accounts" },
   { label: "Calendar", path: "/calendar" },
@@ -14,17 +13,22 @@ const TABS = [
 function SchedulingTabs() {
   return (
     <div className="scheduling-tabs">
-      {TABS.map((tab) => (
-        <NavLink
-          key={tab.path}
-          to={tab.path}
-          className={({ isActive }) =>
-            `tab${isActive ? " tab--active" : ""}`
-          }
-        >
-          {tab.label}
-        </NavLink>
-      ))}
+      <NavLink to="/calendar" className="scheduling-tabs__brand">
+        AgilaPost
+      </NavLink>
+      <div className="scheduling-tabs__links">
+        {TABS.map((tab) => (
+          <NavLink
+            key={tab.path}
+            to={tab.path}
+            className={({ isActive }) =>
+              `tab${isActive ? " tab--active" : ""}`
+            }
+          >
+            {tab.label}
+          </NavLink>
+        ))}
+      </div>
     </div>
   );
 }

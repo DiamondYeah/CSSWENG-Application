@@ -1,9 +1,13 @@
 import React from 'react';
 import './TermsOfService.css';
 
+import PublicNav from '../components/PublicNav';
+
 const TermsOfService: React.FC = () => {
   return (
-    <div className="tos-container">
+    <div>
+      <PublicNav />
+      <div className="tos-container">
       <div className="tos-content">
         <h1>Terms of Service</h1>
         <p className="last-updated">Last Updated: June 2026</p>
@@ -322,6 +326,7 @@ const TermsOfService: React.FC = () => {
             <strong>Agila Post Support</strong>
           </p>
         </section>
+      </div>
       </div>
     </div>
   );
