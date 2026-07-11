@@ -1,5 +1,6 @@
 import "./LandingPage.css";
 import { Link } from "react-router-dom";
+import PublicNav from "../components/PublicNav";
 
 const FEATURES = [
   {
@@ -29,29 +30,14 @@ export default function LandingPage() {
     <div className="lp-root">
 
       {/* NAV */}
-      <nav className="lp-nav">
-        <div className="lp-nav-logo">
-          <span className="lp-logo-text">AgilaPost</span>
-        </div>
-        <div className="lp-nav-links">
-          <a href="#features">Features</a>
-          <a href="#pricing">Pricing</a>
-          <a href="#faq">FAQs</a>
-          <a href="/privacy">Privacy</a>
-          <a href="/terms">Terms Of Service</a>
-        </div>
-        <div className="lp-nav-cta">
-          <a href="/app" className="lp-signin">Sign In</a>
-          <Link to="/app" className="lp-btn-signup">Sign Up</Link>
-        </div>
-      </nav>
+      <PublicNav />
 
       {/* HERO */}
       <section className="lp-hero">
         <div className="lp-hero-left">
           <div className="lp-eyebrow">
             <span className="lp-eyebrow-dot">🦅</span>
-            Schedule smarter. Grow faster. →
+            Schedule smarter. Grow faster.
           </div>
 
           <h1 className="lp-headline">
@@ -143,15 +129,15 @@ export default function LandingPage() {
       <section className="lp-cta-banner">
         <h2>Ready to reclaim your time?</h2>
         <p>Join teams already using AgilaPost to stay consistent without the busywork.</p>
-        <Link to="/app" className="lp-btn-primary">Get started — it's free</Link>
+        <Link to="/signup" className="lp-btn-primary">Get started — it's free</Link>
       </section>
 
       {/* FOOTER */}
       <footer className="lp-footer">
         <span className="lp-logo-text">AgilaPost</span>
         <div className="lp-footer-links">
-          <a href="/privacy">Privacy Policy</a>
-          <a href="/terms">Terms of Service</a>
+          <Link to="/privacy">Privacy Policy</Link>
+          <Link to="/terms">Terms of Service</Link>
           <a href="mailto:help@agilapostapp.io">Contact</a>
         </div>
         <span className="lp-footer-copy">© {new Date().getFullYear()} AgilaPost Inc.</span>

@@ -1,9 +1,10 @@
 import "./PrivacySection.css";
 
+import PublicNav from "../components/PublicNav";
+
 const PRIVACY_SECTIONS = [
   {
     id: 'intro',
-    title: 'Privacy Policy',
     paragraphs: [
       `1. The terms "AgilaPost," "we," "us," "our," or any grammatical variations 
       of the preceding words refer to AgilaPost Inc. The terms "you" or 
@@ -155,21 +156,23 @@ const PRIVACY_SECTIONS = [
 function PrivacySection() {
   return (
     <div>
-      <div id="header">
-      </div>
-      <div className="privacy-container">
-        {PRIVACY_SECTIONS.map((section) => (
-          <div key={section.id} className="privacy-section">
-            {section.title && <h2>{section.title}</h2>}
-            {section.subTitle && <h4>{section.subTitle}</h4>}
-            {section.paragraphs.map((paragraph, index) => (
-              <p key={index}>
-                {paragraph}
-                <br />
-              </p>
-            ))}
-          </div>
-        ))}
+      <PublicNav />
+      <div className="privacy-page">
+        <div className="privacy-container">
+          <h1 className="privacy-header">Privacy Policy</h1>
+          {PRIVACY_SECTIONS.map((section) => (
+            <div key={section.id} className="privacy-section">
+              {section.title && <h2>{section.title}</h2>}
+              {section.subTitle && <h4>{section.subTitle}</h4>}
+              {section.paragraphs.map((paragraph, index) => (
+                <p key={index}>
+                  {paragraph}
+                  <br />
+                </p>
+              ))}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

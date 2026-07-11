@@ -1,8 +1,9 @@
 import './App.css'
 import LandingPage from "./pages/LandingPage";
-import Scheduling from "./pages/Scheduling";
 import PrivacySection from './pages/PrivacySection';
 import TermsOfService from './pages/TermsOfService';
+import Pricing from './pages/Pricing';
+import FAQ from './pages/FAQ';
 import NotFoundPage from './pages/NotFound';
 import CreatePost from './pages/CreatePost';
 import SignIn from './pages/SignIn';
@@ -11,22 +12,26 @@ import Calendar from './pages/Calendar';
 import Accounts from './pages/Accounts';
 import Category from './pages/Category';
 import Queue from './pages/Queue';
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import TimeslotsPage from './pages/TimeslotsPage';
+import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
 import { StrictMode } from 'react';
 import { SAMPLE_ACCOUNTS, SAMPLE_POSTS } from './data/sampleCalendarData'; // NEW: sample data for calendar testing
 
 const router = createBrowserRouter([
   {path: "/", element: <LandingPage />},
-  {path:"/dashboard", element:<Scheduling></Scheduling>},
-   { path: "/signin", element: <SignIn /> },
+  {path:"/dashboard", element:<Navigate to="/calendar" replace />}, // Dashboard discarded — Calendar is now the default landing view after sign-in
+  { path: "/signin", element: <SignIn /> },
   { path: "/signup", element: <SignUp /> },
   { path: "/create-post", element: <CreatePost /> },
   {path:"/privacy", element:<PrivacySection/>},
   {path:"/terms", element:<TermsOfService/>},
+  {path:"/pricing", element:<Pricing/>},
+  {path:"/faq", element:<FAQ/>},
   {path:"/calendar", element:<Calendar accounts={SAMPLE_ACCOUNTS} posts={SAMPLE_POSTS} />}, // CHANGED: pass sample props
   {path:"/accounts", element:<Accounts/>},
   {path:"/category", element:<Category/>},
   { path: "/queue", element: <Queue /> },
+  { path: "/timeslots", element: <TimeslotsPage /> },
   {path:"*", element:<NotFoundPage/>}
 ])
 //Routing 

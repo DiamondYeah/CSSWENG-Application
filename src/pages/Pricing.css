@@ -1,0 +1,245 @@
+.pr-root {
+  background: #fafaf9;
+  color: #1e1b2e;
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  min-height: 100vh;
+}
+
+.pr-hero {
+  text-align: center;
+  padding: 72px 24px 48px;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.pr-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #6b6478;
+  margin-bottom: 10px;
+}
+
+.pr-headline {
+  font-size: clamp(28px, 4vw, 42px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin: 0 0 16px;
+  color: #15121f;
+}
+
+.pr-sub {
+  font-size: 16px;
+  color: #5a5468;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ---------- tiers ---------- */
+
+.pr-tiers {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 60px 80px;
+  align-items: start;
+}
+
+.pr-card {
+  position: relative;
+  background: #fff;
+  border: 1px solid #e4e1ec;
+  border-radius: 16px;
+  padding: 32px 28px;
+  display: flex;
+  flex-direction: column;
+}
+
+.pr-card.is-highlighted {
+  border-color: #6d28d9;
+  box-shadow: 0 8px 32px rgba(109, 40, 217, 0.14);
+  transform: translateY(-8px);
+}
+
+.pr-badge {
+  position: absolute;
+  top: -13px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #6d28d9, #3b82f6);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 14px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.pr-card-name {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0 0 6px;
+  color: #1e1b2e;
+}
+
+.pr-card-desc {
+  font-size: 13.5px;
+  color: #6b6478;
+  margin: 0 0 20px;
+  line-height: 1.5;
+  min-height: 40px;
+}
+
+.pr-card-price {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 24px;
+}
+
+.pr-card-price-num {
+  font-size: 34px;
+  font-weight: 800;
+  color: #1e1b2e;
+  letter-spacing: -0.02em;
+}
+
+.pr-card-price-period {
+  font-size: 13px;
+  color: #a39cb3;
+}
+
+.pr-btn-primary {
+  display: block;
+  text-align: center;
+  background: linear-gradient(135deg, #6d28d9, #3b82f6);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 12px 20px;
+  border-radius: 8px;
+  text-decoration: none;
+  margin-bottom: 24px;
+  transition: filter 0.15s, transform 0.15s;
+}
+.pr-btn-primary:hover { filter: brightness(0.92); transform: translateY(-1px); }
+
+.pr-btn-outline {
+  display: block;
+  text-align: center;
+  background: #fff;
+  color: #1e1b2e;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 12px 20px;
+  border-radius: 8px;
+  border: 1px solid #d8d3e3;
+  text-decoration: none;
+  margin-bottom: 24px;
+  transition: border-color 0.15s, transform 0.15s;
+}
+.pr-btn-outline:hover { border-color: #a89fc0; transform: translateY(-1px); }
+
+.pr-feature-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pr-feature-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13.5px;
+  color: #46415a;
+  line-height: 1.4;
+}
+
+.pr-check-icon {
+  color: #6d28d9;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* ---------- footnote ---------- */
+
+.pr-footnote {
+  text-align: center;
+  padding: 0 24px 60px;
+  font-size: 14px;
+  color: #6b6478;
+}
+
+.pr-footnote a {
+  color: #6d28d9;
+  text-decoration: none;
+  font-weight: 600;
+}
+.pr-footnote a:hover { text-decoration: underline; }
+
+/* ---------- footer ---------- */
+
+.pr-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 60px;
+  border-top: 1px solid #e4e1ec;
+  background: #fafaf9;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.pr-footer-logo {
+  font-size: 20px;
+  font-weight: 800;
+  color: #6d28d9;
+  letter-spacing: -0.03em;
+}
+
+.pr-footer-links {
+  display: flex;
+  gap: 24px;
+}
+
+.pr-footer-links a {
+  font-size: 13px;
+  color: #6b6478;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.pr-footer-links a:hover { color: #1e1b2e; }
+
+.pr-footer-copy {
+  font-size: 12px;
+  color: #a39cb3;
+}
+
+/* ---------- responsive ---------- */
+
+@media (max-width: 900px) {
+  .pr-tiers {
+    grid-template-columns: 1fr;
+    padding: 0 24px 60px;
+    max-width: 480px;
+  }
+  .pr-card.is-highlighted {
+    transform: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .pr-hero {
+    padding: 48px 20px 36px;
+  }
+  .pr-footer {
+    padding: 16px 24px;
+    flex-direction: column;
+    text-align: center;
+  }
+}

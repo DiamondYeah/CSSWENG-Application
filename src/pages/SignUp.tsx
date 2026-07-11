@@ -7,7 +7,6 @@ export default function SignUp() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [gender, setGender] = useState("");
-  const [birthdate, setBirthdate] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +25,6 @@ export default function SignUp() {
       fullName: fullName || "New User",
       email: email.toLowerCase(),
       gender,
-      birthdate,
       password,
     };
     localStorage.setItem("agilaPostUser", JSON.stringify(account));
@@ -79,16 +77,6 @@ export default function SignUp() {
               </button>
             </div>
           </div>
-
-          <label>
-            Birthdate
-            <input
-              type="date"
-              value={birthdate}
-              onChange={(event) => setBirthdate(event.target.value)}
-              required
-            />
-          </label>
 
           <label>
             Email address
