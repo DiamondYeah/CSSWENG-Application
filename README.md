@@ -176,7 +176,11 @@ Repo for version control for the development of the application. Description wil
 <ul>
   <li> What I'll do Next </li>
   <ul>
+<<<<<<< HEAD
     <li>Prepare for Live Domain</li>
+=======
+    <li>Fix the stupid CORS issue </li>
+>>>>>>> origin/main
     <li>Add Music Usage Confirmation declaration above post button (required for TikTok approval)</li>
     <li>Add Commercial Content Disclosure component when you toggle "Your Brand" and "Branded Content" checkboxes (required for TikTok approval)</li>
     <li>Post prevental check when user has reached their daily posting limit (required for TikTok approval)</li>
@@ -199,7 +203,11 @@ Repo for version control for the development of the application. Description wil
 ## Features
 - UI Pages (Landing Page, Dashboard, Accounts, Post Page, etc.)
 - Calendar Page with date Navigation
+<<<<<<< HEAD
 - Account Page to connect to various social media accounts (TikTok works only so far) w/ LogOut
+=======
+- Account Page to connect to various social media accounts (TikTok works only so far)
+>>>>>>> origin/main
 - Obtaining OAuth token and refreshing token if expired (TikTok)
 - CSRF Safety
 - Models for Database storing of said User and Post Information (Made to be generalized to be used by various APIS)
@@ -207,8 +215,11 @@ Repo for version control for the development of the application. Description wil
 - Semi-working post page with fields (Title, Caption, Video Upload, TikTok API Settings)
 - Field Validation for Post Page
 - Publishing and Uploading Videos to TikTok
+<<<<<<< HEAD
 - Calendar Post View and Sharing
 - TikTok Commercial Content and Disclosure Settings
+=======
+>>>>>>> origin/main
 
 ## Project Structure
 
@@ -222,7 +233,10 @@ tiktok_api/
 │       ├── frontend_utilities/      # Helper functions for the frontend, such as a timer
 │       ├── hooks/                   # Custom React hooks (Run on mount and update UI)
 │       └── pages/                   # Page components
+<<<<<<< HEAD
 |       └── pages/                   # Interfaces
+=======
+>>>>>>> origin/main
 │
 └── server/
     ├── database/                    # MongoDB connection setup
@@ -233,7 +247,10 @@ tiktok_api/
     ├── routes/                      # HTTP route handlers
     ├── server_services/             # External API call logic
     ├── server_utilities/            # Helper functions
+<<<<<<< HEAD
     └── pages/                   # Interfaces
+=======
+>>>>>>> origin/main
     └── index.ts                     # Creation and entry point for server
 ```
 

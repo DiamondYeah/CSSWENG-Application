@@ -19,11 +19,6 @@ import { PLATFORM_META} from "../frontend_utilities/platformIcons.tsx"
 import {type Platform, type Account} from "../types/account.ts"
 
 
-import "./Scheduling.css";
-
-import Navbar from "../components/Navbar";
-
-
 // Import CalendarGrid from components
 import { CalendarGrid } from "../components/CalendarGrid.tsx";
 
@@ -147,147 +142,129 @@ export default function AgilaPostCalendar({
     );
 
   return (
-    <div>
-      <Navbar />
-      <main className="main-content">
-        <div className="scheduling-page">
-          <div className="scheduling-tabs">
-            <div className="tab"><a href="/create-post">Queue</a></div>
-            <div className="tab"><a href="/accounts">Accounts</a></div>
-            <div className="tab"><a href="/calendar">Calendar</a></div>
-            <div className="tab">Category</div>
-            <div className="tab">Timeslots</div>
-          </div>
+    <div className="ap-calendar">
 
-      <div className="ap-calendar">
-        
-        <SchedulingTabs/>
+      <SchedulingTabs/>
 
-        {/* top bar */}
-        <div className="ap-topbar">
-          <div>
-            <div className="ap-topbar__brand">
-              Agila<span>Post</span>
-            </div>
-            <div className="ap-topbar__subtitle">Content Calendar</div>
-          </div>
-          <div className="ap-topbar__right">
-            <div className="ap-topbar__meta">Timezone: {timezone}</div>
-            <button className="ap-share-btn" onClick = {() => generateCalendarShare()}>
-              <Share2 size={14} />
-              Share Calendar
-            </button>
-          </div>
+      {/* top bar */}
+      <div className="ap-topbar">
+        <div>
+          <div className="ap-topbar__subtitle">Content Calendar</div>
         </div>
-
-        <div className="ap-body">
-          {/* sidebar */}
-          <aside className="ap-sidebar">
-            <button className="ap-sidebar__collapse" aria-label="Collapse sidebar">
-              <ChevronLeft size={16} />
-            </button>
-
-            <h2 className="ap-sidebar__title">Social Accounts</h2>
-
-            <div className="ap-accounts-header">
-              <span className="ap-accounts-header__label">Accounts</span>
-              {accounts.length > 0 && (
-                <button className="ap-select-all" onClick={toggleSelectAll}>
-                  <span className={`ap-checkbox ${allChecked ? "is-checked" : ""}`}>
-                    {allChecked && <Check size={11} color="#fff" />}
-                  </span>
-                  Select All
-                </button>
-              )}
-            </div>
-
-            <div className="ap-accounts-list">
-              {accounts.length === 0 ? (
-                <div className="ap-accounts-empty">
-                  <p className="ap-accounts-empty__text">
-                    No accounts connected yet.
-                    <br />
-                    Connect a Facebook, Instagram, LinkedIn, or TikTok account to start scheduling.
-                  </p>
-                  <button className="ap-connect-btn" onClick={onConnectAccount}>
-                    + Connect Account
-                  </button>
-                </div>
-              ) : (
-                accounts.map((acc) => {
-
-                  const meta = PLATFORM_META[acc.platform]
-                  if(!meta)
-                    return null;
-
-                  const { Icon, color } = meta;
-                  const checked = checkedAccounts[acc.id] !== false;
-                  return (
-                    <label key={acc.id} className="ap-account-row">
-                      <span
-                        className={`ap-account-toggle ${checked ? "is-checked" : ""}`}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          toggleAccount(acc.id);
-                        }}
-                      >
-                        {checked && <Check size={10} color="#fff" />}
-                      </span>
-                      <span className="ap-account-avatar">
-                        <span className="ap-account-avatar__circle">
-                          {acc.name.slice(0, 2).toUpperCase()}
-                        </span>
-                        <span
-                          className="ap-account-avatar__badge"
-                          style={{ backgroundColor: color }}
-                        >
-                          <Icon size={8} color="#fff" />
-                        </span>
-                      </span>
-                      <span className="ap-account-name">{acc.name}</span>
-                    </label>
-                  );
-                })
-              )}
-            </div>
-
-            <div className="ap-sidebar__options">
-              <label className="ap-option">
-                <input
-                  type="checkbox"
-                  checked={showFutureRepeats}
-                  onChange={() => setShowFutureRepeats((v) => !v)}
-                />
-                Show future instances of repeating posts
-              </label>
-              <label className="ap-option">
-                <input
-                  type="checkbox"
-                  checked={expandAll}
-                  onChange={() => setExpandAll((v) => !v)}
-                />
-                Expand all posts
-              </label>
-              <label className="ap-option">
-                <input
-                  type="checkbox"
-                  checked={showDrafts}
-                  onChange={() => setShowDrafts((v) => !v)}
-                />
-                Show drafts in Calendar
-              </label>
-            </div>
-          </aside>
-
-          {/* main calendar */}
-          <CalendarGrid 
-            posts={posts.filter(p => checkedAccounts[p.accountId] !== false)} 
-            readOnly = {false} postsView = {postsView} setPostsView = {setPostsView}></CalendarGrid>
-
+        <div className="ap-topbar__right">
+          <div className="ap-topbar__meta">Timezone: {timezone}</div>
+          <button className="ap-share-btn" onClick = {() => generateCalendarShare()}>
+            <Share2 size={14} />
+            Share Calendar
+          </button>
         </div>
       </div>
-        </div>
-      </main>
+
+      <div className="ap-body">
+        {/* sidebar */}
+        <aside className="ap-sidebar">
+          <button className="ap-sidebar__collapse" aria-label="Collapse sidebar">
+            <ChevronLeft size={16} />
+          </button>
+
+          <h2 className="ap-sidebar__title">Social Accounts</h2>
+
+          <div className="ap-accounts-header">
+            <span className="ap-accounts-header__label">Accounts</span>
+            {accounts.length > 0 && (
+              <button className="ap-select-all" onClick={toggleSelectAll}>
+                <span className={`ap-checkbox ${allChecked ? "is-checked" : ""}`}>
+                  {allChecked && <Check size={11} color="#fff" />}
+                </span>
+                Select All
+              </button>
+            )}
+          </div>
+
+          <div className="ap-accounts-list">
+            {accounts.length === 0 ? (
+              <div className="ap-accounts-empty">
+                <p className="ap-accounts-empty__text">
+                  No accounts connected yet.
+                  <br />
+                  Connect a Facebook, Instagram, LinkedIn, or TikTok account to start scheduling.
+                </p>
+                <button className="ap-connect-btn" onClick={onConnectAccount}>
+                  + Connect Account
+                </button>
+              </div>
+            ) : (
+              accounts.map((acc) => {
+
+                const meta = PLATFORM_META[acc.platform]
+                if(!meta)
+                  return null;
+
+                const { Icon, color } = meta;
+                const checked = checkedAccounts[acc.id] !== false;
+                return (
+                  <label key={acc.id} className="ap-account-row">
+                    <span
+                      className={`ap-account-toggle ${checked ? "is-checked" : ""}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        toggleAccount(acc.id);
+                      }}
+                    >
+                      {checked && <Check size={10} color="#fff" />}
+                    </span>
+                    <span className="ap-account-avatar">
+                      <span className="ap-account-avatar__circle">
+                        {acc.name.slice(0, 2).toUpperCase()}
+                      </span>
+                      <span
+                        className="ap-account-avatar__badge"
+                        style={{ backgroundColor: color }}
+                      >
+                        <Icon size={8} color="#fff" />
+                      </span>
+                    </span>
+                    <span className="ap-account-name">{acc.name}</span>
+                  </label>
+                );
+              })
+            )}
+          </div>
+
+          <div className="ap-sidebar__options">
+            <label className="ap-option">
+              <input
+                type="checkbox"
+                checked={showFutureRepeats}
+                onChange={() => setShowFutureRepeats((v) => !v)}
+              />
+              Show future instances of repeating posts
+            </label>
+            <label className="ap-option">
+              <input
+                type="checkbox"
+                checked={expandAll}
+                onChange={() => setExpandAll((v) => !v)}
+              />
+              Expand all posts
+            </label>
+            <label className="ap-option">
+              <input
+                type="checkbox"
+                checked={showDrafts}
+                onChange={() => setShowDrafts((v) => !v)}
+              />
+              Show drafts in Calendar
+            </label>
+          </div>
+        </aside>
+
+        {/* main calendar */}
+        <CalendarGrid 
+          posts={posts.filter(p => checkedAccounts[p.accountId] !== false)} 
+          readOnly = {false} postsView = {postsView} setPostsView = {setPostsView}></CalendarGrid>
+
+      </div>
     </div>
   );
 }
