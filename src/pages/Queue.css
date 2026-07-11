@@ -589,3 +589,25 @@
     gap: 12px;
   }
 }
+
+/* Add this to Queue.css — styled to match .cp-btn-schedule in CreatePost.css */
+
+.q-create-post-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #6d28d9, #3b82f6);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 9px 16px;
+  cursor: pointer;
+  transition: filter 0.15s, transform 0.15s;
+  white-space: nowrap;
+}
+.q-create-post-btn:hover {
+  filter: brightness(0.92);
+  transform: translateY(-1px);
+}

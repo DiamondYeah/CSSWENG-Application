@@ -1,9 +1,10 @@
 import "./Queue.css";
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { LuClock } from "react-icons/lu";
 import { LuCircleCheckBig } from "react-icons/lu";
 import { HiMagnifyingGlass } from "react-icons/hi2";
-import { IoPersonOutline, IoTrashOutline, IoCheckmark } from "react-icons/io5";
+import { IoPersonOutline, IoTrashOutline, IoCheckmark, IoAddOutline } from "react-icons/io5";
 import { BsThreeDotsVertical } from "react-icons/bs";
 import { IoChatbubbleOutline, IoEyeOutline } from "react-icons/io5";
 import { FiExternalLink } from "react-icons/fi";
@@ -144,6 +145,7 @@ function PlatformBadge({ platform }: { platform: Platform }) {
 // ---------- Component ---------- //
 
 function Queue() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<QueueTab>("scheduled");
   const [accountFilter, setAccountFilter] = useState<string>("");
   const [search, setSearch] = useState<string>("");
@@ -285,6 +287,14 @@ function Queue() {
                     onChange={(e) => setSearch(e.target.value)}
                   />
                 </div>
+
+                <button
+                  className="q-create-post-btn"
+                  onClick={() => navigate("/create-post")}
+                >
+                  <IoAddOutline size={16} />
+                  Create Post
+                </button>
 
                 <button className="q-icon-btn" title="Delete selected">
                   <IoTrashOutline size={16} />
