@@ -4,6 +4,7 @@ import "./SchedulingTabs.css";
 // Tab definitions — add/remove entries here to change what shows up
 const TABS = [
   { label: "Queue", path: "/queue" },
+  { label: "Create Post", path: "/create-post" },
   { label: "Accounts", path: "/accounts" },
   { label: "Calendar", path: "/calendar" },
   { label: "Category", path: "/category" },

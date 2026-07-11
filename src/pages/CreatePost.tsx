@@ -8,7 +8,7 @@ import {
 } from "react-icons/io5";
 import { MdOutlineEmojiEmotions, MdOutlineAlternateEmail } from "react-icons/md";
 import { BsHash } from "react-icons/bs";
-import Navbar from "../components/Navbar";
+import SchedulingTabs from "../components/SchedulingTabs";
 import emptyPfp from "../assets/emptyPfp.jpg";
 
 
@@ -184,17 +184,14 @@ function CreatePost() {
 
   return (
     <div>
-      <Navbar />
+      <SchedulingTabs/>
       <main className="main-content">
         <div className="create-post-page">
           <div className="cp-header">
             <button className="cp-back-btn" onClick={() => navigate("/dashboard")}>
               <IoArrowBack size={18} />
             </button>
-            <div>
-              <h1><a href="/create-post">Create a post</a></h1>
-              <p>Design and schedule your content</p>
-            </div>
+      
           </div>
 
           <div className="cp-compose-layout">
