@@ -7,13 +7,10 @@ import NotFoundPage from './pages/NotFound';
 import CreatePost from './pages/CreatePost';
 import SignIn from './pages/SignIn';
 import SignUp from './pages/SignUp';
-import Calendar from './pages/Calendar';
+import Calendar from './pages/Calendar.tsx';
 import Accounts from './pages/Accounts';
-import Category from './pages/Category';
-import Queue from './pages/Queue';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { StrictMode } from 'react';
-import { SAMPLE_ACCOUNTS, SAMPLE_POSTS } from './data/sampleCalendarData'; // NEW: sample data for calendar testing
 
 const router = createBrowserRouter([
   {path: "/", element: <LandingPage />},
@@ -23,12 +20,10 @@ const router = createBrowserRouter([
   { path: "/create-post", element: <CreatePost /> },
   {path:"/privacy", element:<PrivacySection/>},
   {path:"/terms", element:<TermsOfService/>},
-  {path:"/calendar", element:<Calendar accounts={SAMPLE_ACCOUNTS} posts={SAMPLE_POSTS} />}, // CHANGED: pass sample props
   {path:"/accounts", element:<Accounts/>},
-  {path:"/category", element:<Category/>},
-  { path: "/queue", element: <Queue /> },
-   { path: "/signin", element: <SignIn /> },
-   { path: "/signup", element: <SignUp /> },
+  { path: "/signin", element: <SignIn /> },
+  { path: "/calendar", element: <Calendar /> },
+  { path: "/signup", element: <SignUp /> },
   {path:"*", element:<NotFoundPage/>}
 ])
 //Routing 

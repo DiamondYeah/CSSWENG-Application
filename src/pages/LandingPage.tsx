@@ -41,8 +41,8 @@ export default function LandingPage() {
           <a href="/terms">Terms Of Service</a>
         </div>
         <div className="lp-nav-cta">
-          <a href="/app" className="lp-signin">Sign In</a>
-          <Link to="/app" className="lp-btn-signup">Sign Up</Link>
+          <a href="/signin" className="lp-signin">Sign In</a>
+          <Link to="/signup" className="lp-btn-signup">Sign Up</Link>
         </div>
       </nav>
 

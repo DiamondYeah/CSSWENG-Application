@@ -1,0 +1,44 @@
+.scheduling-tabs {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 24px;
+  padding: 12px 24px;
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.scheduling-tabs__brand {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: #6d28d9;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.scheduling-tabs__links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.scheduling-tabs .tab {
+  text-decoration: none;
+  color: inherit;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.scheduling-tabs .tab:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.scheduling-tabs .tab--active {
+  font-weight: 600;
+  background-color: var(--accent-bg, rgba(139, 92, 246, 0.12));
+  color: var(--accent, #8B5CF6);
+}

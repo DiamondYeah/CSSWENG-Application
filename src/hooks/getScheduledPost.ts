@@ -6,9 +6,11 @@ import { mapPostToSchedulePost } from "../frontend_utilities/calendarUtilities";
 
 // Import types
 import {type ScheduledPost} from "../types/post.ts"
+import {type PostMediaStatus} from "../types/tiktok.ts"
 
 
-export function useScheduledPosts(){
+
+export function useScheduledPosts(passedStatus: PostMediaStatus){
 
     const [posts, setPosts] = useState<ScheduledPost[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -22,7 +24,7 @@ export function useScheduledPosts(){
 
             try{
 
-                const postsFetch = await fetchScheduledPosts()
+                const postsFetch = await fetchScheduledPosts(passedStatus)
 
                 // Check if fetch was success
                 if(!postsFetch.success)
@@ -59,7 +61,7 @@ export function useScheduledPosts(){
         loadScheduledPosts();
         return() => {ignore = true;} // Return if ignore is true
 
-    }, []);
+    }, [passedStatus]);
 
     // Return result
     return {posts, isLoading, error};

@@ -8,6 +8,7 @@ dotenv.config();
 
 // Import types
 import {type IUser} from "../models/user.ts"
+import {type PostMediaStatus} from "../models/post.ts";
 import {type AuthUserRequest} from "../types/express.ts"
 
 // Import Service Functions, Middleware Functions, Database Controller Functions, and Util Functions
@@ -27,9 +28,12 @@ router.get("/getscheduledposts", findUserAuth, async (req: AuthUserRequest, res:
 
     const user: IUser = req.user as IUser;
 
+    const status = (req.query.status as PostMediaStatus) ?? "pending";
+
+
     try{
 
-        const posts = await findScheduledPosts(String(user._id));
+        const posts = await findScheduledPosts(String(user._id), status);
 
 
         // Send successful JSON with data holding posts

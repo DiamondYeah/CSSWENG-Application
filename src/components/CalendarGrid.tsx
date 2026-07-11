@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, MessageCircle, Check } from "lucide-react";
 
 // Import utility for platform icons
 import {PLATFORM_META} from "../frontend_utilities/platformIcons.tsx"
@@ -16,6 +16,8 @@ interface CalendarGridDetails{
 
     posts: ScheduledPost[];
     readOnly?: boolean;
+    postsView: "pending" | "published";
+    setPostsView: (postView: "pending" | "published") => void;
 
 }
 
@@ -78,7 +80,7 @@ function toDateKey(d: Date): string {
 
 
 // readOnly to be used at later date
-export function CalendarGrid({posts, readOnly = false}: CalendarGridDetails){ 
+export function CalendarGrid({posts, readOnly = false, postsView, setPostsView}: CalendarGridDetails){ 
 
     const today = useMemo(() => new Date(), []);
     const [cursorDate, setCursorDate] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
@@ -119,6 +121,21 @@ export function CalendarGrid({posts, readOnly = false}: CalendarGridDetails){
                     onClick={() => setView("week")}
                 >
                     week
+                </button>
+                </div>
+
+                <div className="ap-toggle-group">
+                <button
+                    className={`ap-toggle-group__btn ${postsView === "pending" ? "is-active" : ""}`}
+                    onClick={() => setPostsView("pending")}
+                >
+                    Scheduled Posts {postsView == "pending" && <Check size={13} />} {/** Show checkmark when enabled */}
+                </button>
+                <button
+                    className={`ap-toggle-group__btn ${postsView === "published" ? "is-active" : ""}`}
+                    onClick={() => setPostsView("published")}
+                >
+                    Published Posts {postsView == "published" && <Check size={13} />} {/** Show checkmark when enabled */}
                 </button>
                 </div>
 
@@ -188,8 +205,9 @@ export function CalendarGrid({posts, readOnly = false}: CalendarGridDetails){
                                     </div>
 
                                     <div className="ap-post-card__footer">
-                                        <Clock size={10} />
-                                        <span>{post.time}</span>
+                                    <Clock size={10} />
+                                    <span>{post.time}</span>
+                                    {post.hasComment && <MessageCircle size={10} style={{ marginLeft: 6 }} />}
                                     </div>
                                 </div>
 

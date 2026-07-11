@@ -211,10 +211,10 @@ export async function uploadPhotos(photos: File[], title: string, description: s
 
 
 // Function calls router to fetch posts with scheduled dates connected to the user
-export async function fetchScheduledPosts(){
+export async function fetchScheduledPosts(status: string = "pending"){
 
     // Fetch router with credentials
-    const res = await fetch(SCHEDULED_POSTS_DIRECT, 
+    const res = await fetch(`${SCHEDULED_POSTS_DIRECT}?status=${status}`, 
     {
         credentials: "include",
         headers: CORS_HEADER

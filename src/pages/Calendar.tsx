@@ -5,7 +5,7 @@ import {
   Share2,
 } from "lucide-react";
 import "./Calendar.css";
-
+import SchedulingTabs from "../components/SchedulingTabs"; // NEW: replaces hardcoded tab divs
 
 // Import functions from controller, hooks and utilities
 import {useConnectAccounts} from "../hooks/connectAccounts.ts";
@@ -112,8 +112,10 @@ export default function AgilaPostCalendar({
   onConnectAccount,
   onSelectPost,
 }: Omit<AgilaPostCalendarProps, "accounts" | "posts">) {
+
   const {accounts: unmappedAccounts} = useConnectAccounts();
-  const {posts, isLoading: postsLoading, error: postsError} = useScheduledPosts();
+  const [postsView, setPostsView] = useState<"pending" | "published">("published");
+  const {posts, isLoading: postsLoading, error: postsError} = useScheduledPosts(postsView);
 
 
   // Use useMemo to avoid heavy recalculations so refernce only changes when accounts actually change data
@@ -158,6 +160,9 @@ export default function AgilaPostCalendar({
           </div>
 
       <div className="ap-calendar">
+        
+        <SchedulingTabs/>
+
         {/* top bar */}
         <div className="ap-topbar">
           <div>
@@ -275,7 +280,9 @@ export default function AgilaPostCalendar({
           </aside>
 
           {/* main calendar */}
-          <CalendarGrid posts={posts.filter(p => checkedAccounts[p.accountId] !== false)} readOnly = {false}></CalendarGrid>
+          <CalendarGrid 
+            posts={posts.filter(p => checkedAccounts[p.accountId] !== false)} 
+            readOnly = {false} postsView = {postsView} setPostsView = {setPostsView}></CalendarGrid>
 
         </div>
       </div>

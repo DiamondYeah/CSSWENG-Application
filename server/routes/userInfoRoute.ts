@@ -59,6 +59,7 @@ router.get("/getuserinfo", findUserAuth, async (req: AuthUserRequest, res: Respo
 router.get("/getuser/:token", async (req: Request, res: Response) => {
         
     const { token } = req.params;
+
     try{
 
         // Get user from database by calling findUserByShareToken and passing token as argument
@@ -198,7 +199,7 @@ router.get("/sharecalendar/:token", async (req: Request, res: Response) => {
             return res.status(401).json({ success: false, message: "Share link is expired!"});
 
 
-        const sharedPosts = await findScheduledPosts(String(user._id))
+        const sharedPosts = await findScheduledPosts(String(user._id), "published")
 
         // Check if sharedPosts is undefined
         if(!sharedPosts)

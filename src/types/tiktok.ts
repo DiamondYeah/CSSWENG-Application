@@ -1,4 +1,7 @@
 
+export type PostMediaStatus = "pending" | "processing" | "failed" | "expired" | "published"
+
+
 // Interface for user query info. Used to store types on information regarding user query information fetched from API.
 export interface UserQueryInfo{
 

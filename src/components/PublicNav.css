@@ -1,0 +1,73 @@
+/* PublicNav.css — shared logged-out nav bar for Landing, Privacy, Terms */
+
+.lp-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 60px;
+  border-bottom: 1px solid #e4e1ec;
+  background: #fafaf9;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.lp-nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lp-nav-logo .lp-logo-text {
+  cursor: pointer;
+}
+
+.lp-nav-links {
+  display: flex;
+  gap: 36px;
+}
+
+.lp-nav-links a {
+  font-size: 14px;
+  color: #46415a;
+  font-weight: 500;
+  transition: color 0.15s;
+  text-decoration: none;
+}
+.lp-nav-links a:hover { color: #6d28d9; }
+
+.lp-nav-cta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.lp-signin {
+  font-size: 14px;
+  font-weight: 500;
+  color: #46415a;
+  transition: color 0.15s;
+  text-decoration: none;
+}
+.lp-signin:hover { color: #1e1b2e; }
+
+.lp-btn-signup {
+  background: linear-gradient(135deg, #6d28d9, #3b82f6);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 9px 20px;
+  border-radius: 8px;
+  transition: filter 0.15s, transform 0.15s;
+  text-decoration: none;
+  display: inline-block;
+}
+.lp-btn-signup:hover { filter: brightness(0.92); transform: translateY(-1px); }
+
+@media (max-width: 960px) {
+  .lp-nav { padding: 14px 24px; }
+}
+
+@media (max-width: 520px) {
+  .lp-nav-links { display: none; }
+}
