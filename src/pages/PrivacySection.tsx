@@ -131,6 +131,22 @@ const PRIVACY_SECTIONS = [
     ]
   },
   {
+    id: 'account-connections',
+    title: 'Account Connections and Token Management',
+    subTitle: 'Disconnecting an Account',
+    paragraphs: [
+      `You can disconnect any connected TikTok, LinkedIn, Facebook, or Instagram account directly from your AgilaPost Accounts page at any time, without needing to contact support. Disconnecting an account through AgilaPost immediately stops any further scheduled or automated posting to that account.`,
+    ]
+  },
+  {
+    id: 'token-retention',
+    subTitle: 'What Happens to Your Access Token',
+    paragraphs: [
+      `When you disconnect an account, AgilaPost deletes the associated access token and refresh token from our servers within 24 hours. This is separate from, and in addition to, revoking access through the platform's own settings (such as your TikTok, Meta, or LinkedIn account security page), which you may also do at any time.`,
+      `If an account remains connected but inactive, we retain its access token only for as long as needed to keep the connection functional, and in accordance with the token expiration and refresh policies set by each platform (TikTok, Meta, and LinkedIn). We do not retain tokens indefinitely for accounts that are no longer in use once a platform invalidates them.`
+    ]
+  },
+  {
     id: 'data-deletion',
     title: 'Data Deletion Requests',
     paragraphs: [
