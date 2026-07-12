@@ -102,13 +102,14 @@ router.post("/initupload", findUserAuth, async (req: AuthUserRequest, res: Respo
         // Fallback in case nothing was returned
         return res.json({ success: false, message: "userInitUpload returned with no data from service call!"});
 
-    }catch(err){
+  }catch(err){
 
-        console.error("Error: " + err);
+        console.error("Full error object:", err);
+        console.error("Cause:", (err as Error).cause);
 
-        if((err as Error).message == "POSTING CAP REACHED")
+        if((err as Error).message == "POSTING_CAP_REACHED")
             return res.status(429).json({ success: false, code: "POSTING_CAP_REACHED", message: "You have reached your posting limit. Please try again later."})
-        else if((err as Error).message == "BANNED FROM POSTING")
+        else if((err as Error).message == "BANNED_FROM_POSTING")
             return res.status(429).json({ success: false, code: "BANNED_FROM_POSTING", message: "Your account is banned from posting. Please use a different account."})
 
 
