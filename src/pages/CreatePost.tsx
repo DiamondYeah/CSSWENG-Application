@@ -8,6 +8,7 @@ import {
   IoCalendarOutline,
   IoChevronBack,
   IoChevronForward,
+  IoTimeOutline,
 } from "react-icons/io5";
 import { MdOutlineEmojiEmotions, MdOutlineAlternateEmail } from "react-icons/md";
 import { BsHash } from "react-icons/bs";
@@ -51,6 +52,10 @@ function isSameDate(a: Date, b: Date): boolean {
   );
 }
 
+const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+type DatePickerView = "days" | "months" | "years";
+
 interface DatePickerProps {
   value: string; // "YYYY-MM-DD" or ""
   onChange: (value: string) => void;
@@ -58,6 +63,7 @@ interface DatePickerProps {
 
 function DatePicker({ value, onChange }: DatePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [view, setView] = useState<DatePickerView>("days");
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -66,6 +72,9 @@ function DatePicker({ value, onChange }: DatePickerProps) {
     const base = selectedDate ?? today;
     return new Date(base.getFullYear(), base.getMonth(), 1);
   });
+  // Anchors the 12-year block shown in the years view, independent of cursorMonth
+  // so paging through years doesn't jump the visible day-grid month.
+  const [yearBlockStart, setYearBlockStart] = useState(() => Math.floor(cursorMonth.getFullYear() / 12) * 12);
 
   const year = cursorMonth.getFullYear();
   const month = cursorMonth.getMonth();
@@ -92,10 +101,24 @@ function DatePicker({ value, onChange }: DatePickerProps) {
 
   const goPrevMonth = () => setCursorMonth(new Date(year, month - 1, 1));
   const goNextMonth = () => setCursorMonth(new Date(year, month + 1, 1));
+  const goPrevYearBlock = () => setYearBlockStart((y) => y - 12);
+  const goNextYearBlock = () => setYearBlockStart((y) => y + 12);
 
   const handlePick = (d: Date) => {
     onChange(toDateInputValue(d));
     setIsOpen(false);
+    setView("days");
+  };
+
+  const handlePickMonth = (m: number) => {
+    setCursorMonth(new Date(year, m, 1));
+    setView("days");
+  };
+
+  const handlePickYear = (y: number) => {
+    setCursorMonth(new Date(y, month, 1));
+    setYearBlockStart(Math.floor(y / 12) * 12);
+    setView("months");
   };
 
   const displayLabel = selectedDate
@@ -107,7 +130,7 @@ function DatePicker({ value, onChange }: DatePickerProps) {
       <button
         type="button"
         className="cp-datepicker__trigger"
-        onClick={() => setIsOpen((v) => !v)}
+        onClick={() => { setIsOpen((v) => !v); setView("days"); }}
       >
         <IoCalendarOutline size={16} />
         <span className={value ? "" : "cp-datepicker__placeholder"}>{displayLabel}</span>
@@ -115,49 +138,182 @@ function DatePicker({ value, onChange }: DatePickerProps) {
 
       {isOpen && (
         <>
-          <div className="cp-datepicker__backdrop" onClick={() => setIsOpen(false)} />
+          <div className="cp-datepicker__backdrop" onClick={() => { setIsOpen(false); setView("days"); }} />
           <div className="cp-datepicker__popover">
-            <div className="cp-datepicker__nav">
-              <button type="button" onClick={goPrevMonth} aria-label="Previous month">
-                <IoChevronBack size={16} />
-              </button>
-              <span>{monthLabel}</span>
-              <button type="button" onClick={goNextMonth} aria-label="Next month">
-                <IoChevronForward size={16} />
-              </button>
-            </div>
+            {view === "days" && (
+              <>
+                <div className="cp-datepicker__nav">
+                  <button type="button" onClick={goPrevMonth} aria-label="Previous month">
+                    <IoChevronBack size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    className="cp-datepicker__nav-label"
+                    onClick={() => setView("months")}
+                  >
+                    {monthLabel}
+                  </button>
+                  <button type="button" onClick={goNextMonth} aria-label="Next month">
+                    <IoChevronForward size={16} />
+                  </button>
+                </div>
 
-            <div className="cp-datepicker__weekdays">
-              {WEEKDAY_LABELS.map((d) => (
-                <span key={d}>{d}</span>
-              ))}
-            </div>
+                <div className="cp-datepicker__weekdays">
+                  {WEEKDAY_LABELS.map((d) => (
+                    <span key={d}>{d}</span>
+                  ))}
+                </div>
 
-            {weeks.map((week, wi) => (
-              <div key={wi} className="cp-datepicker__week">
-                {week.map(({ date, inMonth }, di) => {
-                  const isPast = date < today;
-                  const isSelected = selectedDate ? isSameDate(date, selectedDate) : false;
-                  const isToday = isSameDate(date, today);
-                  return (
+                {weeks.map((week, wi) => (
+                  <div key={wi} className="cp-datepicker__week">
+                    {week.map(({ date, inMonth }, di) => {
+                      const isPast = date < today;
+                      const isSelected = selectedDate ? isSameDate(date, selectedDate) : false;
+                      const isToday = isSameDate(date, today);
+                      return (
+                        <button
+                          type="button"
+                          key={di}
+                          disabled={isPast}
+                          onClick={() => handlePick(date)}
+                          className={[
+                            "cp-datepicker__day",
+                            !inMonth ? "is-outside" : "",
+                            isSelected ? "is-selected" : "",
+                            isToday && !isSelected ? "is-today" : "",
+                            isPast ? "is-past" : "",
+                          ].filter(Boolean).join(" ")}
+                        >
+                          {date.getDate()}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ))}
+              </>
+            )}
+
+            {view === "months" && (
+              <>
+                <div className="cp-datepicker__nav">
+                  <span />
+                  <button
+                    type="button"
+                    className="cp-datepicker__nav-label"
+                    onClick={() => setView("years")}
+                  >
+                    {year}
+                  </button>
+                  <span />
+                </div>
+                <div className="cp-datepicker__grid3">
+                  {MONTH_LABELS.map((label, m) => (
                     <button
                       type="button"
-                      key={di}
-                      disabled={isPast}
-                      onClick={() => handlePick(date)}
-                      className={[
-                        "cp-datepicker__day",
-                        !inMonth ? "is-outside" : "",
-                        isSelected ? "is-selected" : "",
-                        isToday && !isSelected ? "is-today" : "",
-                        isPast ? "is-past" : "",
-                      ].filter(Boolean).join(" ")}
+                      key={label}
+                      className={`cp-datepicker__cell${m === month ? " is-selected" : ""}`}
+                      onClick={() => handlePickMonth(m)}
                     >
-                      {date.getDate()}
+                      {label}
                     </button>
-                  );
-                })}
-              </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {view === "years" && (
+              <>
+                <div className="cp-datepicker__nav">
+                  <button type="button" onClick={goPrevYearBlock} aria-label="Previous years">
+                    <IoChevronBack size={16} />
+                  </button>
+                  <span>{yearBlockStart} – {yearBlockStart + 11}</span>
+                  <button type="button" onClick={goNextYearBlock} aria-label="Next years">
+                    <IoChevronForward size={16} />
+                  </button>
+                </div>
+                <div className="cp-datepicker__grid3">
+                  {Array.from({ length: 12 }, (_, i) => yearBlockStart + i).map((y) => (
+                    <button
+                      type="button"
+                      key={y}
+                      className={`cp-datepicker__cell${y === year ? " is-selected" : ""}`}
+                      onClick={() => handlePickYear(y)}
+                    >
+                      {y}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ---------- Time picker (visual clock/list for scheduling) ---------- //
+
+function formatTimeLabel(time24: string): string {
+  const [hStr, m] = time24.split(":");
+  const h = parseInt(hStr, 10);
+  const period = h >= 12 ? "PM" : "AM";
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${h12}:${m} ${period}`;
+}
+
+function buildTimeSlots(): string[] {
+  const slots: string[] = [];
+  for (let h = 0; h < 24; h++) {
+    for (const m of [0, 15, 30, 45]) {
+      slots.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
+    }
+  }
+  return slots;
+}
+
+const TIME_SLOTS = buildTimeSlots();
+
+interface TimePickerProps {
+  value: string; // "HH:MM" 24hr, or ""
+  onChange: (value: string) => void; // always emits "HH:MM" 24hr, same as native <input type="time">
+}
+
+function TimePicker({ value, onChange }: TimePickerProps) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const handlePick = (slot: string) => {
+    onChange(slot);
+    setIsOpen(false);
+  };
+
+  return (
+    <div className="cp-timepicker">
+      <button
+        type="button"
+        className="cp-timepicker__trigger"
+        onClick={() => setIsOpen((v) => !v)}
+      >
+        <IoTimeOutline size={16} />
+        <span className={value ? "" : "cp-timepicker__placeholder"}>
+          {value ? formatTimeLabel(value) : "Select a time"}
+        </span>
+      </button>
+
+      {isOpen && (
+        <>
+          <div className="cp-timepicker__backdrop" onClick={() => setIsOpen(false)} />
+          <div className="cp-timepicker__popover">
+            {TIME_SLOTS.map((slot) => (
+              <button
+                type="button"
+                key={slot}
+                onClick={() => handlePick(slot)}
+                className={`cp-timepicker__slot${slot === value ? " is-selected" : ""}`}
+              >
+                {formatTimeLabel(slot)}
+              </button>
             ))}
           </div>
         </>
@@ -611,7 +767,10 @@ function CreatePost() {
                     </div>
                     <div className="cp-field">
                       <label> Time<span className="required">*</span> - <span className = "cp-section-sub">{Intl.DateTimeFormat().resolvedOptions().timeZone}</span></label>
-                      <input type="time" value = {scheduleTime} onChange = {(e) => {setScheduleTime(e.target.value); setScheduleError(false);}}/>
+                      <TimePicker
+                        value={scheduleTime}
+                        onChange={(t) => { setScheduleTime(t); setScheduleError(false); }}
+                      />
                     </div>
                   </div>
                 )}

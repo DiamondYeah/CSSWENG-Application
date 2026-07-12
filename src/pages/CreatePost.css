@@ -615,6 +615,44 @@
   color: #6d28d9;
 }
 
+.cp-datepicker__nav-label {
+  width: auto !important;
+  height: auto !important;
+  padding: 4px 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e1b2e !important;
+}
+.cp-datepicker__nav-label:hover {
+  background: #f5f3ff;
+  color: #6d28d9 !important;
+}
+
+.cp-datepicker__grid3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+
+.cp-datepicker__cell {
+  border: none;
+  border-radius: 8px;
+  background: none;
+  padding: 12px 4px;
+  font-size: 13px;
+  font-family: inherit;
+  color: #1e1b2e;
+  cursor: pointer;
+}
+.cp-datepicker__cell:hover {
+  background: #f5f3ff;
+}
+.cp-datepicker__cell.is-selected {
+  background: linear-gradient(135deg, #6d28d9, #3b82f6);
+  color: #fff;
+  font-weight: 600;
+}
+
 .cp-datepicker__weekdays {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
