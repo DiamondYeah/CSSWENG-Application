@@ -80,6 +80,7 @@ router.get("/oauth2/callback", async (req: Request, res: Response) => {
 
     }catch(err){
 
+        console.error("OAuth callback error:", err);
         return res.status(500).json({ success: false, message: "Unexpected error when fetching token!" });
 
     }

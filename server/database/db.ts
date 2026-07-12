@@ -5,7 +5,7 @@ async function connectDB(): Promise<void> {
     try{
 
         // Connect to MongoDB with URI found at env
-        await mongoose.connect(process.env.MOONGOOSE_DATABASE_URI as string);
+        await mongoose.connect(process.env.MONGOOSE_DATABASE_URI as string);
         console.log("MongoDB Connected");
 
     }

@@ -1,4 +1,5 @@
 import dotenv from "dotenv";
+import fs from "fs";
 
 
 // Load env file
@@ -97,6 +98,9 @@ export async function obtainInitialUpload(video: TikTokVideoUpload){
 // Returns upload results
 export async function uploadVideo(video: Express.Multer.File, uploadURL: string){
 
+    // Read file to buffer by finding its path location via fileSystem
+    const videoBuffer = await fs.promises.readFile(video.path);
+
     //  Performs fetch to put the video to the user's TikTok account and return results
     const userUploadFetch = await fetch(uploadURL, 
         {
@@ -109,7 +113,7 @@ export async function uploadVideo(video: Express.Multer.File, uploadURL: string)
                 "Content-Range": `bytes 0-${video.size - 1}/${video.size}`,
 
             },
-            body: new Uint8Array(video.buffer),
+            body: videoBuffer,
 
         }
     );

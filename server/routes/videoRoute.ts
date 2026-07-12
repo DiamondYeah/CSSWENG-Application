@@ -2,6 +2,9 @@ import pkg from "express";
 import type { Request, Response } from "express";
 import dotenv from "dotenv";
 import multer from "multer";
+import path from "path";
+import fs from "fs";
+import crypto from "crypto";
 
 // Load env file
 dotenv.config();
@@ -22,10 +25,28 @@ const router = Router();
 
 
 
-// Create a multer that will store files in memoryStorage
-// WARNING BELOW. CHANGE WHEN ACTUAL SHIPPING
-console.warn(`[System Warning]: ${"Change memory storage to diskStorage as server may crash if user uploads large file"}`);
-const upload = multer({storage: multer.memoryStorage()})
+// Create a directory to store the uploaded videos at
+const VIDEO_STORAGE_DIRECTORY = "mediauploads/"
+
+// Check if directory exists, if not create one 
+if(!fs.existsSync(VIDEO_STORAGE_DIRECTORY))
+    fs.mkdirSync(VIDEO_STORAGE_DIRECTORY, { recursive: true })
+
+// Create a multer that will store files in diskStorage
+const videoDiskStorage = multer.diskStorage({
+
+    destination: (req, file, cb) => { cb(null, VIDEO_STORAGE_DIRECTORY); },
+    filename:  (req, file, cb) => { 
+
+        // Use crypto on file name and get the extension of the path via extname
+        const encryptedName = crypto.randomBytes(16).toString("hex") + path.extname(file.originalname);
+        cb(null, encryptedName);
+
+    }
+
+});
+
+const upload = multer({storage: videoDiskStorage})
 
 
 
@@ -129,6 +150,18 @@ router.post("/upload", findUserAuth, upload.single('videoFile'), async (req: Aut
 
         console.error("Error: " + err);
         return res.status(500).json({ success: false, message: "Unexpected error when performing upload!" });
+
+    }
+    finally{
+
+        // Remove/clean up file from fileSystem
+        fs.unlink(videoFile.path, (err) => {
+
+            // Display error for unlink
+            if(err)
+                console.error("Error in deleting file from fileSystem: ", err);
+            
+        });
 
     }
 

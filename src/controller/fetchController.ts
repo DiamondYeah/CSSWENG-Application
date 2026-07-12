@@ -13,9 +13,6 @@ const SCHEDULED_POSTS_DIRECT = `${API_BASE}/postInfo/getscheduledposts`;
 const GENERATE_SHARE_CALENDAR_DIRECT = `${API_BASE}/userInfo/createsharetoken`
 const OPEN_SHARE_CALENDAR_DIRECT = `${API_BASE}/userInfo/sharecalendar`
 
-// CORS BASE HEADER
-const CORS_HEADER: Record<string, string> = { "ngrok-skip-browser-warning": "true"}
-
 // Import type
 import {type PostMediaStatus} from "../types/tiktok.ts"
 
@@ -46,7 +43,6 @@ export async function fetchUserInfo(){
     const res = await fetch(USERINFO_API, 
     {
         credentials: "include",
-        headers: CORS_HEADER
 
     })
 
@@ -64,8 +60,6 @@ export async function fetchUserInfoViaToken(token: string){
     // Fetch router with credentials
     const res = await fetch(`${USER_TOKEN_DIRECT}/${token}`, 
     {
-
-        headers: CORS_HEADER,
 
     })
 
@@ -85,7 +79,6 @@ export async function fetchQueryInfo(){
     const res = await fetch(QUERY_DIRECT, {
 
         credentials: "include",
-        headers: CORS_HEADER,
 
     })
 
@@ -108,7 +101,7 @@ export async function initializeUploadPost(title: string, privacyLevel: string, 
 
         method: "POST",
         credentials: "include",
-        headers: { ...CORS_HEADER, "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
 
             title: title,
@@ -147,7 +140,6 @@ export async function uploadToTikTok(videoFile: File, uploadURL: string){
 
         method: "POST",
         credentials: "include",
-        headers: CORS_HEADER,
         body: formData
 
     })
@@ -169,7 +161,7 @@ export async function checkUploadStatus(publishID: string){
 
         method: "POST",
         credentials: "include",
-        headers: { ...CORS_HEADER, "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({publishID})
 
     })
@@ -200,7 +192,6 @@ export async function uploadPhotos(photos: File[], title: string, description: s
 
         method: "POST",
         credentials: "include",
-        headers: CORS_HEADER,
         body: formData
 
     })
@@ -220,7 +211,6 @@ export async function fetchScheduledPosts(status: PostMediaStatus = "pending"){
     const res = await fetch(`${SCHEDULED_POSTS_DIRECT}?status=${status}`, 
     {
         credentials: "include",
-        headers: CORS_HEADER
 
     })
 
@@ -241,7 +231,6 @@ export async function generateShareCalenderToken(){
 
         method: "POST",
         credentials: "include",
-        headers: CORS_HEADER
 
     })
 
@@ -261,9 +250,6 @@ export async function fetchSharedCalenderToken(token: string, status: PostMediaS
     // Fetch router with credentials
     const res = await fetch(`${OPEN_SHARE_CALENDAR_DIRECT}/${token}?status=${status}`, 
     {
-
-        // Remove credentials as these are opened by other users.
-        headers: CORS_HEADER
 
     })
 
