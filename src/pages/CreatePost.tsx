@@ -44,6 +44,41 @@ function toDateInputValue(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
+// Accepts YYYY-MM-DD, MM/DD/YYYY, or M/D/YYYY typed by hand.
+// Returns a valid "YYYY-MM-DD" string, or null if the text doesn't
+// resolve to a real calendar date (so callers never commit garbage).
+function parseTypedDate(text: string): string | null {
+  const trimmed = text.trim();
+  if (!trimmed) return null;
+
+  let y: number, m: number, d: number;
+
+  const isoMatch = trimmed.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  const slashMatch = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+
+  if (isoMatch) {
+    y = parseInt(isoMatch[1], 10);
+    m = parseInt(isoMatch[2], 10);
+    d = parseInt(isoMatch[3], 10);
+  } else if (slashMatch) {
+    m = parseInt(slashMatch[1], 10);
+    d = parseInt(slashMatch[2], 10);
+    y = parseInt(slashMatch[3], 10);
+  } else {
+    return null;
+  }
+
+  if (m < 1 || m > 12 || d < 1 || d > 31) return null;
+
+  const candidate = new Date(y, m - 1, d);
+  // Reject dates that overflowed (e.g. Feb 30 rolling into March)
+  if (candidate.getFullYear() !== y || candidate.getMonth() !== m - 1 || candidate.getDate() !== d) {
+    return null;
+  }
+
+  return toDateInputValue(candidate);
+}
+
 function isSameDate(a: Date, b: Date): boolean {
   return (
     a.getFullYear() === b.getFullYear() &&
@@ -64,6 +99,7 @@ interface DatePickerProps {
 function DatePicker({ value, onChange }: DatePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [view, setView] = useState<DatePickerView>("days");
+  const [draftText, setDraftText] = useState(value);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -105,9 +141,24 @@ function DatePicker({ value, onChange }: DatePickerProps) {
   const goNextYearBlock = () => setYearBlockStart((y) => y + 12);
 
   const handlePick = (d: Date) => {
-    onChange(toDateInputValue(d));
+    const formatted = toDateInputValue(d);
+    onChange(formatted);
+    setDraftText(formatted);
     setIsOpen(false);
     setView("days");
+  };
+
+  const commitTypedText = () => {
+    const parsed = parseTypedDate(draftText);
+    if (parsed) {
+      onChange(parsed);
+      setDraftText(parsed);
+      setCursorMonth(new Date(parseInt(parsed.slice(0, 4), 10), parseInt(parsed.slice(5, 7), 10) - 1, 1));
+    } else {
+      // Invalid text — revert the field to whatever the last valid value was
+      // rather than silently accepting something that can't feed the backend.
+      setDraftText(value);
+    }
   };
 
   const handlePickMonth = (m: number) => {
@@ -123,18 +174,33 @@ function DatePicker({ value, onChange }: DatePickerProps) {
 
   const displayLabel = selectedDate
     ? selectedDate.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })
-    : "Select a date";
+    : "";
 
   return (
     <div className="cp-datepicker">
-      <button
-        type="button"
-        className="cp-datepicker__trigger"
-        onClick={() => { setIsOpen((v) => !v); setView("days"); }}
-      >
-        <IoCalendarOutline size={16} />
-        <span className={value ? "" : "cp-datepicker__placeholder"}>{displayLabel}</span>
-      </button>
+      <div className="cp-datepicker__trigger">
+        <button
+          type="button"
+          className="cp-datepicker__icon-btn"
+          onClick={() => { setIsOpen((v) => !v); setView("days"); }}
+          aria-label="Open calendar"
+        >
+          <IoCalendarOutline size={16} />
+        </button>
+        <input
+          type="text"
+          className="cp-datepicker__input"
+          placeholder="MM/DD/YYYY"
+          value={isOpen ? draftText : (value ? displayLabel : draftText)}
+          onFocus={() => { setIsOpen(true); setDraftText(value); }}
+          onChange={(e) => setDraftText(e.target.value)}
+          onBlur={commitTypedText}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") { commitTypedText(); (e.target as HTMLInputElement).blur(); }
+            if (e.key === "Escape") { setDraftText(value); setIsOpen(false); (e.target as HTMLInputElement).blur(); }
+          }}
+        />
+      </div>
 
       {isOpen && (
         <>
@@ -275,6 +341,41 @@ function buildTimeSlots(): string[] {
 
 const TIME_SLOTS = buildTimeSlots();
 
+// Accepts "2:30 PM", "2:30pm", "14:30", or "1430" typed by hand.
+// Returns a valid "HH:MM" 24hr string, or null if it doesn't resolve
+// to a real time (so callers never commit garbage to the payload).
+function parseTypedTime(text: string): string | null {
+  const trimmed = text.trim().toLowerCase();
+  if (!trimmed) return null;
+
+  const ampmMatch = trimmed.match(/^(\d{1,2}):?(\d{2})?\s*(am|pm)$/);
+  const h24Match = trimmed.match(/^(\d{1,2}):(\d{2})$/);
+  const digitsMatch = trimmed.match(/^(\d{1,2})(\d{2})$/);
+
+  let h: number, m: number;
+
+  if (ampmMatch) {
+    h = parseInt(ampmMatch[1], 10);
+    m = ampmMatch[2] ? parseInt(ampmMatch[2], 10) : 0;
+    const period = ampmMatch[3];
+    if (h < 1 || h > 12) return null;
+    if (period === "pm" && h !== 12) h += 12;
+    if (period === "am" && h === 12) h = 0;
+  } else if (h24Match) {
+    h = parseInt(h24Match[1], 10);
+    m = parseInt(h24Match[2], 10);
+  } else if (digitsMatch) {
+    h = parseInt(digitsMatch[1], 10);
+    m = parseInt(digitsMatch[2], 10);
+  } else {
+    return null;
+  }
+
+  if (h < 0 || h > 23 || m < 0 || m > 59) return null;
+
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
 interface TimePickerProps {
   value: string; // "HH:MM" 24hr, or ""
   onChange: (value: string) => void; // always emits "HH:MM" 24hr, same as native <input type="time">
@@ -282,24 +383,51 @@ interface TimePickerProps {
 
 function TimePicker({ value, onChange }: TimePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [draftText, setDraftText] = useState(value ? formatTimeLabel(value) : "");
 
   const handlePick = (slot: string) => {
     onChange(slot);
+    setDraftText(formatTimeLabel(slot));
     setIsOpen(false);
+  };
+
+  const commitTypedText = () => {
+    const parsed = parseTypedTime(draftText);
+    if (parsed) {
+      onChange(parsed);
+      setDraftText(formatTimeLabel(parsed));
+    } else {
+      // Invalid text — revert to the last valid value rather than
+      // silently accepting something that can't feed the backend.
+      setDraftText(value ? formatTimeLabel(value) : "");
+    }
   };
 
   return (
     <div className="cp-timepicker">
-      <button
-        type="button"
-        className="cp-timepicker__trigger"
-        onClick={() => setIsOpen((v) => !v)}
-      >
-        <IoTimeOutline size={16} />
-        <span className={value ? "" : "cp-timepicker__placeholder"}>
-          {value ? formatTimeLabel(value) : "Select a time"}
-        </span>
-      </button>
+      <div className="cp-timepicker__trigger">
+        <button
+          type="button"
+          className="cp-timepicker__icon-btn"
+          onClick={() => setIsOpen((v) => !v)}
+          aria-label="Open time list"
+        >
+          <IoTimeOutline size={16} />
+        </button>
+        <input
+          type="text"
+          className="cp-timepicker__input"
+          placeholder="e.g. 2:30 PM"
+          value={draftText}
+          onFocus={() => setIsOpen(true)}
+          onChange={(e) => setDraftText(e.target.value)}
+          onBlur={commitTypedText}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") { commitTypedText(); (e.target as HTMLInputElement).blur(); }
+            if (e.key === "Escape") { setDraftText(value ? formatTimeLabel(value) : ""); setIsOpen(false); (e.target as HTMLInputElement).blur(); }
+          }}
+        />
+      </div>
 
       {isOpen && (
         <>
