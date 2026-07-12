@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Plus, Check, Trash2, Pencil, X } from "lucide-react";
 import "./Category.css";
 

@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import {
   ChevronLeft,
   Check,
@@ -105,12 +105,11 @@ async function generateCalendarShare(){
 export default function AgilaPostCalendar({
   timezone = Intl.DateTimeFormat().resolvedOptions().timeZone, // Changed to this so it always show local timezone
   onConnectAccount,
-  onSelectPost,
 }: Omit<AgilaPostCalendarProps, "accounts" | "posts">) {
 
   const {accounts: unmappedAccounts} = useConnectAccounts();
   const [postsView, setPostsView] = useState<"pending" | "published">("published");
-  const {posts, isLoading: postsLoading, error: postsError} = useScheduledPosts(postsView);
+  const {posts, isLoading: _postsLoading, error: _postsError} = useScheduledPosts(postsView);
 
 
   // Use useMemo to avoid heavy recalculations so refernce only changes when accounts actually change data

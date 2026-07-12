@@ -80,7 +80,7 @@ function toDateKey(d: Date): string {
 
 
 // readOnly to be used at later date
-export function CalendarGrid({posts, readOnly = false, postsView, setPostsView}: CalendarGridDetails){ 
+export function CalendarGrid({posts, postsView, setPostsView}: CalendarGridDetails){ 
 
     const today = useMemo(() => new Date(), []);
     const [cursorDate, setCursorDate] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
