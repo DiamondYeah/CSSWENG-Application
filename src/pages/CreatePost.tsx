@@ -5,6 +5,9 @@ import {
   IoArrowBack,
   IoCloudUploadOutline,
   IoCheckmark,
+  IoCalendarOutline,
+  IoChevronBack,
+  IoChevronForward,
 } from "react-icons/io5";
 import { MdOutlineEmojiEmotions, MdOutlineAlternateEmail } from "react-icons/md";
 import { BsHash } from "react-icons/bs";
@@ -29,8 +32,141 @@ const MAX_TITLE_LENGTH: number = 2200;
 const MAX_CAPTION_LENGTH: number = 2200;
 
 
-function CreatePost() {
+// ---------- Date picker (visual calendar for scheduling) ---------- //
 
+const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+function toDateInputValue(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function isSameDate(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
+interface DatePickerProps {
+  value: string; // "YYYY-MM-DD" or ""
+  onChange: (value: string) => void;
+}
+
+function DatePicker({ value, onChange }: DatePickerProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const selectedDate = value ? new Date(value + "T00:00:00") : null;
+  const [cursorMonth, setCursorMonth] = useState(() => {
+    const base = selectedDate ?? today;
+    return new Date(base.getFullYear(), base.getMonth(), 1);
+  });
+
+  const year = cursorMonth.getFullYear();
+  const month = cursorMonth.getMonth();
+  const monthLabel = cursorMonth.toLocaleString("en-US", { month: "long", year: "numeric" });
+
+  const weeks: { date: Date; inMonth: boolean }[][] = (() => {
+    const firstOfMonth = new Date(year, month, 1);
+    const jsDay = firstOfMonth.getDay(); // 0=Sun..6=Sat
+    const mondayOffset = (jsDay + 6) % 7;
+    const gridStart = new Date(year, month, 1 - mondayOffset);
+
+    const result: { date: Date; inMonth: boolean }[][] = [];
+    const cursor = new Date(gridStart);
+    for (let w = 0; w < 6; w++) {
+      const week: { date: Date; inMonth: boolean }[] = [];
+      for (let d = 0; d < 7; d++) {
+        week.push({ date: new Date(cursor), inMonth: cursor.getMonth() === month });
+        cursor.setDate(cursor.getDate() + 1);
+      }
+      result.push(week);
+    }
+    return result;
+  })();
+
+  const goPrevMonth = () => setCursorMonth(new Date(year, month - 1, 1));
+  const goNextMonth = () => setCursorMonth(new Date(year, month + 1, 1));
+
+  const handlePick = (d: Date) => {
+    onChange(toDateInputValue(d));
+    setIsOpen(false);
+  };
+
+  const displayLabel = selectedDate
+    ? selectedDate.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })
+    : "Select a date";
+
+  return (
+    <div className="cp-datepicker">
+      <button
+        type="button"
+        className="cp-datepicker__trigger"
+        onClick={() => setIsOpen((v) => !v)}
+      >
+        <IoCalendarOutline size={16} />
+        <span className={value ? "" : "cp-datepicker__placeholder"}>{displayLabel}</span>
+      </button>
+
+      {isOpen && (
+        <>
+          <div className="cp-datepicker__backdrop" onClick={() => setIsOpen(false)} />
+          <div className="cp-datepicker__popover">
+            <div className="cp-datepicker__nav">
+              <button type="button" onClick={goPrevMonth} aria-label="Previous month">
+                <IoChevronBack size={16} />
+              </button>
+              <span>{monthLabel}</span>
+              <button type="button" onClick={goNextMonth} aria-label="Next month">
+                <IoChevronForward size={16} />
+              </button>
+            </div>
+
+            <div className="cp-datepicker__weekdays">
+              {WEEKDAY_LABELS.map((d) => (
+                <span key={d}>{d}</span>
+              ))}
+            </div>
+
+            {weeks.map((week, wi) => (
+              <div key={wi} className="cp-datepicker__week">
+                {week.map(({ date, inMonth }, di) => {
+                  const isPast = date < today;
+                  const isSelected = selectedDate ? isSameDate(date, selectedDate) : false;
+                  const isToday = isSameDate(date, today);
+                  return (
+                    <button
+                      type="button"
+                      key={di}
+                      disabled={isPast}
+                      onClick={() => handlePick(date)}
+                      className={[
+                        "cp-datepicker__day",
+                        !inMonth ? "is-outside" : "",
+                        isSelected ? "is-selected" : "",
+                        isToday && !isSelected ? "is-today" : "",
+                        isPast ? "is-past" : "",
+                      ].filter(Boolean).join(" ")}
+                    >
+                      {date.getDate()}
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function CreatePost() {
 
   const navigate = useNavigate();
   const {accounts, isLoading: accountsLoading, error: accountsError} = useConnectAccounts();
@@ -468,8 +604,10 @@ function CreatePost() {
                   <div className="cp-schedule-row">
                     <div className="cp-field">
                       <label>Date<span className="required">*</span></label>
-                      <input type="date" value = {scheduleDate}
-                      onChange = {(e) => {setScheduleDate(e.target.value); setScheduleError(false);}}/>
+                      <DatePicker
+                        value={scheduleDate}
+                        onChange={(d) => { setScheduleDate(d); setScheduleError(false); }}
+                      />
                     </div>
                     <div className="cp-field">
                       <label> Time<span className="required">*</span> - <span className = "cp-section-sub">{Intl.DateTimeFormat().resolvedOptions().timeZone}</span></label>
