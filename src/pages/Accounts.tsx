@@ -3,12 +3,14 @@ import SchedulingTabs from "../components/SchedulingTabs"; // NEW: replaces hard
 import "./Accounts.css";
 
 // Import functions from controller
-import { disconnectTikTokUser, fetchQueryInfo, fetchUserInfo } from "../controller/fetchController.ts";
+import { disconnectTikTokUser, fetchUserInfo } from "../controller/fetchController.ts";
 
 /* ---------- API Logic ---------- */
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
 // Constants for TikTok API
-const LOGINREDIRECT = "https://smilingly-breeches-amusable.ngrok-free.dev/logAuth/tiktoklogin";
+const LOGINREDIRECT = `${API_BASE}/logAuth/tiktoklogin`;
 
 
 /* ---------- Types ---------- */
@@ -134,8 +136,9 @@ let nextAccountId = 100;
 export default function AgilaPostConnectAccounts() {
   const [accounts, setAccounts] = useState<AccountsByPlatform>(INITIAL_ACCOUNTS);
   const [connectingPlatform, setConnectingPlatform] = useState<PlatformId | null>(null);
-  const [addToCategories, setAddToCategories] = useState(true);
-  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [addToCategories, setAddToCategories] = useState<boolean>(true);
+  const [advancedOpen, setAdvancedOpen] = useState<boolean>(false);
+  const [accountError, setAccountError] = useState<string>(""); // Added for error checking
 
   const totalConnected = Object.values(accounts).reduce(
     (sum, list) => sum + list.length,
@@ -157,14 +160,11 @@ export default function AgilaPostConnectAccounts() {
 
         // Call function to get user info
         const userInfo = await fetchUserInfo();
-        console.log("Raw userInfo response:", userInfo);
 
         // Silently return if open id not found
         if(!userInfo?.data?.open_id)
           return;
 
-        const queryInfo = await fetchQueryInfo();
-        console.log("Raw queryInfo response:", queryInfo)
 
         setAccounts((prev) => {
 
@@ -199,7 +199,7 @@ export default function AgilaPostConnectAccounts() {
       }
       catch(err){
 
-        alert("Error: " + err);
+        setAccountError("Failed to load account. Please refresh to try again!");
 
       }
 
@@ -281,6 +281,8 @@ export default function AgilaPostConnectAccounts() {
             Connect as many accounts as you manage — there&apos;s no limit
             per platform.
           </p>
+
+          {accountError && <div className = "agp-error">{accountError}</div>}
 
           {/* Summary strip */}
           <div className="agp-summary">

@@ -9,6 +9,7 @@ dotenv.config();
 // Import types
 import {type IUser} from "../models/user.ts"
 import {type AuthUserRequest} from "../types/express.ts"
+import {type PostMediaStatus} from "../models/post.ts";
 
 // Import Service Functions, Middleware, and Database Functions
 import {obtainUserInfo, obtainQueryInfo} from "../server_services/tiktokUserService.ts"
@@ -185,6 +186,8 @@ router.get("/sharecalendar/:token", async (req: Request, res: Response) => {
 
     const {token} = req.params;
 
+    const status = (req.query.status as PostMediaStatus) ?? "pending";
+
     try{
 
         // Function also accetps tokens
@@ -199,7 +202,7 @@ router.get("/sharecalendar/:token", async (req: Request, res: Response) => {
             return res.status(401).json({ success: false, message: "Share link is expired!"});
 
 
-        const sharedPosts = await findScheduledPosts(String(user._id), "published")
+        const sharedPosts = await findScheduledPosts(String(user._id), status)
 
         // Check if sharedPosts is undefined
         if(!sharedPosts)

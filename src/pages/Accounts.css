@@ -102,6 +102,7 @@
   color: #71717a;
   font-size: 15px;
   margin: 0 0 28px;
+  text-align: center;
 }
 
 /* ---------- Summary strip ---------- */
@@ -326,6 +327,17 @@
 
 .agp-switch--on .agp-switch__knob {
   left: 21px;
+}
+
+
+/* ---------- Dev Additions ---------- */
+
+.agp-error{ /* Account loading error*/
+
+  padding: 20px;
+  color: darkred;
+  font-weight: bold;
+
 }
 
 /* ---------- Advanced settings ---------- */

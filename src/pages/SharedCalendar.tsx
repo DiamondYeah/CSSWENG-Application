@@ -4,7 +4,7 @@ import { useParams } from "react-router-dom";
 // Import types
 import {type ScheduledPost} from "../types/post.ts"
 
-// Import controller and frontend utilities functions
+// Import controller and frontend utilities functionsz
 import { fetchSharedCalenderToken, fetchUserInfoViaToken } from "../controller/fetchController.ts";
 import { mapPostToSchedulePost } from "../frontend_utilities/calendarUtilities.ts";
 
@@ -13,10 +13,14 @@ import { CalendarGrid } from "../components/CalendarGrid.tsx";
 
 function SharedCalendar(): React.JSX.Element{
 
+
+
     // Stateful const to store information on tokens and sharedPosts
     const [ownerName, setOwnerName] = useState<string>("");
     const {token} = useParams<{token: string}>();
     const [scheduledPosts, setScheduledPosts] = useState<ScheduledPost[]>([]);
+    const [postsView, setPostsView] = useState<"pending" | "published">("published");
+    const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string>("");
 
@@ -32,7 +36,7 @@ function SharedCalendar(): React.JSX.Element{
                 setIsLoading(true);
 
                 // Fetch the sharedCalendarToken to be used from the params
-                const [postRes, userRes] = await Promise.all([fetchSharedCalenderToken(String(token)), fetchUserInfoViaToken(String(token))])
+                const [postRes, userRes] = await Promise.all([fetchSharedCalenderToken(String(token), postsView), fetchUserInfoViaToken(String(token))])
                 if(!postRes.success) // Check if response was successful
                     throw new Error(postRes.message ?? "Failed to load shared calendar information");
 
@@ -60,13 +64,18 @@ function SharedCalendar(): React.JSX.Element{
 
         loadSharedPosts();
 
-    }, [token]);
+    }, [token, postsView]);
 
 
 
     // Return these based on if isLoading or error is true
-    if(isLoading) 
+    if(isLoading && !hasLoadedOnce) {
+
+        setHasLoadedOnce(true);
         return <div className="shared-calendar-loading">Loading calendar...</div>;
+
+    }
+
 
     if(error)
         return<>
@@ -116,8 +125,9 @@ function SharedCalendar(): React.JSX.Element{
 
             </div>
 
-            <CalendarGrid posts={scheduledPosts} readOnly={true}></CalendarGrid>
-
+            <CalendarGrid 
+            posts={scheduledPosts} 
+            readOnly = {false} postsView = {postsView} setPostsView = {setPostsView}></CalendarGrid>
 
         </div>
     

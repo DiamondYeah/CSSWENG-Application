@@ -16,6 +16,9 @@ const OPEN_SHARE_CALENDAR_DIRECT = `${API_BASE}/userInfo/sharecalendar`
 // CORS BASE HEADER
 const CORS_HEADER: Record<string, string> = { "ngrok-skip-browser-warning": "true"}
 
+// Import type
+import {type PostMediaStatus} from "../types/tiktok.ts"
+
 
 // Funcation calls router to disconnect TikTok user
 export async function disconnectTikTokUser(){
@@ -211,7 +214,7 @@ export async function uploadPhotos(photos: File[], title: string, description: s
 
 
 // Function calls router to fetch posts with scheduled dates connected to the user
-export async function fetchScheduledPosts(status: string = "pending"){
+export async function fetchScheduledPosts(status: PostMediaStatus = "pending"){
 
     // Fetch router with credentials
     const res = await fetch(`${SCHEDULED_POSTS_DIRECT}?status=${status}`, 
@@ -253,10 +256,10 @@ export async function generateShareCalenderToken(){
 
 
 // Function calls router to open read-only view of calendar showing scheduled posts of user who shared
-export async function fetchSharedCalenderToken(token: string){
+export async function fetchSharedCalenderToken(token: string, status: PostMediaStatus = "pending"){
 
     // Fetch router with credentials
-    const res = await fetch(`${OPEN_SHARE_CALENDAR_DIRECT}/${token}`, 
+    const res = await fetch(`${OPEN_SHARE_CALENDAR_DIRECT}/${token}?status=${status}`, 
     {
 
         // Remove credentials as these are opened by other users.

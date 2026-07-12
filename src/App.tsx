@@ -9,10 +9,12 @@ import CreatePost from './pages/CreatePost';
 import SignIn from './pages/SignIn';
 import SignUp from './pages/SignUp';
 import Calendar from './pages/Calendar';
+import SharedCalendar from './pages/SharedCalendar'
 import Accounts from './pages/Accounts';
 import Category from './pages/Category';
 import Queue from './pages/Queue';
 import TimeslotsPage from './pages/TimeslotsPage';
+
 import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
 import { StrictMode } from 'react';
 
@@ -28,6 +30,7 @@ const router = createBrowserRouter([
   {path:"/pricing", element:<Pricing/>},
   {path:"/faq", element:<FAQ/>},
   {path:"/calendar", element:<Calendar/>}, // CHANGED: pass sample props
+  {path:"/calendar/share/:token", element:<SharedCalendar/>}, // ADDED for working share calendar
   {path:"/accounts", element:<Accounts/>},
   {path:"/category", element:<Category/>},
   { path: "/queue", element: <Queue /> },
