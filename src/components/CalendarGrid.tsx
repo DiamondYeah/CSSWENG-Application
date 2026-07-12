@@ -189,9 +189,8 @@ export function CalendarGrid({posts, postsView, setPostsView}: CalendarGridDetai
                                             {post.title ?? "No Title"}
                                         </span>
                                         {meta && // Display Platform Icon
-                                        (<span className="ap-post-card__platform" style = {{color: meta.color}}>
-                                            <meta.Icon  size = {10} color="#ffffff"></meta.Icon>
-                                            {post.platform}
+                                        (<span className="ap-post-card__platform" style={{ backgroundColor: meta.color }}>
+                                            <meta.Icon size={10} color="#ffffff" />
                                         </span>)}
                                     </div>
 
