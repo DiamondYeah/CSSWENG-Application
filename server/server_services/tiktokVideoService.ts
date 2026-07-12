@@ -17,7 +17,9 @@ interface TikTokVideoUpload{
     allowComments: boolean;
     allowDuet: boolean;
     allowStitch: boolean;
-    
+    isYourOwnBrand: boolean;
+    isBrandedContent: boolean;
+
 }
 
 // Constants for Tiktok Paths
@@ -50,7 +52,9 @@ export async function obtainInitialUpload(video: TikTokVideoUpload){
                 disable_duet: !video.allowDuet,
                 disable_comment: !video.allowComments,
                 disable_stitch: !video.allowStitch,
-                video_cover_timestamp_ms: 1000
+                video_cover_timestamp_ms: 1000,
+                brand_content_toggle: video.isBrandedContent,
+                brand_organic_toggle: video.isYourOwnBrand,
 
             },
             source_info:{
@@ -70,8 +74,17 @@ export async function obtainInitialUpload(video: TikTokVideoUpload){
     const userInitUpload = await userInitUploadFetch.json();
 
     // Check if there is error when posting information
-    if(userInitUpload.error && userInitUpload.error.code != "ok")
+    if(userInitUpload.error && userInitUpload.error.code != "ok"){
+
+        // Check if user is not allowed to post
+        if(userInitUpload.error.code == "spam_risk_too_many_posts")
+            throw new Error("POSTING_CAP_REACHED", {cause: userInitUpload.error})
+        else if(userInitUpload.error.code == "spam_risk_user_banned_from_posting")
+            throw new Error("BANNED_FROM_POSTING", {cause: userInitUpload.error})
+
         throw new Error("userInitUpload error!", {cause: userInitUpload.error});
+
+    }
 
 
     // Send successful JSON 

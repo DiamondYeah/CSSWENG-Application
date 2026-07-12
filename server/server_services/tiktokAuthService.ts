@@ -10,6 +10,7 @@ import {type IUser} from "../models/user.ts"
 const TIKTOK_AUTORIZE_URL = 'https://www.tiktok.com/v2/auth/authorize/';
 const TIKTOK_GETTOKEN_URL = 'https://open.tiktokapis.com/v2/oauth/token/';
 const TIKTOK_REFRESHTOKEN_URL = 'https://open.tiktokapis.com/v2/oauth/token/';
+const TIKTOK_DISCONNECT_URL = 'https://open.tiktokapis.com/v2/oauth/revoke/';
 const SCOPE = '&scope=user.info.basic,user.info.profile,user.info.stats,video.publish,video.upload'
 
 
@@ -87,4 +88,30 @@ export async function refreshTikTokToken(user: IUser){
     return refreshUserData;
         
 
+}
+
+
+export async function disconnectTikTokAuth(user: IUser){
+
+
+    const disconnectAuth = await fetch(TIKTOK_DISCONNECT_URL, {
+
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ 
+            client_key: process.env.TIKTOK_CLIENT_KEY as string, 
+            client_secret: process.env.TIKTOK_CLIENT_SECRET as string,
+            token: user.accessToken
+        }),
+
+    });
+
+    const disconnectAuthData = await disconnectAuth.json();
+
+
+    if(disconnectAuthData.error)
+        throw new Error("Token Disconnect Auth Error!", {cause: disconnectAuthData.error});
+
+    // Send successful JSON 
+    return disconnectAuth;
 }

@@ -1,18 +1,42 @@
 // fetchController.ts
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
+const DISCONNECT_DIRECT = `${API_BASE}/logAuth/disconnect`;
 const USERINFO_API = `${API_BASE}/userInfo/getuserinfo`;
+const USER_TOKEN_DIRECT = `${API_BASE}/userInfo/getuser`
 const QUERY_DIRECT = `${API_BASE}/userInfo/queryinfo`;
 const INITIAL_UPLOAD_DIRECT = `${API_BASE}/videoUpload/initupload`;
 const UPLOAD_VIDEO_DIRECT = `${API_BASE}/videoUpload/upload`;
 const UPLOAD_STATUS_DIRECT = `${API_BASE}/videoUpload/poststatus`;
 const UPLOAD_PHOTOS_DIRECT = `${API_BASE}/photoUpload/photoUpload`;
+const SCHEDULED_POSTS_DIRECT = `${API_BASE}/postInfo/getscheduledposts`;
+const GENERATE_SHARE_CALENDAR_DIRECT = `${API_BASE}/userInfo/createsharetoken`
+const OPEN_SHARE_CALENDAR_DIRECT = `${API_BASE}/userInfo/sharecalendar`
 
 // CORS BASE HEADER
 const CORS_HEADER: Record<string, string> = { "ngrok-skip-browser-warning": "true"}
- 
 
-// Function calls router user info from API to display user information
+
+// Funcation calls router to disconnect TikTok user
+export async function disconnectTikTokUser(){
+
+    const res = await fetch(DISCONNECT_DIRECT,
+    {
+
+        method: "POST",
+        credentials: "include",
+
+
+    })
+
+    // Convert res to json and return
+    const disconnectInfo = await res.json();
+
+    return disconnectInfo;
+
+}
+
+// Function calls router user info from API to obtain user information
 export async function fetchUserInfo(){
 
     // Fetch router with credentials
@@ -21,14 +45,34 @@ export async function fetchUserInfo(){
         credentials: "include",
         headers: CORS_HEADER
 
-    },
-   )
+    })
 
     // Convert res to json and return
     const userInfo = await res.json();
+
     return userInfo;
 
 }
+
+
+// Function calls router user info from API via the shared token to obtain user information
+export async function fetchUserInfoViaToken(token: string){
+
+    // Fetch router with credentials
+    const res = await fetch(`${USER_TOKEN_DIRECT}/${token}`, 
+    {
+
+        headers: CORS_HEADER,
+
+    })
+
+    // Convert res to json and return
+    const userInfo = await res.json();
+
+    return userInfo;
+
+}
+
 
 
 // Function calls router to fetch query info of user from API to determine publish and video settings
@@ -38,10 +82,11 @@ export async function fetchQueryInfo(){
     const res = await fetch(QUERY_DIRECT, {
 
         credentials: "include",
-        headers: CORS_HEADER
+        headers: CORS_HEADER,
 
     })
 
+    // Convert res to json and return
     const queryInfo = await res.json();
 
     return queryInfo;
@@ -52,7 +97,8 @@ export async function fetchQueryInfo(){
 
 // Function calls router to prepare video for upload from API by giving parameter details to obtain publishID and uploadURL
 export async function initializeUploadPost(title: string, privacyLevel: string, videoSize: number, allowComments: boolean,
-                                            allowDuet: boolean, allowStitch: boolean){
+                                            allowDuet: boolean, allowStitch: boolean, isYourOwnBrand: boolean, isBrandedContent: boolean,
+                                             scheduleDate?: Date){
 
     // Fetch router with credentials
     const res = await fetch(INITIAL_UPLOAD_DIRECT, {
@@ -67,12 +113,16 @@ export async function initializeUploadPost(title: string, privacyLevel: string, 
             videoSize: videoSize,
             allowComments: allowComments,
             allowDuet: allowDuet,
-            allowSwitch: allowStitch
+            allowStitch: allowStitch,
+            isYourOwnBrand: isYourOwnBrand,
+            isBrandedContent: isBrandedContent,
+            scheduleDate: scheduleDate?.toISOString() ?? null
 
         })
 
     })
 
+    // Convert res to json and return
     const intialUploadInfo = await res.json();
 
     return intialUploadInfo;
@@ -99,6 +149,7 @@ export async function uploadToTikTok(videoFile: File, uploadURL: string){
 
     })
 
+    // Convert res to json and return
     const uploadInfo = await res.json();
 
     return uploadInfo;
@@ -120,6 +171,7 @@ export async function checkUploadStatus(publishID: string){
 
     })
 
+    // Convert res to json and return
     const statusInfo = await res.json();
 
     return statusInfo;
@@ -151,9 +203,71 @@ export async function uploadPhotos(photos: File[], title: string, description: s
     })
 
     const photosInfo = await res.json();
-    console.log("Photo Info Result: ", photosInfo);
 
     return photosInfo;
+
+
+}
+
+
+// Function calls router to fetch posts with scheduled dates connected to the user
+export async function fetchScheduledPosts(status: string = "pending"){
+
+    // Fetch router with credentials
+    const res = await fetch(`${SCHEDULED_POSTS_DIRECT}?status=${status}`, 
+    {
+        credentials: "include",
+        headers: CORS_HEADER
+
+    })
+
+    // Convert res to json and return
+    const scheduledPostInfo = await res.json();
+
+    return scheduledPostInfo;
+
+}
+
+
+// Function calls router to generate a shared calendar token of the user to be shared to other users
+export async function generateShareCalenderToken(){
+
+    // Fetch router with credentials
+    const res = await fetch(GENERATE_SHARE_CALENDAR_DIRECT, 
+    {
+
+        method: "POST",
+        credentials: "include",
+        headers: CORS_HEADER
+
+    })
+
+    // Convert res to json and return
+    const generatedTokenInfo = await res.json();
+
+    return generatedTokenInfo;
+
+
+
+}
+
+
+// Function calls router to open read-only view of calendar showing scheduled posts of user who shared
+export async function fetchSharedCalenderToken(token: string){
+
+    // Fetch router with credentials
+    const res = await fetch(`${OPEN_SHARE_CALENDAR_DIRECT}/${token}`, 
+    {
+
+        // Remove credentials as these are opened by other users.
+        headers: CORS_HEADER
+
+    })
+
+    // Convert res to json and return
+    const sharedCalendarInfo = await res.json();
+
+    return sharedCalendarInfo;
 
 
 }

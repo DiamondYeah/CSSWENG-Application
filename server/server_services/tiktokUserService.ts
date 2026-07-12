@@ -61,8 +61,7 @@ export async function obtainQueryInfo(user: IUser){
 
     // Convert the fetch to JSON and store it in const. 
     const userQuery = await userCreatorQuery.json();
-    console.log("User Query Details: ", userQuery);
-
+    
     // Check if there is error when fetching information
     if(userQuery.error && userQuery.error.code != "ok")
         throw new Error("userQuery error!", {cause: userQuery.error});

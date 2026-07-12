@@ -11,6 +11,7 @@ export type PostMediaStatus = "pending" | "processing" | "failed" | "expired" | 
 export interface IPost extends Document{
 
     userID: Types.ObjectId;
+    platformAccountID: string; // Stores tiktokOpenId, LinkedInId , etc.
     platform: Platform;
     postType: PostMediaType;
 
@@ -33,6 +34,7 @@ export interface IPost extends Document{
 const postSchema = new Schema<IPost>({
 
     userID: {type: Schema.Types.ObjectId, ref: "User", required: true},
+    platformAccountID: {type: String, required: true},
     platform: {type: String, enum:["tiktok", "linkedin", "facebook","instagram"], required: true},
     postType: {type: String, enum:["photo","video"], required: true},
 

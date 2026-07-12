@@ -1,5 +1,5 @@
 import "./CreatePost.css";
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   IoArrowBack,
@@ -22,8 +22,6 @@ import {usePostUpload} from "../hooks/postUpload.ts"
 // Import TikTok Settings Component
 import { TikTokSettings } from "../components/TikTokSettings.tsx";
 
-
-
 // ---------- Constants for media posting ---------- //
 
 // Title and Caption Length
@@ -45,28 +43,34 @@ function CreatePost() {
   const [scheduleMode, setScheduleMode] = useState<"now" | "schedule" | "queue">("schedule");
 
 
-    // Stateful const that store info user and video info fetched from TikTokAPI
-    const [mediaFile, setMediaFile] = useState<File | null>(null);
+  // Stateful const that store info user and video info fetched from TikTokAPI
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
 
-    // TO BE ADDED FOR CALENDAR SCHEDULING
-    const [scheduleDate, setScheduleDate] = useState<Date>();
-    const [scheduleTime, setScheduleTime] = useState<string>("");
+  // TO BE ADDED FOR CALENDAR SCHEDULING
+  const [scheduleDate, setScheduleDate] = useState<string>("");
+  const [scheduleTime, setScheduleTime] = useState<string>("");
 
-  
-    // Stateful const for query info settings
-    const [privacyLevel, setPrivacyLevel] = useState<string>("");
-    const [allowComments, setAllowComments] = useState<boolean>(false);
-    const [allowDuet, setAllowDuet] = useState<boolean>(false);
-    const [allowStitch, setAllowStitch] = useState<boolean>(false);
+  // Stateful const for query info settings
+  const [privacyLevel, setPrivacyLevel] = useState<string>("");
+  const [allowComments, setAllowComments] = useState<boolean>(false);
+  const [allowDuet, setAllowDuet] = useState<boolean>(false);
+  const [allowStitch, setAllowStitch] = useState<boolean>(false);
 
-    // Stateful consts for storing errors in input
-    const [validationMessage, setValidationMessage] = useState<string>("");
-    const [titleError, setTitleError] = useState<boolean>(false);
-    const [mediaError, setMediaError] = useState<boolean>(false);
-    const [privacyError, setPrivacyError] = useState<boolean>(false);
+  // Stateful const for storing commercial/promotional content settings
+  const [isCommercialContent, setIsCommercialContent] = useState<boolean>(false);
+  const [isYourOwnBrand, setIsYourOwnBrand] = useState<boolean>(false);
+  const [isBrandedContent, setIsBrandedContent] = useState<boolean>(false);
 
-    // Status to show to user when something occurs in the post page.
-    const statusToView = validationMessage || uploadStatus; // ValidationMessage takes priority
+  // Stateful consts for storing errors in input
+  const [validationMessage, setValidationMessage] = useState<string>("");
+  const [titleError, setTitleError] = useState<boolean>(false);
+  const [mediaError, setMediaError] = useState<boolean>(false);
+  const [privacyError, setPrivacyError] = useState<boolean>(false);
+  const [scheduleError, setScheduleError] = useState<boolean>(false);
+  const [commercialContentError, setCommericialContentError] = useState<boolean>(false);
+
+  // Status to show to user when something occurs in the post page.
+  const statusToView = validationMessage || uploadStatus; // ValidationMessage takes priority
 
 
 
@@ -75,6 +79,7 @@ function CreatePost() {
       prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id]
     );
   }
+
 
   // Function handles any file uploads in HTML input file and stores it in mediaFile const
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>){
@@ -126,10 +131,14 @@ function CreatePost() {
     const missingTitle = !title.trim();
     const missingMedia = !mediaFile;
     const missingPrivacy = !privacyLevel;
+    const missingSchedule = (scheduleMode == "schedule" && (!scheduleDate || !scheduleTime))
+    const missingCommercialContent = isCommercialContent && !isYourOwnBrand && !isBrandedContent
 
     setTitleError(missingTitle);
     setMediaError(missingMedia);
     setPrivacyError(missingPrivacy);
+    setScheduleError(missingSchedule);
+    setCommericialContentError(missingCommercialContent)
 
 
     // PLEASE FIX TO MAKE IT MUCH BETTER. I GOT SO LAZY HERE :P
@@ -155,6 +164,13 @@ function CreatePost() {
     if(missingPrivacy)
       return setValidationMessage("Please select a privacy level before posting!")
 
+    if(missingSchedule)
+      return setValidationMessage("Please select a date and/or time to schedule your post!")
+
+    if(missingCommercialContent)
+      return setValidationMessage("You need to indicate if your content promotes yourself, a third party, or both.")
+
+
     // Validation checking if selected accounts is 0
     if(selectedAccounts.length === 0)
       return setValidationMessage("Please select an account to upload to!")
@@ -175,11 +191,42 @@ function CreatePost() {
       privacyLevel: privacyLevel, 
       allowComments: allowComments,
       allowDuet: allowDuet,
-      allowStitch: allowStitch
+      allowStitch: allowStitch,
+      isYourOwnBrand: isYourOwnBrand,
+      isBrandedContent: isBrandedContent,
+      // Ternary opertaor to send undefined if scheduleDate has no value and user is not in scheduleMode (User chose Post Now)
+      scheduleDate: scheduleMode == "schedule" && scheduleDate
+      ? new Date(`${scheduleDate}T${scheduleTime|| "00:00"}`): undefined 
 
     })
 
   }
+
+  // Function returns TikTok User Consent depending on which are selected for Commercial Content and Promotion
+  function getTikTokUserConsent(){
+
+    if(isCommercialContent && isBrandedContent)
+      return <p>By posting, you agree to TikTok's <a href = "https://www.tiktok.com/legal/page/global/bc-policy/en">Branded Content Policy</a> and 
+      <a href = "https://www.tiktok.com/legal/page/global/music-usage-confirmation/en"> Music Usage Confirmation.</a></p>
+
+
+    return <p>By posting, you agree to TikTok's <a href = "https://www.tiktok.com/legal/page/global/music-usage-confirmation/en">Music Usage Confirmation.</a></p>
+
+  }
+
+
+  // useEffect for adjusting privacy options depending on commerical content
+  useEffect(() => {
+
+    // If branded content is activated and privacy level is set, to SELF_ONLY, remove it and show error.
+    if(isBrandedContent && privacyLevel == "SELF_ONLY"){
+
+      setPrivacyLevel("");
+      setValidationMessage("Branded content visibility cannot be set to private. Please choose a different privacy setting.");
+
+    }
+
+  }, [isBrandedContent, privacyLevel])
 
 
   return (
@@ -206,8 +253,7 @@ function CreatePost() {
                 {accountsLoading && <div className = "cp-section-sub"> Loading accounts... </div>}
 
                 {accountsError && (<div className = "cp-section-sub"> Error in loading accounts. Please refresh! </div>)}
-
-
+                
                 {!accountsLoading && !accountsError && accounts.length == 0 && 
                 (<div className = "cp-section-sub"> No accounts connected to. </div>)}
 
@@ -215,23 +261,51 @@ function CreatePost() {
                 {/** Changed mapping to use the loaded accounts instead of fake ones */}
                 {accounts.map((acc) => {
                   const selected = selectedAccounts.includes(acc.id);
-                  return (
-                    <div
-                      key={acc.id}
-                      className={`cp-account-row${selected ? " selected" : ""}`}
-                      onClick={() => toggleAccount(acc.id)}
-                    >
-                      <div className="cp-account-checkbox">
-                        {selected && <IoCheckmark size={13} />}
+
+                  // Check if theres info in queryInfo and passed platform is a TikTok account
+                  if(queryInfo && acc.platform == "tiktok")
+                    return (
+                      <div
+                        key={acc.id}
+                        className={`cp-account-row${selected ? " selected" : ""}`}
+                        onClick={() => toggleAccount(acc.id)}
+                      >
+                        <div className="cp-account-checkbox">
+                          {selected && <IoCheckmark size={13} />}
+                        </div>
+  
+                        <img src={queryInfo.creator_avatar_url} alt="" />
+                        <div className="cp-account-info">
+                          <span className="cp-account-name">{acc.name}</span>
+                          <span className="cp-account-handle">{acc.handle}</span>
+                          <span className="cp-account-platform">{acc.platform}</span>
+
+                        </div>
                       </div>
-                      <img src={emptyPfp} alt="" />
-                      <div className="cp-account-info">
-                        <span className="cp-account-name">{acc.name}</span>
-                        <span className="cp-account-handle">{acc.handle}</span>
-                        <span className="cp-account-platform">{acc.platform}</span>
+                    );
+
+
+                  // Fallback if the given platform isnt among the conditions
+                    return (
+                      <div
+                        key={acc.id}
+                        className={`cp-account-row${selected ? " selected" : ""}`}
+                        onClick={() => toggleAccount(acc.id)}
+                      >
+                        <div className="cp-account-checkbox">
+                          {selected && <IoCheckmark size={13} />}
+                        </div>
+  
+                        <img src={emptyPfp} alt="" />
+                        <div className="cp-account-info">
+                          <span className="cp-account-name">{acc.name}</span>
+                          <span className="cp-account-handle">{acc.handle}</span>
+                          <span className="cp-account-platform">{acc.platform}</span>
+
+                        </div>
                       </div>
-                    </div>
-                  );
+                    );
+
                 })}
               </div>
 
@@ -324,8 +398,9 @@ function CreatePost() {
                   {/** Change display depending if mediaFile is null or not*/}
                   {mediaFile ? (                    
                   <>                  
-                      <div className="cp-dropzone-title">{mediaFile.name}</div>
-                      <div className="cp-dropzone-sub">{(mediaFile.size / 1024 / 1024).toFixed(2)} MB</div>      
+                    <div className="cp-dropzone-title">{mediaFile.name}</div>
+                    <div className="cp-dropzone-sub">{(mediaFile.size / 1024 / 1024).toFixed(2)} MB</div>      
+                    
                   </>) : (
                   <>
                     <div className="cp-dropzone-title">Click or drag files to upload</div>
@@ -344,6 +419,7 @@ function CreatePost() {
               
                 queryInfo = {queryInfo}
                 privacyLevel = {privacyLevel}
+                isPhotoPost = {!!mediaFile && mediaFile.type.startsWith("image/") }
                 // If there is val, then value was selected and no error must occur.
                 setPrivacyLevel = {(val) => {setPrivacyLevel(val); setPrivacyError(false)}} 
                 privacyError = {privacyError}
@@ -353,18 +429,24 @@ function CreatePost() {
                 setAllowDuet = {setAllowDuet}
                 allowStitch = {allowStitch}
                 setAllowStitch = {setAllowStitch}
+                isCommercialContent = {isCommercialContent}
+                setIsCommercialContent = {setIsCommercialContent}
+                isYourOwnBrand = {isYourOwnBrand}
+                setIsYourOwnBrand = {setIsYourOwnBrand}
+                isBrandedContent = {isBrandedContent}
+                setIsBrandedContent = {setIsBrandedContent}
+                commercialContentError = {commercialContentError}
+
               ></TikTokSettings>
 
- 
-
-              <div className="cp-card">
+              <div className= {`cp-card ${scheduleError ? "cp-card-error" : ""}`}>
                 <div className="cp-section-title">When to post</div>
                 <div className="cp-section-sub">Choose when this post should go out</div>
 
                 <div className="cp-schedule-options">
                   <div
                     className={`cp-schedule-pill${scheduleMode === "now" ? " active" : ""}`}
-                    onClick={() => setScheduleMode("now")}
+                    onClick={() => {setScheduleMode("now"); setScheduleError(false)}}
                   >
                     Post now
                   </div>
@@ -376,7 +458,7 @@ function CreatePost() {
                   </div>
                   <div
                     className={`cp-schedule-pill${scheduleMode === "queue" ? " active" : ""}`}
-                    onClick={() => setScheduleMode("queue")}
+                    onClick={() => {setScheduleMode("queue"); setScheduleError(false)}}
                   >
                     Add to queue
                   </div>
@@ -385,12 +467,13 @@ function CreatePost() {
                 {scheduleMode === "schedule" && (
                   <div className="cp-schedule-row">
                     <div className="cp-field">
-                      <label>Date</label>
-                      <input type="date" />
+                      <label>Date<span className="required">*</span></label>
+                      <input type="date" value = {scheduleDate}
+                      onChange = {(e) => {setScheduleDate(e.target.value); setScheduleError(false);}}/>
                     </div>
                     <div className="cp-field">
-                      <label>Time</label>
-                      <input type="time" />
+                      <label> Time<span className="required">*</span> - <span className = "cp-section-sub">{Intl.DateTimeFormat().resolvedOptions().timeZone}</span></label>
+                      <input type="time" value = {scheduleTime} onChange = {(e) => {setScheduleTime(e.target.value); setScheduleError(false);}}/>
                     </div>
                   </div>
                 )}
@@ -415,6 +498,12 @@ function CreatePost() {
 
               </div>
 
+              {/** Add consent text */}
+              <div className="cp-tiktok-consent-notice">
+                {getTikTokUserConsent()}
+              </div>
+
+
 
               <div className="cp-actions-bar">
                 <span className="cp-actions-hint">
@@ -425,7 +514,9 @@ function CreatePost() {
                 <div className="cp-actions">
                   <button className="cp-btn-draft">Save as Draft</button>
                   {/** Disabled when uploading video */}
-                  <button className="cp-btn-schedule" onClick = {() => handleSubmitUpload()} disabled = {isUploading}>
+                  <button className="cp-btn-schedule" 
+                    onClick = {() => handleSubmitUpload()} 
+                    disabled = {isUploading || (isCommercialContent && !isYourOwnBrand && !isBrandedContent)}>
                     {scheduleMode === "now" ? "Post Now" : scheduleMode === "queue" ? "Add to Queue" : "Schedule Post"}
                   </button>
                 </div>

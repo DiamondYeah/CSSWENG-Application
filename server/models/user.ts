@@ -10,8 +10,9 @@ export interface IUser extends Document{
     scope: string;
     tokenExpiresIn: Date;
     refreshExpiresIn: Date;
+    shareToken?: string;
+    shareTokenExpiresIn?: Date;
     
-
 }
 
 // Create schema for User
@@ -23,6 +24,9 @@ const userSchema = new Schema<IUser>({
     scope: { type: String, required: true},
     tokenExpiresIn: { type: Date, required: true},
     refreshExpiresIn: { type: Date, required: true}, 
+    shareToken: { type: String, required: false, unique: true, sparse: true},
+    shareTokenExpiresIn: { type: Date, required: false}, 
+
 },
 
     { timestamps: true } // Adds cretedAt and updatedAt Dates

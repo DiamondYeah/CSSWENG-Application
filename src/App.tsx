@@ -15,7 +15,7 @@ import Queue from './pages/Queue';
 import TimeslotsPage from './pages/TimeslotsPage';
 import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
 import { StrictMode } from 'react';
-import { SAMPLE_ACCOUNTS, SAMPLE_POSTS } from './data/sampleCalendarData'; // NEW: sample data for calendar testing
+
 
 const router = createBrowserRouter([
   {path: "/", element: <LandingPage />},
@@ -27,7 +27,7 @@ const router = createBrowserRouter([
   {path:"/terms", element:<TermsOfService/>},
   {path:"/pricing", element:<Pricing/>},
   {path:"/faq", element:<FAQ/>},
-  {path:"/calendar", element:<Calendar accounts={SAMPLE_ACCOUNTS} posts={SAMPLE_POSTS} />}, // CHANGED: pass sample props
+  {path:"/calendar", element:<Calendar/>}, // CHANGED: pass sample props
   {path:"/accounts", element:<Accounts/>},
   {path:"/category", element:<Category/>},
   { path: "/queue", element: <Queue /> },

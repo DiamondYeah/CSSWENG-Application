@@ -4,17 +4,8 @@ import {useState, useEffect} from "react";
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 const CONNECTED_ACCOUNTS_DIRECT = `${API_BASE}/userInfo/getconnectedaccounts`;
 
-
-// Interface for social account info
-interface socialAccountInfo{
-
-    id: string,
-    name: string,
-    handle: string,
-    avatarUrl?: string,
-    platform: string
-
-}
+// Import types
+import {type socialAccountInfo} from "../types/account.ts"
 
 
 // Hook performs fetch to route to get connected social media accounts to user. Includes useEffect to reload data immediately
@@ -39,20 +30,27 @@ export function useConnectAccounts(){
                 // Convert fetch to json and get data
                 const accountFetchInfo = await accountFetch.json();
 
-                const connectedAccount: socialAccountInfo = {
+                console.log("RESULTS");
+                console.log(accountFetchInfo);
 
-                    id: accountFetchInfo.data.open_id,
-                    name: accountFetchInfo.data.display_name ?? "unknown",
-                    handle: `@${accountFetchInfo.data.username ?? "unknown"}`,
-                    platform: "TikTok"
+                const connectedAccount: socialAccountInfo[] = accountFetchInfo.data.map((acc: any) => ({
 
-                }
+                    id: acc.id,
+                    name: acc.name ?? "unknown",
+                    handle: `${acc.handle ?? "unknown"}`,
+                    platform: acc.platform,
 
-                // Add new account if not duplicate (Added checking to be idempotent). Return previous list if duplicate.
+                }))
+
+                // Perform filter to add new account not alreadey existing in accounts/ prevA(Added checking to be idempotent). 
+                // Return previous list if duplicate.
                 setAccounts(prevA => {
 
-                    const alreadyExists = prevA.some(prevA => prevA.id == connectedAccount.id);
-                    return alreadyExists ? prevA : [...prevA, connectedAccount];
+                    const newAccounts = connectedAccount.filter(
+                        ca => !prevA.some(p => p.id == ca.id)
+                    )
+
+                    return [...prevA, ...newAccounts];
 
                 });
 
@@ -65,7 +63,6 @@ export function useConnectAccounts(){
             }
             finally{
 
-                console.log("Accounts stored: ", accounts);
                 setIsLoading(false);
 
             }
