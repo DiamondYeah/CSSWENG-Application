@@ -1,0 +1,438 @@
+/* AgilaPostConnectAccounts.css
+   Brand tokens: violet #7C3AED, indigo #4F46E5, warm off-white #F7F6F3,
+   ink #18181B, muted text #71717A / #A1A1AA, hairline borders #E9E7E2.
+*/
+
+.agp {
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #f7f6f3;
+  min-height: 100%;
+  color: #18181b;
+}
+
+/* ---------- Header ---------- */
+
+.agp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 32px;
+  background: #f7f6f3;
+  border-bottom: 1px solid #e9e7e2;
+}
+
+.agp-header__logo {
+  font-weight: 800;
+  font-size: 20px;
+  letter-spacing: -0.02em;
+  color: #7c3aed;
+}
+
+.agp-header__nav {
+  display: flex;
+  gap: 30px;
+  font-size: 14px;
+}
+
+.agp-header__nav-item {
+  color: #52525b;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.agp-header__nav-item--active {
+  color: #7c3aed;
+  font-weight: 700;
+}
+
+.agp-header__profile {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.agp-header__location {
+  font-size: 13px;
+  color: #71717a;
+}
+
+.agp-header__avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #8b5cf6, #4f46e5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+/* ---------- Main / page intro ---------- */
+
+.agp-main {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 40px 24px 64px;
+}
+
+.agp-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f1e8fe;
+  color: #7c3aed;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 999px;
+  margin-bottom: 16px;
+}
+
+.agp-title {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0 0 8px;
+  color: #18181b;
+}
+
+.agp-subtitle {
+  color: #71717a;
+  font-size: 15px;
+  margin: 0 0 28px;
+}
+
+/* ---------- Summary strip ---------- */
+
+.agp-summary {
+  display: flex;
+  background: #fff;
+  border: 1px solid #e9e7e2;
+  border-radius: 16px;
+  margin-bottom: 28px;
+  overflow: hidden;
+}
+
+.agp-summary__stat {
+  flex: 1;
+  padding: 18px 22px;
+}
+
+.agp-summary__stat--bordered {
+  border-right: 1px solid #efede8;
+}
+
+.agp-summary__value {
+  font-size: 26px;
+  font-weight: 800;
+  color: #18181b;
+}
+
+.agp-summary__label {
+  font-size: 13px;
+  color: #71717a;
+  margin-top: 2px;
+}
+
+.agp-summary__bar {
+  height: 3px;
+  border-radius: 999px;
+  margin-top: 10px;
+}
+
+.agp-summary__bar--violet {
+  background: #7c3aed;
+}
+
+.agp-summary__bar--orange {
+  background: #f97316;
+}
+
+/* ---------- Platform cards ---------- */
+
+.agp-platforms {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.agp-platform {
+  background: #fff;
+  border: 1px solid #e9e7e2;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.agp-platform__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+}
+
+.agp-platform__header--with-list {
+  border-bottom: 1px solid #f0eee9;
+}
+
+.agp-platform__identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.agp-platform__icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.agp-platform__name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #18181b;
+}
+
+.agp-platform__blurb {
+  font-size: 12.5px;
+  color: #a1a1aa;
+}
+
+.agp-platform__count {
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.agp-platform__footer {
+  padding: 12px 20px;
+  border-top: 1px solid #f6f4ef;
+}
+
+/* ---------- Connected accounts list ---------- */
+
+.agp-accounts {
+  display: flex;
+  flex-direction: column;
+}
+
+.agp-account {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px 12px 66px;
+  border-top: 1px solid #f6f4ef;
+}
+
+.agp-account:first-child {
+  border-top: none;
+}
+
+.agp-account__label {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #18181b;
+}
+
+.agp-account__handle {
+  font-size: 12.5px;
+  color: #a1a1aa;
+}
+
+/* ---------- Buttons ---------- */
+
+.agp-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: none;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.agp-button--primary {
+  background: linear-gradient(135deg, #8b5cf6, #4f46e5);
+  color: #fff;
+  padding: 9px 16px;
+}
+
+.agp-button--primary:disabled {
+  background: #efede8;
+  color: #a1a1aa;
+  cursor: default;
+}
+
+.agp-button--ghost {
+  background: none;
+  border: 1px solid #e9e7e2;
+  color: #71717a;
+  padding: 6px 13px;
+  font-weight: 500;
+}
+
+/* ---------- Category toggle row ---------- */
+
+.agp-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 24px;
+  padding: 16px 22px;
+  background: #fff;
+  border: 1px solid #e9e7e2;
+  border-radius: 16px;
+}
+
+.agp-toggle-row__label {
+  font-size: 14px;
+  color: #18181b;
+}
+
+.agp-switch {
+  width: 42px;
+  height: 24px;
+  border-radius: 999px;
+  border: none;
+  background: #e9e7e2;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.agp-switch--on {
+  background: linear-gradient(135deg, #8b5cf6, #4f46e5);
+}
+
+.agp-switch__knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  transition: left 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.agp-switch--on .agp-switch__knob {
+  left: 21px;
+}
+
+/* ---------- Advanced settings ---------- */
+
+.agp-advanced {
+  margin-top: 18px;
+}
+
+.agp-advanced__toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 13.5px;
+  color: #a1a1aa;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.agp-advanced__panel {
+  margin-top: 14px;
+  padding: 16px 18px;
+  background: #fff;
+  border: 1px solid #e9e7e2;
+  border-radius: 12px;
+  font-size: 13.5px;
+  color: #71717a;
+  line-height: 1.6;
+}
+
+.agp-chevron {
+  transform: rotate(0deg);
+  transition: transform 0.2s ease;
+}
+
+.agp-chevron--open {
+  transform: rotate(180deg);
+}
+
+/* ---------- LinkedIn switch-account modal ---------- */
+
+.agp-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(24, 24, 27, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.agp-modal {
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #e9e7e2;
+  max-width: 420px;
+  width: 90%;
+  padding: 24px;
+  box-shadow: 0 20px 40px rgba(24, 24, 27, 0.15);
+}
+
+.agp-modal__title {
+  font-size: 17px;
+  font-weight: 800;
+  color: #18181b;
+  margin: 0 0 10px;
+}
+
+.agp-modal__body {
+  font-size: 13.5px;
+  color: #71717a;
+  line-height: 1.6;
+  margin: 0 0 20px;
+}
+
+.agp-modal__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.agp-modal__cancel {
+  background: none;
+  border: none;
+  color: #a1a1aa;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 8px;
+  margin-top: 2px;
+}
+
+.agp-modal__link-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.agp-modal__link-input {
+  flex: 1;
+  font-size: 12.5px;
+  padding: 8px 10px;
+  border: 1px solid #e9e7e2;
+  border-radius: 8px;
+  color: #71717a;
+  background: #f7f6f3;
+}
