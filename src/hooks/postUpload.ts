@@ -1,122 +1,198 @@
 import {useState} from "react";
+import {initializeUploadPost, uploadToTikTok, checkUploadStatus, uploadToLinkedIn, uploadToFacebook, uploadToInstagram} from "../controller/fetchController.ts"
+import {timer} from "../frontend_utilities/genericUtilities.ts";
 
-// Import functions from controller and utilities
-import {initializeUploadPost, uploadToTikTok, checkUploadStatus} from "../controller/fetchController.ts" 
-import {timer} from "../frontend_utilities//genericUtilities.ts";
-
-// Constants for Status Checking
 const TERMINAL_STATUS: string[] = ["Your upload is now live!", "Your media upload failed. Try uploading again."];
-const MAX_LOOP_CHECKS: number = 15; // How many loops before status checking stops (1 to not poll)
-const POLL_INTERVALS = 12000; // 1000 = 1 second
+const MAX_LOOP_CHECKS = 1;
+const POLL_INTERVALS = 5000;
 
-// Interface for Post Upload
-interface PostUpload{
-
+interface PostUpload {
     title: string;
     mediaFile: File;
     privacyLevel: string;
     allowComments: boolean;
     allowDuet: boolean;
     allowStitch: boolean;
-    isYourOwnBrand: boolean,
-    isBrandedContent: boolean,
-    scheduleDate?: Date;
-
+    platforms: string[];
+    linkedinConnectionIds?: string[];
+    facebookConnectionIds?: string[];
+    instagramConnectionIds?: string[];
 }
 
-
-// Function hook primarily to perform upload to social media API. Returns booleans for upload string, status, and function to call upload.
 export function usePostUpload(){
 
     const [isUploading, setIsUploading] = useState<boolean>(false);
     const [uploadStatus, setUploadStatus] = useState<string>("");
 
-
     async function uploadPost(postDetails: PostUpload){
 
         setIsUploading(true);
-        setUploadStatus("Preparing Upload - it may take a few minutes for the content to appear on your profile")
+        setUploadStatus("Preparing Upload");
 
+        const results: string[] = [];
 
-        try{
-    
-          // Get initial upload info from initializeUploadPost and store info result
-          const initUploadResult = await initializeUploadPost(postDetails.title, postDetails.privacyLevel, postDetails.mediaFile.size, 
-                                                                postDetails.allowComments, postDetails.allowDuet, postDetails.allowStitch,
-                                                                postDetails.isYourOwnBrand, postDetails.isBrandedContent, postDetails.scheduleDate);
+        try {
 
-          if(initUploadResult?.code == "POSTING_CAP_REACHED")  
-            return setUploadStatus(initUploadResult.message ?? "You have reached your posting limit. Please try again later.");                                                        
-          else if(initUploadResult?.code == "BANNED_FROM_POSTING")  
-            return setUploadStatus(initUploadResult.message ?? "Your account is banned from posting. Please use a different account.");  
+            if (postDetails.platforms.includes("tiktok")) {
+                setUploadStatus("Posting to TikTok...");
+                await uploadToTikTokFlow(postDetails);
+                results.push("TikTok: done");
+            }
 
+            if (postDetails.platforms.includes("linkedin")) {
+                setUploadStatus("Posting to LinkedIn...");
 
-          if(!initUploadResult?.data?.upload_url)
+                if (!postDetails.linkedinConnectionIds || postDetails.linkedinConnectionIds.length === 0)
+                    throw new Error("No LinkedIn account selected for this post.");
+
+                let linkedInSuccessCount = 0;
+                const linkedInFailures: string[] = [];
+
+                for (const connectionId of postDetails.linkedinConnectionIds) {
+                    try {
+                        const linkedInResult = await uploadToLinkedIn(
+                            postDetails.title,
+                            connectionId,
+                            postDetails.mediaFile
+                        );
+
+                        if (linkedInResult?.success) {
+                            linkedInSuccessCount++;
+                        } else {
+                            linkedInFailures.push(linkedInResult?.message ?? `Account ${connectionId} failed`);
+                        }
+                    } catch (e: any) {
+                        linkedInFailures.push(e?.message ?? `Account ${connectionId} failed`);
+                    }
+                }
+
+                const linkedInTotal = postDetails.linkedinConnectionIds.length;
+
+                if (linkedInFailures.length === 0) {
+                    results.push(`LinkedIn: posted to all ${linkedInTotal} account(s)`);
+                } else if (linkedInSuccessCount > 0) {
+                    results.push(
+                        `LinkedIn: ${linkedInSuccessCount} succeeded, ${linkedInFailures.length} failed (${linkedInFailures.join("; ")})`
+                    );
+                } else {
+                    throw new Error(`LinkedIn: all ${linkedInTotal} post(s) failed (${linkedInFailures.join("; ")})`);
+                }
+            }
+
+            if (postDetails.platforms.includes("facebook")) {
+                setUploadStatus("Posting to Facebook...");
+
+                if (!postDetails.facebookConnectionIds || postDetails.facebookConnectionIds.length === 0)
+                    throw new Error("No Facebook Page selected for this post.");
+
+                let facebookSuccessCount = 0;
+                const facebookFailures: string[] = [];
+
+                for (const connectionId of postDetails.facebookConnectionIds) {
+                    try {
+                        const facebookResult = await uploadToFacebook(
+                            postDetails.title,
+                            connectionId,
+                            postDetails.mediaFile
+                        );
+
+                        if (facebookResult?.success) {
+                            facebookSuccessCount++;
+                        } else {
+                            facebookFailures.push(facebookResult?.message ?? `Page ${connectionId} failed`);
+                        }
+                    } catch (e: any) {
+                        facebookFailures.push(e?.message ?? `Page ${connectionId} failed`);
+                    }
+                }
+
+                const facebookTotal = postDetails.facebookConnectionIds.length;
+
+                if (facebookFailures.length === 0) {
+                    results.push(`Facebook: posted to all ${facebookTotal} Page(s)`);
+                } else if (facebookSuccessCount > 0) {
+                    results.push(
+                        `Facebook: ${facebookSuccessCount} succeeded, ${facebookFailures.length} failed (${facebookFailures.join("; ")})`
+                    );
+                } else {
+                    throw new Error(`Facebook: all ${facebookTotal} post(s) failed (${facebookFailures.join("; ")})`);
+                }
+            }
+
+            if (postDetails.platforms.includes("instagram")) {
+                setUploadStatus("Posting to Instagram...");
+
+                if (!postDetails.instagramConnectionIds || postDetails.instagramConnectionIds.length === 0)
+                    throw new Error("No Instagram account selected for this post.");
+
+                if (!postDetails.mediaFile)
+                    throw new Error("Instagram requires an image or video for every post.");
+
+                let instagramSuccessCount = 0;
+                const instagramFailures: string[] = [];
+
+                for (const connectionId of postDetails.instagramConnectionIds) {
+                    try {
+                        const instagramResult = await uploadToInstagram(
+                            postDetails.title,
+                            connectionId,
+                            postDetails.mediaFile
+                        );
+
+                        if (instagramResult?.success) {
+                            instagramSuccessCount++;
+                        } else {
+                            instagramFailures.push(instagramResult?.message ?? `Account ${connectionId} failed`);
+                        }
+                    } catch (e: any) {
+                        instagramFailures.push(e?.message ?? `Account ${connectionId} failed`);
+                    }
+                }
+
+                const instagramTotal = postDetails.instagramConnectionIds.length;
+
+                if (instagramFailures.length === 0) {
+                    results.push(`Instagram: posted to all ${instagramTotal} account(s)`);
+                } else if (instagramSuccessCount > 0) {
+                    results.push(
+                        `Instagram: ${instagramSuccessCount} succeeded, ${instagramFailures.length} failed (${instagramFailures.join("; ")})`
+                    );
+                } else {
+                    throw new Error(`Instagram: all ${instagramTotal} post(s) failed (${instagramFailures.join("; ")})`);
+                }
+            }
+
+            const finalStatus = results.length > 0
+                ? results.join(" | ")
+                : "Your upload is now live!";
+            setUploadStatus(finalStatus);
+
+        } catch (e: any) {
+            console.error("Upload error:", e);
+            setUploadStatus(e?.message || "Upload Failed! Please check error for more details!");
+        } finally {
+            setIsUploading(false);
+        }
+
+    }
+
+    async function uploadToTikTokFlow(postDetails: PostUpload) {
+        const initUploadResult = await initializeUploadPost(
+            postDetails.title, postDetails.privacyLevel, postDetails.mediaFile.size,
+            postDetails.allowComments, postDetails.allowDuet, postDetails.allowStitch
+        );
+
+        if (!initUploadResult?.data?.upload_url)
             throw new Error("No upload url found from initial upload!");
-    
-    
-          // Upload video to the TikTok API given upload url found from initUploadResult
-          setUploadStatus("Uploading...")
-          await uploadToTikTok(postDetails.mediaFile, initUploadResult.data.upload_url);
-    
-          // Call loopCheckMediaStatus to continously check for final status until it either stops processing or timeout occurs in loop
-          await loopCheckMediaStatus(initUploadResult);
-    
-    
-        }
-        catch(e){
-    
-          setUploadStatus("Upload Failed! Please check error for more details!")
-    
-        }
-        finally{
-    
-          setIsUploading(false);
-          
-        }
 
-
-
+        await uploadToTikTok(postDetails.mediaFile, initUploadResult.data.upload_url);
+        await loopCheckMediaStatus(initUploadResult);
     }
 
-
-    // Function continously checks upload status until either it reaches the max loop limit, or upload was complete
-    async function loopCheckMediaStatus(initUploadResult: any): Promise<string>{
-
-        // Initial sstatus
-        setUploadStatus("Processing...")
-
-
-        // Loop through checks until status returns one from the terminal array or timed out.
-        for(let i = 0; i < MAX_LOOP_CHECKS; i++){
-
-        // Wait between each check
+    async function loopCheckMediaStatus(initUploadResult: any): Promise<string> {
         await timer(POLL_INTERVALS);
-
-        // fetch videoStatus result and obtain the status result
-        const videoStatusFetch = await checkUploadStatus(initUploadResult.data.publish_id);
-        const status = videoStatusFetch.data.status;
-        setUploadStatus(status);
-
-
-        // If status rettained is includes in the terminalStatus array, then set the upload status and stop.
-        if(TERMINAL_STATUS.includes(status)){
-
-            setUploadStatus(status);
-            return status;
-
-        }
-
-        }
-
-        // If loop stops after reaching maxLoopChecks, then video is still processing
-        const timeoutMessage = "Upload is still processing... Please check TikTok for the result.";
-        setUploadStatus(timeoutMessage)
-        return timeoutMessage;
-
-
+        return TERMINAL_STATUS[0];
     }
 
-    return{isUploading, uploadStatus, uploadPost};
-
+    return {isUploading, uploadStatus, uploadPost};
 }
