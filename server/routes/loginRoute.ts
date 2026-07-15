@@ -2,17 +2,12 @@ import pkg from "express";
 import type { Request, Response } from "express";
 import dotenv from "dotenv";
 
-// Import types
-import {type IUser} from "../models/user.ts"
-import {type AuthUserRequest} from "../types/express.ts"
-
 // Load env file
 dotenv.config();
 
 // Import Database Functions and Service Functions
 import {createOrSaveUserTokensFromSeconds} from "../dbcontrollers/userRepository.ts";
-import {createTikTokAuth, disconnectTikTokAuth, obtainTikTokToken} from "../server_services/tiktokAuthService.ts";
-import { findUserAuth } from "../middleware/tiktokAuthMiddleware.ts";
+import {createTikTokAuth, obtainTikTokToken} from "../server_services/tiktokAuthService.ts";
 
 // Creater router
 const { Router } = pkg;
@@ -75,40 +70,17 @@ router.get("/oauth2/callback", async (req: Request, res: Response) => {
         res.cookie("session_user_id", user._id.toString(), {httpOnly: true, secure: true, sameSite: "none", path: "/"})
 
         // Redirect user back
-        res.redirect(process.env.ACCOUNTS_REIDRECT_URL as string);
+        res.redirect(process.env.ACCOUNTS_REDIRECT_URL as string);
 
 
     }catch(err){
 
-        console.error("OAuth callback error:", err);
         return res.status(500).json({ success: false, message: "Unexpected error when fetching token!" });
 
     }
 
 });
 
-
-router.post("/disconnect", findUserAuth, async (req: AuthUserRequest, res: Response) => {
-
-    const user = req.user as IUser;
-
-    try{
-
-        const disconnectUser = await disconnectTikTokAuth(user);
-
-        // Remove session_user_id from cookies
-        res.clearCookie('session_user_id', {path: "/", secure: true, sameSite: "none"});
-
-        return res.json({ success: true, message: "User was disconnected successfully!", data: disconnectUser})
-
-
-    }catch(err){
-
-        return res.status(500).json({ success: false, message: "Failed to disconnect user!" });
-    }
-
-    
-});
 
 
 export default router;
