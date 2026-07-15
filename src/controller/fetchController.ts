@@ -1,184 +1,97 @@
-// fetchController.ts
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
+const API_BASE                  = import.meta.env.VITE_API_BASE_URL;
+const USERINFO_API              = `${API_BASE}/userInfo/getuserinfo`;
+const LINKEDIN_USERINFO_API     = `${API_BASE}/userInfo/linkedin`;
+const QUERY_DIRECT              = `${API_BASE}/userInfo/queryinfo`;
+const INITIAL_UPLOAD_DIRECT     = `${API_BASE}/videoUpload/initupload`;
+const UPLOAD_VIDEO_DIRECT       = `${API_BASE}/videoUpload/upload`;
+const UPLOAD_STATUS_DIRECT      = `${API_BASE}/videoUpload/poststatus`;
+const UPLOAD_PHOTOS_DIRECT      = `${API_BASE}/photoUpload/photoUpload`;
+const LINKEDIN_UPLOAD_DIRECT    = `${API_BASE}/linkedinPost/upload`;
+const LINKEDIN_CONNECT_LINK_API = `${API_BASE}/auth/linkedin/connect-link`;
+const FACEBOOK_USERINFO_API     = `${API_BASE}/userInfo/facebook`;
+const FACEBOOK_UPLOAD_DIRECT    = `${API_BASE}/facebookPost/upload`;
+const INSTAGRAM_USERINFO_API    = `${API_BASE}/userInfo/instagram`;
+const INSTAGRAM_UPLOAD_DIRECT = `${API_BASE}/instagramPost/upload`;
 
-const DISCONNECT_DIRECT = `${API_BASE}/logAuth/disconnect`;
-const USERINFO_API = `${API_BASE}/userInfo/getuserinfo`;
-const USER_TOKEN_DIRECT = `${API_BASE}/userInfo/getuser`
-const QUERY_DIRECT = `${API_BASE}/userInfo/queryinfo`;
-const INITIAL_UPLOAD_DIRECT = `${API_BASE}/videoUpload/initupload`;
-const UPLOAD_VIDEO_DIRECT = `${API_BASE}/videoUpload/upload`;
-const UPLOAD_STATUS_DIRECT = `${API_BASE}/videoUpload/poststatus`;
-const UPLOAD_PHOTOS_DIRECT = `${API_BASE}/photoUpload/photoUpload`;
-const SCHEDULED_POSTS_DIRECT = `${API_BASE}/postInfo/getscheduledposts`;
-const GENERATE_SHARE_CALENDAR_DIRECT = `${API_BASE}/userInfo/createsharetoken`
-const OPEN_SHARE_CALENDAR_DIRECT = `${API_BASE}/userInfo/sharecalendar`
+const CORS_HEADER: Record<string, string> = { "ngrok-skip-browser-warning": "true"}
 
-// Import type
-import {type PostMediaStatus} from "../types/tiktok.ts"
-
-
-// Funcation calls router to disconnect TikTok user
-export async function disconnectTikTokUser(){
-
-    const res = await fetch(DISCONNECT_DIRECT,
-    {
-
-        method: "POST",
-        credentials: "include",
-
-
-    })
-
-    // Convert res to json and return
-    const disconnectInfo = await res.json();
-
-    return disconnectInfo;
-
-}
-
-// Function calls router user info from API to obtain user information
 export async function fetchUserInfo(){
-
-    // Fetch router with credentials
     const res = await fetch(USERINFO_API, 
     {
         credentials: "include",
+        headers: CORS_HEADER
 
-    })
-
-    // Convert res to json and return
+    },
+   )
     const userInfo = await res.json();
-
     return userInfo;
-
 }
 
-
-// Function calls router user info from API via the shared token to obtain user information
-export async function fetchUserInfoViaToken(token: string){
-
-    // Fetch router with credentials
-    const res = await fetch(`${USER_TOKEN_DIRECT}/${token}`, 
-    {
-
-    })
-
-    // Convert res to json and return
-    const userInfo = await res.json();
-
-    return userInfo;
-
-}
-
-
-
-// Function calls router to fetch query info of user from API to determine publish and video settings
-export async function fetchQueryInfo(){
-
-    // Fetch router with credentials
-    const res = await fetch(QUERY_DIRECT, {
-
+export async function fetchLinkedInUserInfo() {
+    const res = await fetch(LINKEDIN_USERINFO_API, {
         credentials: "include",
-
-    })
-
-    // Convert res to json and return
-    const queryInfo = await res.json();
-
-    return queryInfo;
-
-
+        headers: CORS_HEADER
+    });
+    const userInfo = await res.json();
+    return userInfo;
 }
 
+export async function fetchQueryInfo(){
+    const res = await fetch(QUERY_DIRECT, {
+        credentials: "include",
+        headers: CORS_HEADER
+    })
+    const queryInfo = await res.json();
+    return queryInfo;
+}
 
-// Function calls router to prepare video for upload from API by giving parameter details to obtain publishID and uploadURL
 export async function initializeUploadPost(title: string, privacyLevel: string, videoSize: number, allowComments: boolean,
-                                            allowDuet: boolean, allowStitch: boolean, isYourOwnBrand: boolean, isBrandedContent: boolean,
-                                             scheduleDate?: Date){
-
-    // Fetch router with credentials
+                                            allowDuet: boolean, allowStitch: boolean){
     const res = await fetch(INITIAL_UPLOAD_DIRECT, {
-
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: { ...CORS_HEADER, "Content-Type": "application/json" },
         body: JSON.stringify({
-
             title: title,
             privacyLevel: privacyLevel,
             videoSize: videoSize,
             allowComments: allowComments,
             allowDuet: allowDuet,
-            allowStitch: allowStitch,
-            isYourOwnBrand: isYourOwnBrand,
-            isBrandedContent: isBrandedContent,
-            scheduleDate: scheduleDate?.toISOString() ?? null
+            allowStitch: allowStitch
 
         })
-
     })
-
-    // Convert res to json and return
     const intialUploadInfo = await res.json();
-
     return intialUploadInfo;
-
-
 }
 
-
-// Function calls router to upload videoFile to TikTok API with given uploadURL 
 export async function uploadToTikTok(videoFile: File, uploadURL: string){
-
-    // Create FormData object and append videoFile and uploadURL
     const formData = new FormData();
     formData.append('videoFile', videoFile);
     formData.append('uploadURL', uploadURL);
-
-    // Fetch router with credentials
     const res = await fetch(UPLOAD_VIDEO_DIRECT, {
-
         method: "POST",
         credentials: "include",
+        headers: CORS_HEADER,
         body: formData
 
     })
-
-    // Convert res to json and return
     const uploadInfo = await res.json();
-
     return uploadInfo;
-
-
 }
 
-
-// Function calls router to check the status of uploaded video from API to check if it was successful or not
 export async function checkUploadStatus(publishID: string){
-
-    // Fetch router with credentials
     const res = await fetch(UPLOAD_STATUS_DIRECT, {
-
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: { ...CORS_HEADER, "Content-Type": "application/json" },
         body: JSON.stringify({publishID})
-
     })
-
-    // Convert res to json and return
     const statusInfo = await res.json();
-
     return statusInfo;
-
-
 }
 
-
-// Function calls router to upload photos to Tiktok API 
 export async function uploadPhotos(photos: File[], title: string, description: string, ){
-
-    // Create FormData object and append videoFile and uploadURL
     const formData = new FormData();
 
     photos.forEach(photo => {
@@ -186,77 +99,98 @@ export async function uploadPhotos(photos: File[], title: string, description: s
     })
     formData.append('title', title);
     formData.append('description', description);
-
-    // Fetch router with credentials
     const res = await fetch(UPLOAD_PHOTOS_DIRECT, {
-
         method: "POST",
         credentials: "include",
+        headers: CORS_HEADER,
         body: formData
 
     })
 
     const photosInfo = await res.json();
-
+    console.log("Photo Info Result: ", photosInfo);
     return photosInfo;
-
-
 }
 
+export async function uploadToLinkedIn(
+    title: string,
+    connectionId: string,
+    mediaFile?: File
+) {
+    console.log("uploadToLinkedIn triggered");
+    
+    const formData = new FormData();
+    formData.append("title", title);
+    formData.append("connectionId", connectionId);
 
-// Function calls router to fetch posts with scheduled dates connected to the user
-export async function fetchScheduledPosts(status: PostMediaStatus = "pending"){
+    if (mediaFile) {
+        formData.append("media", mediaFile);
+    }
 
-    // Fetch router with credentials
-    const res = await fetch(`${SCHEDULED_POSTS_DIRECT}?status=${status}`, 
-    {
-        credentials: "include",
-
-    })
-
-    // Convert res to json and return
-    const scheduledPostInfo = await res.json();
-
-    return scheduledPostInfo;
-
-}
-
-
-// Function calls router to generate a shared calendar token of the user to be shared to other users
-export async function generateShareCalenderToken(){
-
-    // Fetch router with credentials
-    const res = await fetch(GENERATE_SHARE_CALENDAR_DIRECT, 
-    {
-
+    const res = await fetch(LINKEDIN_UPLOAD_DIRECT, {
         method: "POST",
         credentials: "include",
+        headers: CORS_HEADER,
+        body: formData
+    });
 
-    })
-
-    // Convert res to json and return
-    const generatedTokenInfo = await res.json();
-
-    return generatedTokenInfo;
-
-
-
+    return res.json();
 }
 
+export async function fetchLinkedInConnectLink() {
+    const response = await fetch(LINKEDIN_CONNECT_LINK_API, {
+        credentials: "include",
+        headers: CORS_HEADER
+    });
+    if (!response.ok) throw new Error(`Request failed: ${response.status}`);
+    return await response.json();
+}
 
-// Function calls router to open read-only view of calendar showing scheduled posts of user who shared
-export async function fetchSharedCalenderToken(token: string, status: PostMediaStatus = "pending"){
+export async function fetchFacebookUserInfo() {
+    const res = await fetch(FACEBOOK_USERINFO_API, { credentials: "include", headers: CORS_HEADER });
+    return await res.json();
+}
 
-    // Fetch router with credentials
-    const res = await fetch(`${OPEN_SHARE_CALENDAR_DIRECT}/${token}?status=${status}`, 
-    {
+export async function uploadToFacebook(title: string, connectionId: string, mediaFile?: File) {
+    const formData = new FormData();
+    formData.append("title", title);
+    formData.append("connectionId", connectionId);
+    if (mediaFile) formData.append("media", mediaFile);
 
-    })
+    const res = await fetch(FACEBOOK_UPLOAD_DIRECT, {
+        method: "POST",
+        credentials: "include",
+        headers: CORS_HEADER,
+        body: formData,
+    });
+    return res.json();
+}
 
-    // Convert res to json and return
-    const sharedCalendarInfo = await res.json();
+export async function deleteSocialConnection(connectionId: string) {
+    const res = await fetch(`${API_BASE}/userInfo/connection/${connectionId}`, {
+        method: "DELETE",
+        credentials: "include",
+        headers: CORS_HEADER,
+    });
+    return await res.json();
+}
 
-    return sharedCalendarInfo;
+export async function fetchInstagramUserInfo() {
+    const res = await fetch(INSTAGRAM_USERINFO_API, { credentials: "include", headers: CORS_HEADER });
+    return await res.json();
+}
 
+export async function uploadToInstagram(title: string, connectionId: string, mediaFile?: File) {
+    const formData = new FormData();
+    formData.append("title", title);
+    formData.append("connectionId", connectionId);
+    if (mediaFile) formData.append("media", mediaFile);
 
+    const res = await fetch(INSTAGRAM_UPLOAD_DIRECT, {
+        method: "POST",
+        credentials: "include",
+        headers: CORS_HEADER,
+        body: formData,
+    });
+    return res.json();
 }
