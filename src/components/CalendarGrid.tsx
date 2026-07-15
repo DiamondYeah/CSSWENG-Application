@@ -18,7 +18,6 @@ interface CalendarGridDetails{
     readOnly?: boolean;
     postsView: "pending" | "published";
     setPostsView: (postView: "pending" | "published") => void;
-    onSelectPost?: (post: ScheduledPost) => void;
 
 }
 
@@ -81,7 +80,7 @@ function toDateKey(d: Date): string {
 
 
 // readOnly to be used at later date
-export function CalendarGrid({posts, postsView, setPostsView, onSelectPost}: CalendarGridDetails){ 
+export function CalendarGrid({posts, postsView, setPostsView}: CalendarGridDetails){ 
 
     const today = useMemo(() => new Date(), []);
     const [cursorDate, setCursorDate] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
@@ -184,13 +183,7 @@ export function CalendarGrid({posts, postsView, setPostsView, onSelectPost}: Cal
                                 return null;
 
                             return (
-                                <div
-                                    key = {post.id}
-                                    className={`ap-post-card${post.approvalStatus ? ` is-${post.approvalStatus}` : ""}`}
-                                    onClick={() => onSelectPost?.(post)}
-                                    role={onSelectPost ? "button" : undefined}
-                                    tabIndex={onSelectPost ? 0 : undefined}
-                                >
+                                <div key = {post.id} className="ap-post-card">
                                     <div className="ap-post-card__header">
                                         <span className="ap-post-card__account">
                                             {post.title ?? "No Title"}
@@ -214,14 +207,6 @@ export function CalendarGrid({posts, postsView, setPostsView, onSelectPost}: Cal
                                     <Clock size={10} />
                                     <span>{post.time}</span>
                                     {post.hasComment && <MessageCircle size={10} style={{ marginLeft: 6 }} />}
-                                    {post.comments && post.comments.length > 0 && (
-                                        <span className="ap-post-card__comment-count">
-                                            <MessageCircle size={10} style={{ marginLeft: 6 }} />
-                                            {post.comments.length}
-                                        </span>
-                                    )}
-                                    {post.approvalStatus === "approved" && <span className="ap-post-card__approval-badge is-approved">Approved</span>}
-                                    {post.approvalStatus === "rejected" && <span className="ap-post-card__approval-badge is-rejected">Rejected</span>}
                                     </div>
                                 </div>
 
