@@ -1,224 +1,188 @@
 import pkg from "express";
 import type { Request, Response } from "express";
 import dotenv from "dotenv";
-import crypto from "crypto";
-
-// Load env file
 dotenv.config();
-
-// Import types
 import {type IUser} from "../models/user.ts"
-import {type AuthUserRequest} from "../types/express.ts"
-import {type PostMediaStatus} from "../models/post.ts";
-
-// Import Service Functions, Middleware, and Database Functions
 import {obtainUserInfo, obtainQueryInfo} from "../server_services/tiktokUserService.ts"
-import {findUserAuth} from "../middleware/tiktokAuthMiddleware.ts";
-import {createUserShareToken, findUserByShareToken} from "../dbcontrollers/userRepository.ts";
-import { findScheduledPosts } from "../dbcontrollers/postRepository.ts";
+import {getLinkedInUserInfo} from "../server_services/linkedinAuthService.ts";
+import {findUserAuth, type AuthUserRequest} from "../middleware/tiktokAuthMiddleware.ts";
+import { deleteSocialConnection, listSocialConnections } from "../dbcontrollers/userRepository.ts";
 
-
-// Constants for expiraition of share token calendar
-const DAYS_UNTIL_SHARE_TOKEN_EXPIRY: number = 14;
-
-
-// Creater router
 const { Router } = pkg;
 const router = Router();
 
-
-
-
 router.get("/getuserinfo", findUserAuth, async (req: AuthUserRequest, res: Response) => {
-        
-    // Get user from req
     const user: IUser = req.user as IUser;
 
-    try{
+    if (!user.tiktokOpenID || !user.accessToken) {
+        return res.json({ success: false, message: "No TikTok account linked for this session." });
+    }
 
-        // Get user TikTok info by calling obtainUserInfo and passing user as argument
+    try {
         const userInfo = await obtainUserInfo(user);
 
-        // Send successful JSON 
-        if(userInfo)
-            return res.json({ success: true, data: userInfo.data.user})
+        if (userInfo)
+            return res.json({ success: true, data: userInfo.data.user })
 
-        // Fallback in case nothing was returned
-        return res.json({ success: false, message: "userInfo returned with no data from service call!"});
-
-    }catch(err){
-
+        return res.json({ success: false, message: "userInfo returned with no data from service call!" });
+    } catch (err) {
         console.error("Error: " + err);
         return res.status(500).json({ success: false, message: "Unexpected error when fetching information!" });
-
     }
-
 });
-
-
-// Used for shared calendar
-router.get("/getuser/:token", async (req: Request, res: Response) => {
-        
-    const { token } = req.params;
-
-    try{
-
-        // Get user from database by calling findUserByShareToken and passing token as argument
-        const user: IUser = await findUserByShareToken(String(token)) as IUser;
-
-        // Check if user is undefined 
-        if(!user)
-            return res.status(404).json({ success: false, message: "Invalid share link!"});
-
-        // Check if shareToken exists and is not expired yet
-        if(!user.shareTokenExpiresIn || user.shareTokenExpiresIn < new Date())
-            return res.status(401).json({ success: false, message: "Share link is expired!"});
-
-        // Returned json with userInfo data
-        return res.json({ success: true, data: {name: user.tiktokOpenID}});
-
-    }catch(err){
-
-        console.error("Error: " + err);
-        return res.status(500).json({ success: false, message: "Unexpected error when fetching information!" });
-
-    }
-
-});
-
-
 
 router.get("/queryinfo", findUserAuth, async (req: AuthUserRequest, res: Response) => {
-    
-    // Get user from req
     const user: IUser = req.user as IUser;
 
-    try{
+    if (!user.tiktokOpenID || !user.accessToken) {
+        return res.json({ success: false, message: "No TikTok account linked for this session." });
+    }
 
-         // Get user TikTok query by calling obtainQueryInfo and passing user as argument
+    try {
         const userQuery = await obtainQueryInfo(user);
 
-        // Send successful JSON 
         if(userQuery)
             return res.json({ success: true, data: userQuery.data})
 
-        // Fallback in case nothing was returned
         return res.json({ success: false, message: "userQuery returned with no data from service call!"});
-
-    }catch(err){
-
+    } catch(err) {
         console.error("Error: " + err);
         return res.status(500).json({ success: false, message: "Unexpected error when fetching information!" });
-
     }
-
-
 });
 
-
-// UPDATE ROUTE FOR OTHER APIs
 router.get("/getconnectedaccounts", findUserAuth, async (req: AuthUserRequest, res: Response) => {
-
-    const user:IUser = req.user as IUser;
-
-
-    // Empty array holding account information
+    const user: IUser = req.user as IUser;
     const accounts = [];
 
-    // Currently has TikTok but other APIs can be added here
-    if(user.accessToken){ // TikTok API check
+    if (user.tiktokOpenID && user.accessToken) {
+        try {
+            const tiktokInfo = await obtainUserInfo(user);
+            accounts.push({
+                platform: "tiktok",
+                id: tiktokInfo.data.open_id,
+                name: `@${tiktokInfo.data.username ?? "unknown"}`,
+                handle: tiktokInfo.data.display_name ?? "unknown"
+            });
+        } catch (err) {
+            console.error("Error fetching TikTok info: " + err);
+        }
+    }
 
-        const tiktokInfo = await obtainUserInfo(user);
-
-        accounts.push({
-
-            platform: "tiktok",
-            id: tiktokInfo.data.user.open_id,
-            name: tiktokInfo.data.user.display_name ?? "unkonwn",
-            handle: `@${tiktokInfo.data.user.username ?? "unknown"}`,
-
-
+    try {
+        const linkedinConnections = await listSocialConnections(user._id.toString(), "linkedin");
+        linkedinConnections.forEach((conn) => {
+            accounts.push({
+                platform: "linkedin",
+                id: conn._id.toString(),
+                name: conn.label ?? "unknown",
+                handle: conn.handle ?? "unknown"
+            });
         });
-
+    } catch (err) {
+        console.error("Error fetching LinkedIn connections: " + err);
     }
 
-    // Return empty array if theres nothing in accounts array
-    if(accounts.length == 0)
-        return res.json({ success: true, data: [] });
-
-
-    return res.json({ success: true, data: accounts});
-})
-
-
-
-router.post("/createsharetoken", findUserAuth, async (req: AuthUserRequest, res: Response) => {
-
-    const user:IUser = req.user as IUser;
-
-
-    try{
-
-        // Create a random generted bytes data via crypto library and convert to hex
-        const cryptoToken = crypto.randomBytes(32).toString("hex");
-        const expireDate = new Date();
-        expireDate.setDate(expireDate.getDate() + DAYS_UNTIL_SHARE_TOKEN_EXPIRY); // Set expiration date of token to 2 weeks from now
-
-
-        await createUserShareToken(String(user._id), cryptoToken, expireDate);
-
-        return res.json({ success: true, data: {cryptoToken, expireDate}})
-
-
-
-    }catch(err){
-
-        console.error("Error: " + err);
-        return res.status(500).json({ success: false, message: "Unexpected error when generating share token!" });
-
+    try {
+        const facebookConnections = await listSocialConnections(user._id.toString(), "facebook");
+        facebookConnections.forEach((conn) => {
+            accounts.push({
+                platform: "facebook",
+                id: conn._id.toString(),
+                name: conn.label ?? "unknown",
+                handle: conn.handle ?? "Page"
+            });
+        });
+    } catch (err) {
+        console.error("Error fetching Facebook connections: " + err);
     }
 
+    try {
+        const instagramConnections = await listSocialConnections(user._id.toString(), "instagram");
+        instagramConnections.forEach((conn) => {
+            accounts.push({
+                platform: "instagram",
+                id: conn._id.toString(),
+                name: conn.label ?? "unknown",
+                handle: conn.handle ?? "Instagram"
+            });
+        });
+    } catch (err) {
+        console.error("Error fetching Instagram connections: " + err);
+    }
+
+    return res.json({ success: true, data: accounts });
 });
 
+router.get("/linkedin", findUserAuth, async (req: AuthUserRequest, res: Response) => {
+    const user: IUser = req.user as IUser;
 
-// No authentication as it is meant to be shared
-router.get("/sharecalendar/:token", async (req: Request, res: Response) => {
+    try {
+        const connections = await listSocialConnections(user._id.toString(), "linkedin");
 
-    const {token} = req.params;
+        const data = connections.map((conn) => ({
+            id: conn._id.toString(),
+            sub: conn.platformOpenID,
+            name: conn.label ?? "unknown",
+            email: conn.handle ?? "unknown",
+        }));
 
-    const status = (req.query.status as PostMediaStatus) ?? "pending";
-
-    try{
-
-        // Function also accetps tokens
-        const user:IUser = await findUserByShareToken(String(token)) as IUser;
-
-        // Check if user is undefined 
-        if(!user)
-            return res.status(404).json({ success: false, message: "Invalid share link!"});
-
-        // Check if shareToken exists and is not expired yet
-        if(!user.shareTokenExpiresIn || user.shareTokenExpiresIn < new Date())
-            return res.status(401).json({ success: false, message: "Share link is expired!"});
-
-
-        const sharedPosts = await findScheduledPosts(String(user._id), status)
-
-        // Check if sharedPosts is undefined
-        if(!sharedPosts)
-            return res.json({ success: false, message: "No posts found form share link!"});    
-
-        // Returned json with sharedPosts data
-        return res.json({ success: true, data: sharedPosts});
-
-    }catch(err){
-
-        console.error(err);
-        return res.status(500).json({ success: false, message: "Unexpected error when obtaining shared calendar" });
-
+        return res.json({ success: true, data });
+    } catch (err) {
+        console.error("Error: " + err);
+        return res.status(500).json({ success: false, message: "Unexpected error when fetching LinkedIn information!" });
     }
+});
 
-})
+router.get("/facebook", findUserAuth, async (req: AuthUserRequest, res: Response) => {
+    const user: IUser = req.user as IUser;
+    try {
+        const connections = await listSocialConnections(user._id.toString(), "facebook");
+        const data = connections.map((conn) => ({
+            id: conn._id.toString(),
+            pageId: conn.platformOpenID,
+            name: conn.label ?? "unknown",
+            handle: conn.handle ?? "Page",
+        }));
+        return res.json({ success: true, data });
+    } catch (err) {
+        console.error("Error: " + err);
+        return res.status(500).json({ success: false, message: "Unexpected error when fetching Facebook information!" });
+    }
+});
 
+router.delete("/connection/:connectionId", findUserAuth, async (req: AuthUserRequest, res: Response) => {
+    const user: IUser = req.user as IUser;
+    const connectionId = req.params.connectionId as string;
+
+    try {
+        const deleted = await deleteSocialConnection(user._id!.toString(), connectionId);
+
+        if (!deleted)
+            return res.status(404).json({ success: false, message: "Connection not found." });
+
+        return res.json({ success: true });
+    } catch (err) {
+        console.error("Error deleting connection: " + err);
+        return res.status(500).json({ success: false, message: "Unexpected error when disconnecting account." });
+    }
+});
+
+router.get("/instagram", findUserAuth, async (req: AuthUserRequest, res: Response) => {
+    const user: IUser = req.user as IUser;
+    try {
+        const connections = await listSocialConnections(user._id.toString(), "instagram");
+        const data = connections.map((conn) => ({
+            id: conn._id.toString(),
+            igId: conn.platformOpenID,
+            name: conn.label ?? "unknown",
+            handle: conn.handle ?? "Instagram",
+        }));
+        return res.json({ success: true, data });
+    } catch (err) {
+        console.error("Error: " + err);
+        return res.status(500).json({ success: false, message: "Unexpected error when fetching Instagram information!" });
+    }
+});
 
 export default router;
