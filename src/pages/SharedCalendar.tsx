@@ -89,7 +89,6 @@ function SharedCalendar(): React.JSX.Element{
     const [postsView, setPostsView] = useState<"pending" | "published">("published");
     const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(false);
-    const [error, setError] = useState<string>("");
 
     // Account filtering — derived from whatever accounts are actually present
     // in the loaded posts (real or sample), since the shared view has no
