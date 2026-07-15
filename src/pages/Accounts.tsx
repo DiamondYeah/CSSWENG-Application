@@ -1,19 +1,13 @@
 import { useEffect, useState, type JSX } from "react";
-import SchedulingTabs from "../components/SchedulingTabs"; // NEW: replaces hardcoded tab divs
+import Navbar from "../components/Navbar";
 import "./Accounts.css";
+import { fetchQueryInfo, fetchUserInfo, fetchLinkedInUserInfo, fetchLinkedInConnectLink, fetchFacebookUserInfo, fetchInstagramUserInfo, deleteSocialConnection } from "../controller/fetchController.ts";
 
-// Import functions from controller
-import { disconnectTikTokUser, fetchUserInfo } from "../controller/fetchController.ts";
+const LOGINREDIRECT           = "https://amber-scorch-corrosive.ngrok-free.dev/auth/linkedinlogin/logAuth/tiktoklogin";
+const LINKEDIN_LOGINREDIRECT  = "https://amber-scorch-corrosive.ngrok-free.dev/auth/linkedinlogin";
+const FACEBOOK_LOGINREDIRECT  = "https://amber-scorch-corrosive.ngrok-free.dev/facebookAuth/facebooklogin";
+const INSTAGRAM_LOGINREDIRECT = "https://amber-scorch-corrosive.ngrok-free.dev/instagramAuth/instagramlogin";
 
-/* ---------- API Logic ---------- */
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
-
-// Constants for TikTok API
-const LOGINREDIRECT = `${API_BASE}/logAuth/tiktoklogin`;
-
-
-/* ---------- Types ---------- */
 
 export type PlatformId = "facebook" | "instagram" | "linkedin" | "tiktok";
 
@@ -33,8 +27,6 @@ export interface PlatformDef {
 }
 
 type AccountsByPlatform = Record<PlatformId, ConnectedAccount[]>;
-
-/* ---------- Platform icons (inline SVG, brand-accurate, no external deps) ---------- */
 
 const FacebookIcon = () => (
   <svg viewBox="0 0 24 24" width="22" height="22" fill="#fff">
@@ -82,8 +74,6 @@ const ChevronIcon = ({ open }: { open: boolean }) => (
   </svg>
 );
 
-/* ---------- Platform config ---------- */
-
 const PLATFORM_DEFS: PlatformDef[] = [
   {
     id: "facebook",
@@ -119,26 +109,21 @@ const PLATFORM_DEFS: PlatformDef[] = [
   },
 ];
 
-// Seed data — each platform holds an array, so any number of accounts can stack up per platform.
 const INITIAL_ACCOUNTS: AccountsByPlatform = {
   facebook: [],
-  instagram: [
-    { id: "ig-1", handle: "@agilapost.demo", label: "Agila Demo Page" },
-  ],
+  instagram: [],
   linkedin: [],
   tiktok: [],
 };
 
 let nextAccountId = 100;
 
-/* ---------- Component ---------- */
-
 export default function AgilaPostConnectAccounts() {
   const [accounts, setAccounts] = useState<AccountsByPlatform>(INITIAL_ACCOUNTS);
   const [connectingPlatform, setConnectingPlatform] = useState<PlatformId | null>(null);
-  const [addToCategories, setAddToCategories] = useState<boolean>(true);
-  const [advancedOpen, setAdvancedOpen] = useState<boolean>(false);
-  const [accountError, setAccountError] = useState<string>(""); // Added for error checking
+  const [addToCategories, setAddToCategories] = useState(true);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [showLinkedInSwitchPrompt, setShowLinkedInSwitchPrompt] = useState(false);
 
   const totalConnected = Object.values(accounts).reduce(
     (sum, list) => sum + list.length,
@@ -149,129 +134,179 @@ export default function AgilaPostConnectAccounts() {
   ).length;
 
 
-
-  // useEffect to handle redirect back (Checks cookie if user just returned from an OAuth Login)
   useEffect(() => {
-
-    // Function to load TikTok Information
     async function loadTikTokAccount(){
-
       try{
-
-        // Call function to get user info
         const userInfo = await fetchUserInfo();
+        console.log("Raw userInfo response:", userInfo);
 
-        // Silently return if open id not found
         if(!userInfo?.data?.open_id)
           return;
 
+        const queryInfo = await fetchQueryInfo();
+        console.log("Raw queryInfo response:", queryInfo)
 
         setAccounts((prev) => {
 
           const user = userInfo.data;
-
-          // Check if user already exists within accounts variable. If they do, just return.
-          const userAlreadyAdded = prev.tiktok.some(a => a.id == user.open_id);
-
-          if(userAlreadyAdded)
-            return prev;
-
-          // Create new account while keeping other accounts in the array with ...
           return{
-
             ...prev,
             tiktok: [
               ...prev.tiktok,
               {
-
                 id: user.open_id,
                 handle: `@${user.username ?? "unknown"}`,
-                label: user.display_name ?? "unkonwn"
-
+                label: user.display_name ?? "unknown"
               }
-
             ]
-
           }
-
         });
-
       }
-      catch(err){
-
-        setAccountError("Failed to load account. Please refresh to try again!");
-
+      catch(e){
+        alert("Error: " + e);
       }
-
     }
 
-    // Call function
-    loadTikTokAccount();
+    async function loadLinkedInAccount() {
+        try {
+            const userInfo = await fetchLinkedInUserInfo();
+            console.log("Raw LinkedIn userInfo response:", userInfo);
 
+            if (!userInfo?.success || !Array.isArray(userInfo.data))
+                return;
+
+            setAccounts((prev) => ({
+                ...prev,
+                linkedin: userInfo.data.map((conn: any) => ({
+                    id: conn.id,
+                    handle: conn.email ?? "unknown",
+                    label: conn.name ?? "unknown",
+                })),
+            }));
+
+        } catch (e) {
+            alert("Error: " + e);
+        }
+    }
+
+    async function loadFacebookAccount() {
+        try {
+            const userInfo = await fetchFacebookUserInfo();
+            console.log("Raw Facebook userInfo response:", userInfo);
+
+            if (!userInfo?.success || !Array.isArray(userInfo.data))
+                return;
+
+            setAccounts((prev) => ({
+                ...prev,
+                facebook: userInfo.data.map((conn: any) => ({
+                    id: conn.id,
+                    handle: conn.handle ?? "Page",
+                    label: conn.name ?? "unknown",
+                })),
+            }));
+
+        } catch (e) {
+            alert("Error: " + e);
+        }
+    }
+
+    async function loadInstagramAccount() {
+        try {
+            const userInfo = await fetchInstagramUserInfo();
+            console.log("Raw Instagram userInfo response:", userInfo);
+
+            if (!userInfo?.success || !Array.isArray(userInfo.data))
+                return;
+
+            setAccounts((prev) => ({
+                ...prev,
+                instagram: userInfo.data.map((conn: any) => ({
+                    id: conn.id,
+                    handle: conn.handle ?? "Instagram",
+                    label: conn.name ?? "unknown",
+                })),
+            }));
+
+        } catch (e) {
+            alert("Error: " + e);
+        }
+    }
+
+    loadTikTokAccount();
+    loadLinkedInAccount();
+    loadFacebookAccount();
+    loadInstagramAccount();
   }, [])
 
+  const [connectLink, setConnectLink] = useState<string | null>(null);
+  const [linkLoading, setLinkLoading] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [linkError, setLinkError] = useState(false);
 
+  async function openLinkedInSwitchPrompt() {
+      setShowLinkedInSwitchPrompt(true);
+      setLinkLoading(true);
+      setLinkCopied(false);
+      setLinkError(false);
+      try {
+          const result = await fetchLinkedInConnectLink();
+          console.log("CONNECT LINK RESPONSE:", result);
+          if (result?.success && result.url) {
+              setConnectLink(result.url);
+          } else {
+              setLinkError(true);
+          }
+      } catch {
+          setLinkError(true);
+      } finally {
+          setLinkLoading(false);
+      }
+  }
 
-  // Changed to function
   function handleConnect(platformId: PlatformId){
-
-
-    switch(platformId){
-
-      case "tiktok":
-        window.location.href = LOGINREDIRECT;
-        return
-
+    switch (platformId) {
+        case "tiktok":
+            window.location.href = LOGINREDIRECT;
+            return;
+        case "linkedin":
+            if (accounts.linkedin.length > 0) {
+                openLinkedInSwitchPrompt();
+                return;
+            }
+            window.location.href = LINKEDIN_LOGINREDIRECT;
+            return;
+        case "facebook":
+            window.location.href = FACEBOOK_LOGINREDIRECT;
+            return;
+        case "instagram":
+            // Instagram's native login supports force_reauth, so no special
+            // handling is needed for "connect another account" — same button works every time.
+            window.location.href = INSTAGRAM_LOGINREDIRECT;
+            return;
     }
+  }
 
+  const handleDisconnect = async (platformId: PlatformId, accountId: string) => {
+    try {
+        const result = await deleteSocialConnection(accountId);
+        if (!result?.success) {
+            alert("Failed to disconnect: " + (result?.message ?? "unknown error"));
+            return;
+        }
 
-
-    setConnectingPlatform(platformId);
-    // Simulated OAuth round trip — swap for your real redirect/popup flow.
-    // Each successful connect appends a new account rather than replacing one,
-    // so the platform can hold as many connected accounts as needed.
-    setTimeout(() => {
-      const id = `acct-${nextAccountId++}`;
-      const platform = PLATFORM_DEFS.find((p) => p.id === platformId)!;
-      const countSoFar = accounts[platformId].length + 1;
-      setAccounts((prev) => ({
-        ...prev,
-        [platformId]: [
-          ...prev[platformId],
-          {
-            id,
-            handle: `@new-${platform.id}-${countSoFar}`,
-            label: `${platform.name} account ${countSoFar}`,
-          },
-        ],
-      }));
-      setConnectingPlatform(null);
-    }, 1000);
-  };
-
-
-  // Changed to function
-  async function handleDisconnect(platformId: PlatformId, accountId: string){
-
-    
-    switch(platformId){
-
-      case "tiktok":
-        await disconnectTikTokUser();
-
+        setAccounts((prev) => ({
+            ...prev,
+            [platformId]: prev[platformId].filter((a) => a.id !== accountId),
+        }));
+    } catch (e) {
+        alert("Error disconnecting account: " + e);
     }
-
-    setAccounts((prev) => ({
-      ...prev,
-      [platformId]: prev[platformId].filter((a) => a.id !== accountId),
-    }));
-  };
-
+};
 
   return (
     <div className="agp-layout">
-      <SchedulingTabs/>
-
+      <Navbar />
       <div className="agp">
         <main className="agp-main">
           <div className="agp-badge">🔗 Connect once. Post everywhere.</div>
@@ -281,10 +316,6 @@ export default function AgilaPostConnectAccounts() {
             Connect as many accounts as you manage — there&apos;s no limit
             per platform.
           </p>
-
-          {accountError && <div className = "agp-error">{accountError}</div>}
-
-          {/* Summary strip */}
           <div className="agp-summary">
             <div className="agp-summary__stat agp-summary__stat--bordered">
               <div className="agp-summary__value">{totalConnected}</div>
@@ -299,13 +330,10 @@ export default function AgilaPostConnectAccounts() {
               <div className="agp-summary__bar agp-summary__bar--orange" />
             </div>
           </div>
-
-          {/* Platform sections — each can hold any number of accounts */}
           <div className="agp-platforms">
             {PLATFORM_DEFS.map((platform) => {
               const list = accounts[platform.id];
               const isConnecting = connectingPlatform === platform.id;
-
               return (
                 <div className="agp-platform" key={platform.id}>
                   <div
@@ -394,8 +422,6 @@ export default function AgilaPostConnectAccounts() {
               );
             })}
           </div>
-
-          {/* Category toggle */}
           <div className="agp-toggle-row">
             <span className="agp-toggle-row__label">
               Add newly connected accounts to all categories
@@ -409,8 +435,6 @@ export default function AgilaPostConnectAccounts() {
               <span className="agp-switch__knob" />
             </button>
           </div>
-
-          {/* Advanced settings */}
           <div className="agp-advanced">
             <button
               type="button"
@@ -420,7 +444,6 @@ export default function AgilaPostConnectAccounts() {
               Advanced settings
               <ChevronIcon open={advancedOpen} />
             </button>
-
             {advancedOpen && (
               <div className="agp-advanced__panel">
                 Token refresh, account renaming, and per-account posting
@@ -428,6 +451,46 @@ export default function AgilaPostConnectAccounts() {
               </div>
             )}
           </div>
+            {/* model for switching linkedin accounts */}
+            {showLinkedInSwitchPrompt && (
+              <div className="agp-modal-overlay" onClick={() => setShowLinkedInSwitchPrompt(false)}>
+                <div className="agp-modal" onClick={(e) => e.stopPropagation()}>
+                  <h3 className="agp-modal__title">Connecting a different LinkedIn account?</h3>
+                  <p className="agp-modal__body">
+                    LinkedIn will keep signing you in as your last connected account in this browser.
+                    Copy the link below and paste it into a new <strong>incognito / private window</strong> to sign in as a different account.
+                  </p>
+
+                  {linkLoading && <p className="agp-modal__body">Generating your link…</p>}
+
+                  {linkError && (
+                    <p className="agp-modal__body">Couldn't generate a link. Please try again.</p>
+                  )}
+
+                  {connectLink && !linkLoading && (
+                    <div className="agp-modal__link-row">
+                      <input type="text" readOnly value={connectLink} className="agp-modal__link-input" onFocus={(e) => e.target.select()} />
+                      <button
+                        type="button"
+                        className="agp-button agp-button--ghost"
+                        onClick={() => {
+                          navigator.clipboard.writeText(connectLink);
+                          setLinkCopied(true);
+                        }}
+                      >
+                        {linkCopied ? "Copied!" : "Copy link"}
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="agp-modal__actions">
+                    <button type="button" className="agp-modal__cancel" onClick={() => setShowLinkedInSwitchPrompt(false)}>
+                      Close
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
         </main>
       </div>
     </div>
