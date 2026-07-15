@@ -12,8 +12,14 @@ const FACEBOOK_USERINFO_API     = `${API_BASE}/userInfo/facebook`;
 const FACEBOOK_UPLOAD_DIRECT    = `${API_BASE}/facebookPost/upload`;
 const INSTAGRAM_USERINFO_API    = `${API_BASE}/userInfo/instagram`;
 const INSTAGRAM_UPLOAD_DIRECT = `${API_BASE}/instagramPost/upload`;
+const SCHEDULED_POSTS_DIRECT = `${API_BASE}/postInfo/getscheduledposts`;
+const GENERATE_SHARE_CALENDAR_DIRECT = `${API_BASE}/userInfo/createsharetoken`
+const OPEN_SHARE_CALENDAR_DIRECT = `${API_BASE}/userInfo/sharecalendar`
+const USER_TOKEN_DIRECT = `${API_BASE}/userInfo/getuser`
 
 const CORS_HEADER: Record<string, string> = { "ngrok-skip-browser-warning": "true"}
+
+import {type PostMediaStatus} from "../types/tiktok.ts"
 
 export async function fetchUserInfo(){
     const res = await fetch(USERINFO_API, 
@@ -193,4 +199,44 @@ export async function uploadToInstagram(title: string, connectionId: string, med
         body: formData,
     });
     return res.json();
+}
+
+export async function fetchScheduledPosts(status: PostMediaStatus = "pending") {
+    const res = await fetch(`${SCHEDULED_POSTS_DIRECT}?status=${status}`, {
+        credentials: "include",
+        headers: CORS_HEADER,
+    });
+
+    const scheduledPostInfo = await res.json();
+    return scheduledPostInfo;
+}
+
+export async function generateShareCalenderToken(){
+    const res = await fetch(GENERATE_SHARE_CALENDAR_DIRECT, 
+    {
+        method: "POST",
+        credentials: "include",
+
+    })
+
+    const generatedTokenInfo = await res.json();
+    return generatedTokenInfo;
+}
+
+export async function fetchSharedCalenderToken(token: string, status: PostMediaStatus = "pending"){
+    const res = await fetch(`${OPEN_SHARE_CALENDAR_DIRECT}/${token}?status=${status}`, 
+    {
+    })
+
+    const sharedCalendarInfo = await res.json();
+    return sharedCalendarInfo;
+}
+
+export async function fetchUserInfoViaToken(token: string){
+    const res = await fetch(`${USER_TOKEN_DIRECT}/${token}`, 
+    {
+    })
+
+    const userInfo = await res.json();
+    return userInfo;
 }
