@@ -1,8 +1,20 @@
 import {useState, useEffect} from "react";
 import {fetchQueryInfo} from "../controller/fetchController.ts";
 
-// Import types
-import {type UserQueryInfo} from "../types/tiktok.ts"
+
+// Interface for user query info
+export interface UserQueryInfo{
+
+    comment_disabled: boolean,
+    duet_disabled: boolean,
+    stitch_disabled: boolean,
+    max_video_post_duration_sec: number,
+    creator_avatar_url: string,
+    creator_nickname: string,
+    creator_username: string,
+    privacy_level_options: string[]
+
+}
 
 
 // Function performs fetch to obtain user query info of the user assuming they have already logged in the website. Includes useEffect to reload data immediately.s
