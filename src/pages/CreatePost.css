@@ -70,6 +70,22 @@
   margin-bottom: 16px;
 }
 
+.cp-demo-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #6b6478;
+  margin-bottom: 12px;
+  cursor: pointer;
+}
+.cp-demo-toggle input {
+  accent-color: #d97706;
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
+
 /* ── Left: account checklist (OneUp sidebar style) ── */
 .cp-accounts-card {
   position: sticky;
@@ -96,6 +112,25 @@
 }
 .cp-account-row.selected {
   background: #f5f3ff;
+}
+.cp-account-row.is-demo {
+  border: 1px dashed #fcd34d;
+}
+.cp-account-row.is-demo.selected {
+  background: #fffbeb;
+}
+
+.cp-demo-badge {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #b45309;
+  background: #fef3c7;
+  border-radius: 4px;
+  padding: 1px 5px;
+  vertical-align: middle;
 }
 
 .cp-account-checkbox {
@@ -825,4 +860,14 @@
   background: linear-gradient(135deg, #6d28d9, #3b82f6);
   color: #fff;
   font-weight: 600;
+}
+
+/* ── Platform settings group ── */
+/* One box per unique selected platform, shown together rather than switched
+   between — matches Buffer's "Customize for each network" composer pattern. */
+
+.cp-platform-settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
