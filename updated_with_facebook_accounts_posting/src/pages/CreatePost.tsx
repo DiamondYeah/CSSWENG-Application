@@ -186,6 +186,9 @@ function CreatePost() {
       acc => selectedAccounts.includes(acc.id) && acc.platform.toLowerCase() === "instagram"
     );
 
+    // for testing
+    console.log({scheduleMode, scheduleDate, scheduleTime});
+
     await uploadPost({
         title: title,
         mediaFile: mediaFile!,
@@ -196,7 +199,11 @@ function CreatePost() {
         platforms: selectedPlatforms,
         linkedinConnectionIds: selectedLinkedInAccounts.map(acc => acc.id),
         facebookConnectionIds: selectedFacebookAccounts.map(acc => acc.id),
-        instagramConnectionIds: selectedInstagramAccounts.map(acc => acc.id)
+        instagramConnectionIds: selectedInstagramAccounts.map(acc => acc.id),
+        scheduleMode: scheduleMode,
+        scheduledDate:
+          scheduleMode === "schedule" && scheduleDate
+            ? new Date(`${scheduleDate.toISOString().split("T")[0]}T${scheduleTime}`).toISOString() : undefined
     });
   }
 
@@ -407,11 +414,25 @@ function CreatePost() {
                   <div className="cp-schedule-row">
                     <div className="cp-field">
                       <label>Date</label>
-                      <input type="date" />
+                      <input 
+                        type="date"
+                        value={scheduleDate ? scheduleDate.toISOString().split("T")[0] : ""}
+                        onChange={(e) => {
+                          if(e.target.value) {
+                            setScheduleDate(new Date(e.target.value));
+                          } else {
+                            setScheduleDate(undefined);
+                          }
+                        }} 
+                      />
                     </div>
                     <div className="cp-field">
                       <label>Time</label>
-                      <input type="time" />
+                      <input 
+                        type="time" 
+                        value={scheduleTime}
+                        onChange={(e) => setScheduleTime(e.target.value)}
+                      />
                     </div>
                   </div>
                 )}

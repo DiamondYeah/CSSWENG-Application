@@ -25,6 +25,8 @@ import instagramPostRoute from "./routes/instagramPostRoute.ts";
 import connectDB from "./database/db.ts"
 import facebookPostRoute from "./routes/facebookPostRoute.ts";
 
+// Import Scheduler
+import { checkScheduledLinkedInPosts } from "./server_services/linkedinScheduler.ts";
 
 // Create/Open Database
 await connectDB();
@@ -60,5 +62,11 @@ app.listen(process.env.PORT || 5000, () => {
 
     console.log(`Server has opened with port ${process.env.PORT || 5000}`);
 });
+
+setInterval(async () => {
+
+    await checkScheduledLinkedInPosts();
+
+}, 60 * 1000);
 
 

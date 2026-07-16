@@ -24,8 +24,11 @@ export interface IPost extends Document{
     title?: string
     description?: string
 
+    gridfsFileId?: Types.ObjectId;
+
     rawResponse?: Record<string, unknown>       // Last raw status from platform, mainly for debugging purposes
 
+    connectionId?: Types.ObjectId; // linkedin connection ID
 }
 
 
@@ -36,7 +39,7 @@ const postSchema = new Schema<IPost>({
     platform: {type: String, enum:["tiktok", "linkedin", "facebook","instagram"], required: true},
     postType: {type: String, enum:["photo","video"], required: true},
 
-    publishID: {type: String, required: true},           
+    publishID: {type: String, required: false, default: ""},           
     uploadURL:  {type: String, required: false} ,     
 
     status: {type: String, enum:["pending", "processing", "failed", "expired", "published"], required: true}, 
@@ -46,7 +49,11 @@ const postSchema = new Schema<IPost>({
     title: {type: String, required: false},
     description: {type: String, required: false},
 
-    rawResponse: {type: Schema.Types.Mixed, required: false}     
+    gridfsFileId: {type: Schema.Types.ObjectId, required: false},
+
+    rawResponse: {type: Schema.Types.Mixed, required: false},
+    
+    connectionId: {type: Schema.Types.ObjectId, required: false}
 
 },
 

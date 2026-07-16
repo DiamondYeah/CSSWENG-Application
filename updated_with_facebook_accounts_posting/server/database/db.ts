@@ -1,4 +1,7 @@
 import mongoose from "mongoose";
+import { GridFSBucket } from "mongodb";
+import { Grid } from "lucide-react";
+export let gridFSBucket: GridFSBucket;
 
 async function connectDB(): Promise<void> {
 
@@ -6,7 +9,16 @@ async function connectDB(): Promise<void> {
 
         // Connect to MongoDB with URI found at env
         await mongoose.connect(process.env.MOONGOOSE_DATABASE_URI as string);
+        
+        gridFSBucket = new GridFSBucket(
+            mongoose.connection.db!,
+            {
+                bucketName: "linkedinMedia"
+            }
+        )
+        
         console.log("MongoDB Connected");
+        console.log("GridFS Ready")
 
     }
     catch(err){
@@ -15,8 +27,6 @@ async function connectDB(): Promise<void> {
         process.exit(1); // Force current process to close
 
     }
-
-
 
 };
 

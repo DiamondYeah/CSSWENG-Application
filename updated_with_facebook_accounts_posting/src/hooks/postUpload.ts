@@ -17,6 +17,8 @@ interface PostUpload {
     linkedinConnectionIds?: string[];
     facebookConnectionIds?: string[];
     instagramConnectionIds?: string[];
+    scheduleMode?: "now" | "schedule" | "queue";
+    scheduledDate?: string;
 }
 
 export function usePostUpload(){
@@ -53,7 +55,9 @@ export function usePostUpload(){
                         const linkedInResult = await uploadToLinkedIn(
                             postDetails.title,
                             connectionId,
-                            postDetails.mediaFile
+                            postDetails.mediaFile,
+                            postDetails.scheduleMode,
+                            postDetails.scheduledDate
                         );
 
                         if (linkedInResult?.success) {
@@ -69,7 +73,12 @@ export function usePostUpload(){
                 const linkedInTotal = postDetails.linkedinConnectionIds.length;
 
                 if (linkedInFailures.length === 0) {
-                    results.push(`LinkedIn: posted to all ${linkedInTotal} account(s)`);
+
+                    if (postDetails.scheduleMode == "schedule") {
+                        results.push(`LinkedIn: scheduled for all ${linkedInTotal} account(s)`);
+                    } else {
+                        results.push(`LinkedIn: posted to all ${linkedInTotal} account(s)`);
+                    }
                 } else if (linkedInSuccessCount > 0) {
                     results.push(
                         `LinkedIn: ${linkedInSuccessCount} succeeded, ${linkedInFailures.length} failed (${linkedInFailures.join("; ")})`

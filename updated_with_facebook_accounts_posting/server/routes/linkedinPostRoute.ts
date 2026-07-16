@@ -2,9 +2,12 @@ import pkg from "express";
 import type { Response } from "express";
 import { type IUser } from "../models/user.ts";
 import { findUserAuth, type AuthUserRequest } from "../middleware/tiktokAuthMiddleware.ts";
-import { createLinkedInPost, registerImageUpload, registerVideoUpload, uploadImageBinary, createLinkedInImagePost, createLinkedInVideoPost, checkVideoStatus} from "../server_services/linkedinPostService.ts";
+import { createLinkedInPost, publishLinkedInMedia } from "../server_services/linkedinPostService.ts";
 import multer from "multer";
 import { findOwnedSocialConnection } from "../dbcontrollers/userRepository.ts";
+import Post from "../models/post.ts";
+import { saveFileToGridFS, getFileFromGridFS } from "../server_services/gridfsService.ts";
+
 
 const { Router } = pkg;
 const router = Router();
@@ -15,8 +18,56 @@ const upload = multer({
 router.post("/upload", findUserAuth, upload.single("media"), async (req: AuthUserRequest, res: Response) => {
 
     const user: IUser = req.user as IUser;
-    const { title, connectionId } = req.body;
+    const { 
+        title, 
+        connectionId,
+        scheduleMode,
+        scheduledDate 
+    } = req.body;
+    
     const mediaFile = req.file;
+
+    // TESTT
+    console.log({
+    title,
+    connectionId,
+    scheduleMode,
+    scheduledDate
+    });
+
+    if (scheduleMode === "schedule") {
+
+        let gridfsFileId;
+
+        if (mediaFile) {
+
+            gridfsFileId = await saveFileToGridFS(mediaFile.buffer, mediaFile.originalname, mediaFile.mimetype);
+            
+            console.log("Saved media to GridFS:", gridfsFileId);
+        }
+
+        const post = await Post.create({
+            
+            userID: user._id,
+            platform: "linkedin",
+            connectionId,
+            postType: mediaFile?.mimetype.startsWith("video/") ? "video" : "photo",
+            publishID: "",
+            status: "pending",
+            scheduledDate: new Date(scheduledDate),
+            title,
+            description: title,
+            gridfsFileId
+
+        });
+
+        console.log("Scheduled LinkedIn post saved:", post._id);
+
+        return res.json({
+            success: true,
+            message: "LinkedIn post scheduled successfully."
+        });
+    }
 
     if (!title || !title.trim()) {
         return res.status(400).json({ success: false, message: "Post text is required." });
@@ -42,80 +93,20 @@ try {
         console.log("MIME Type:", mediaFile.mimetype);
         console.log("Size:", mediaFile.size);
 
-       const isVideo = mediaFile.mimetype.startsWith("video/");
-
-const uploadInfo = isVideo
-    ? await registerVideoUpload(
-          accessToken,
-          personURN
-      )
-    : await registerImageUpload(
-          accessToken,
-          personURN
-      );
-
-const uploadRequest =
-    uploadInfo.uploadMechanism[
-        "com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest"
-    ];
-console.dir(uploadRequest, { depth: null });
-
-await uploadImageBinary(
-    uploadRequest.uploadUrl,
-    mediaFile.buffer,
-    mediaFile.mimetype,
-    
-);
-
-let postURN: string;
-
-if (isVideo) {
-
-    console.log("Waiting for LinkedIn to process video...");
-
-    let videoStatus = "";
-
-    while (videoStatus !== "AVAILABLE") {
-
-        await new Promise(resolve => setTimeout(resolve, 3000));
-
-        const status = await checkVideoStatus(
+        const postURN = await publishLinkedInMedia(
             accessToken,
-            uploadInfo.asset
+            personURN,
+            title,
+            mediaFile.buffer,
+            mediaFile.mimetype
         );
-        console.dir(status, { depth: null });
-        console.log(status);
 
-       videoStatus = status.recipes?.[0]?.status;
-
-    }
-
-    console.log("Video is ready!");
-
-    postURN = await createLinkedInVideoPost(
-        accessToken,
-        personURN,
-        title,
-        uploadInfo.asset
-    );
-
-} else {
-
-    postURN = await createLinkedInImagePost(
-        accessToken,
-        personURN,
-        title,
-        uploadInfo.asset
-    );
-
-}
-
-return res.json({
-    success: true,
-    data: {
-        postURN
-    }
-});
+        return res.json({
+            success: true,
+            data: {
+                postURN
+            }
+        });
 
     } else {
         console.log("No media uploaded.");

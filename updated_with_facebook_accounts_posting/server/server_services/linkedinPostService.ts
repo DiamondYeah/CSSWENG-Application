@@ -237,3 +237,72 @@ export async function createLinkedInVideoPost(
 
 }
 
+export async function publishLinkedInMedia(
+    accessToken: string,
+    personURN: string,
+    title: string,
+    mediaBuffer: Buffer,
+    mimeType: string
+): Promise<string> {
+
+    const isVideo = mimeType.startsWith("video/");
+
+    const uploadInfo = isVideo
+        ? await registerVideoUpload(
+            accessToken,
+            personURN
+        )
+        : await registerImageUpload(
+            accessToken,
+            personURN
+        );
+
+    const uploadRequest = uploadInfo.uploadMechanism["com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest"];
+
+    await uploadImageBinary(
+        uploadRequest.uploadUrl,
+        mediaBuffer,
+        mimeType
+    );
+
+    let postURN: string;
+
+    if (isVideo) {
+
+        console.log("Waiting for LinkedIn to process video...");
+
+        let videoStatus = "";
+
+        while (videoStatus !== "AVAILABLE") {
+
+            await new Promise(resolve => setTimeout(resolve, 3000));
+
+            const status = await checkVideoStatus(
+                accessToken,
+                uploadInfo.asset
+            );
+
+            videoStatus = status.recipes?.[0]?.status;
+        }
+
+        console.log("Video is ready!");
+
+        postURN = await createLinkedInVideoPost(
+            accessToken,
+            personURN,
+            title,
+            uploadInfo.asset
+        );
+
+    } else {
+
+        postURN = await createLinkedInImagePost(
+            accessToken,
+            personURN,
+            title,
+            uploadInfo.asset
+        );
+    }
+
+    return postURN;
+}

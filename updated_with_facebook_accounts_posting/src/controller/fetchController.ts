@@ -115,7 +115,9 @@ export async function uploadPhotos(photos: File[], title: string, description: s
 export async function uploadToLinkedIn(
     title: string,
     connectionId: string,
-    mediaFile?: File
+    mediaFile?: File,
+    scheduleMode?: string,
+    scheduledDate?: string
 ) {
     console.log("uploadToLinkedIn triggered");
     
@@ -125,6 +127,15 @@ export async function uploadToLinkedIn(
 
     if (mediaFile) {
         formData.append("media", mediaFile);
+    }
+
+    // draft
+    if (scheduleMode) {
+        formData.append("scheduleMode", scheduleMode);
+    }
+
+    if (scheduledDate) {
+        formData.append("scheduledDate", scheduledDate);
     }
 
     const res = await fetch(LINKEDIN_UPLOAD_DIRECT, {
