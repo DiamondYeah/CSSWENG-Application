@@ -187,8 +187,17 @@ function CreatePost() {
     );
 
     // for testing
-    console.log({scheduleMode, scheduleDate, scheduleTime});
+    const finalScheduledDate =
+      scheduleMode === "schedule" && scheduleDate
+        ? new Date(
+          `${scheduleDate.toISOString().split("T")[0]}T${scheduleTime}`
+          ).toISOString()
+        : undefined;
 
+    console.log("scheduleDate:", scheduleDate);
+    console.log("scheduleTime:", scheduleTime);
+    console.log("Final scheduledDate:", finalScheduledDate);
+    
     await uploadPost({
         title: title,
         mediaFile: mediaFile!,
@@ -201,9 +210,12 @@ function CreatePost() {
         facebookConnectionIds: selectedFacebookAccounts.map(acc => acc.id),
         instagramConnectionIds: selectedInstagramAccounts.map(acc => acc.id),
         scheduleMode: scheduleMode,
+        /*
         scheduledDate:
           scheduleMode === "schedule" && scheduleDate
             ? new Date(`${scheduleDate.toISOString().split("T")[0]}T${scheduleTime}`).toISOString() : undefined
+        */
+       scheduledDate: finalScheduledDate  
     });
   }
 
@@ -417,13 +429,29 @@ function CreatePost() {
                       <input 
                         type="date"
                         value={scheduleDate ? scheduleDate.toISOString().split("T")[0] : ""}
+                        
+                        /*
                         onChange={(e) => {
                           if(e.target.value) {
                             setScheduleDate(new Date(e.target.value));
                           } else {
                             setScheduleDate(undefined);
                           }
-                        }} 
+                        }}
+                          */
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            const d = new Date(e.target.value);
+
+                            console.log("Input value:", e.target.value);
+                            console.log("Date object:", d);
+                            console.log("ISO:", d.toISOString());
+
+                            setScheduleDate(d);
+                          } else {
+                            setScheduleDate(undefined);
+                          }
+                        }}  
                       />
                     </div>
                     <div className="cp-field">

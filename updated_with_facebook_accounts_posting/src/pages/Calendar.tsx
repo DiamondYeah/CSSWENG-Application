@@ -326,7 +326,7 @@ export default function AgilaPostCalendar({
         accountId: post.connectionId,
         platform: post.platform,
         mediaType: post.postType,
-        date: date.toISOString().split("T")[0],
+        date: toDateKey(date),
         time: date.toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit"
