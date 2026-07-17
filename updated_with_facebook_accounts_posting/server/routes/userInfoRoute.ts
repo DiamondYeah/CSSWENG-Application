@@ -7,6 +7,7 @@ import {obtainUserInfo, obtainQueryInfo} from "../server_services/tiktokUserServ
 import {getLinkedInUserInfo} from "../server_services/linkedinAuthService.ts";
 import {findUserAuth, type AuthUserRequest} from "../middleware/tiktokAuthMiddleware.ts";
 import { deleteSocialConnection, listSocialConnections } from "../dbcontrollers/userRepository.ts";
+import { findPostsOfUser } from "../dbcontrollers/postRepository.ts";
 
 const { Router } = pkg;
 const router = Router();
@@ -182,6 +183,30 @@ router.get("/instagram", findUserAuth, async (req: AuthUserRequest, res: Respons
     } catch (err) {
         console.error("Error: " + err);
         return res.status(500).json({ success: false, message: "Unexpected error when fetching Instagram information!" });
+    }
+});
+
+router.get("/posts", findUserAuth, async (req: AuthUserRequest, res: Response) => {
+
+    const user: IUser = req.user as IUser;
+
+    try {
+        const posts = await findPostsOfUser(user._id);
+
+        return res.json({
+
+            success: true,
+            data: posts
+        });
+
+    } catch (err) {
+
+        console.error("Error: " + err);
+
+        return res.status(500).json({
+            success: false,
+            message: "Unexpected error when fetching posts!"
+        });
     }
 });
 

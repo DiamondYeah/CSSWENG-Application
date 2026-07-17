@@ -1,5 +1,6 @@
 import pkg from "express";
 import type { Response } from "express";
+import { ObjectId } from "mongodb";
 import { type IUser } from "../models/user.ts";
 import { findUserAuth, type AuthUserRequest } from "../middleware/tiktokAuthMiddleware.ts";
 import { createLinkedInPost, publishLinkedInMedia } from "../server_services/linkedinPostService.ts";
@@ -128,6 +129,31 @@ try {
 
         console.error("LinkedIn post error: " + (err?.response?.data ? JSON.stringify(err.response.data) : err));
         return res.status(500).json({ success: false, message: "Unexpected error when posting to LinkedIn!" });
+
+    }
+
+});
+
+router.get("/media/:fileId", async (req, res) => {
+
+    try {
+
+        const media = await getFileFromGridFS(
+            new ObjectId(req.params.fileId)
+        );
+
+        res.setHeader("Content-Type", media.contentType);
+
+        return res.send(media.buffer);
+
+    } catch (err) {
+
+        console.error(err);
+
+        return res.status(404).json({
+            success: false,
+            message: "Media not found."
+        });
 
     }
 

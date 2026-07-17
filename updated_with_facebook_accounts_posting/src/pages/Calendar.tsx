@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -8,6 +8,7 @@ import {
   Check,
 } from "lucide-react";
 import "./Calendar.css";
+import { fetchPosts, fetchLinkedInUserInfo } from "../controller/fetchController";
 
 // ---------------------------------------------------------------
 // platform icons
@@ -88,6 +89,18 @@ export interface Account {
   platform: Platform;
 }
 
+interface DatabasePost {
+  _id: string;
+  connectionId: string;
+  platform: Platform;
+  scheduledDate: string;
+  status: string; // for toggling scheduled/published in calendar view
+  gridfsFileId?: String
+  postType: "photo" | "video";
+  title?: string;
+  description?: string;
+}
+
 export interface Post {
   id: string;
   accountId: string;
@@ -96,6 +109,8 @@ export interface Post {
   time: string; // display string, e.g. "07:30 AM"
   title?: string;
   snippet?: string;
+  thumbnailUrl?: string;
+  mediaType?: "photo" | "video";
   hasDocument?: boolean;
   hasImage?: boolean;
   hasComment?: boolean;
@@ -198,7 +213,21 @@ function PostCard({
 
         {post.hasImage && (
           <div className="ap-post-card__thumb">
-            <div className="ap-post-card__thumb-inner" />
+
+            {post.thumbnailUrl ? (
+
+              post.mediaType === "photo" ? (
+
+                <img className="ap-post-card__thumb-inner" src={post.thumbnailUrl} alt={post.title ?? "Post image"}/>
+              
+              ) : (
+                
+                <video className="ap-post-card__thumb-inner" src={post.thumbnailUrl} muted playsInline/>
+
+              )
+            ) : (
+                <div className="ap-post-card_thumb-inner"/>
+            )}
           </div>
         )}
       </div>
@@ -234,6 +263,83 @@ export default function AgilaPostCalendar({
   const [showDrafts, setShowDrafts] = useState(false);
   const [showFutureRepeats, setShowFutureRepeats] = useState(false);
 
+  const [loadedPosts, setLoadedPosts] = useState<DatabasePost[]>([]);
+  const [loadedAccounts, setLoadedAccounts] = useState<Account[]>([]);
+
+  useEffect(() => {
+
+      async function loadPosts() {
+        
+        const result = await fetchPosts();
+        console.log("POSTS:", result);
+
+        if (result.success) {
+
+          setLoadedPosts(result.data);
+
+          console.log("Loaded Posts:", result.data);
+        }
+
+        const accountsResult = await fetchLinkedInUserInfo();
+
+        console.log("ACCOUNTS:", accountsResult);
+
+        if (accountsResult.success) {
+
+          setLoadedAccounts(
+              accountsResult.data.map((account: any) => ({
+
+                id: account.id,
+                name: account.name,
+                platform: "linkedin"
+              }))
+          );
+        }
+      }
+
+      loadPosts();
+
+  }, []);
+
+  const calendarPosts: Post[] = loadedPosts
+      .filter((post) => {
+
+          if (postsView === "scheduled") {
+            return post.status === "pending" || post.status === "processing";
+          }
+          
+          return post.status === "published";
+        
+        }).map((post) => {
+
+      const date = new Date(post.scheduledDate);
+        
+      console.log({
+            mediaType: post.postType,
+            thumbnailUrl: post.gridfsFileId
+                ? `${import.meta.env.VITE_API_BASE_URL}/linkedinPost/media/${post.gridfsFileId}`
+                : undefined,
+        });
+        
+      return {
+        id: post._id,
+        accountId: post.connectionId,
+        platform: post.platform,
+        mediaType: post.postType,
+        date: date.toISOString().split("T")[0],
+        time: date.toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit"
+        }),
+        title: post.title,
+        snippet: post.description,
+        thumbnailUrl: post.gridfsFileId
+          ? `${import.meta.env.VITE_API_BASE_URL}/linkedinPost/media/${post.gridfsFileId}`
+          : undefined,
+        hasImage: true
+      } ;
+  });
+
   const year = cursorDate.getFullYear();
   const month = cursorDate.getMonth();
   const monthLabel = cursorDate.toLocaleString("en-US", { month: "long", year: "numeric" });
@@ -241,13 +347,13 @@ export default function AgilaPostCalendar({
   const weeks = useMemo(() => buildMonthGrid(year, month), [year, month]);
 
   const accountsById = useMemo(
-    () => Object.fromEntries(accounts.map((a) => [a.id, a])),
-    [accounts]
+    () => Object.fromEntries(loadedAccounts.map((a) => [a.id, a])),
+    [loadedAccounts]
   );
 
   const postsByDate = useMemo(() => {
     const map: Record<string, Post[]> = {};
-    for (const p of posts) {
+    for (const p of calendarPosts) { // changed from posts to calendarPosts
       if (checkedAccounts[p.accountId] === false) continue;
       if (!map[p.date]) map[p.date] = [];
       map[p.date].push(p);

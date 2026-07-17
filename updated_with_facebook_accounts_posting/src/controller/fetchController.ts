@@ -12,6 +12,7 @@ const FACEBOOK_USERINFO_API     = `${API_BASE}/userInfo/facebook`;
 const FACEBOOK_UPLOAD_DIRECT    = `${API_BASE}/facebookPost/upload`;
 const INSTAGRAM_USERINFO_API    = `${API_BASE}/userInfo/instagram`;
 const INSTAGRAM_UPLOAD_DIRECT = `${API_BASE}/instagramPost/upload`;
+const POSTS_API = `${API_BASE}/userInfo/posts`;
 
 const CORS_HEADER: Record<string, string> = { "ngrok-skip-browser-warning": "true"}
 
@@ -204,4 +205,15 @@ export async function uploadToInstagram(title: string, connectionId: string, med
         body: formData,
     });
     return res.json();
+}
+
+export async function fetchPosts() {
+
+    const res = await fetch(POSTS_API, {
+        credentials: "include",
+        headers: CORS_HEADER
+    });
+
+    return await res.json();
+
 }

@@ -88,6 +88,7 @@ export async function linkSocialConnection(
 ): Promise<ISocialConnection | null> {
     const { tokenExpiresIn, refreshExpiresIn, ...rest } = tokenData;
 
+
     return await SocialConnection.findOneAndUpdate(
         { platform: tokenData.platform, platformOpenID: tokenData.platformOpenID },
         {
