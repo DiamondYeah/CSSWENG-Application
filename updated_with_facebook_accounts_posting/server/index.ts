@@ -67,6 +67,6 @@ setInterval(async () => {
 
     await checkScheduledLinkedInPosts();
 
-}, 60 * 1000);
+}, 5 * 1000);
 
 
