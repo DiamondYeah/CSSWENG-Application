@@ -1,5 +1,6 @@
 import { NavLink } from "react-router-dom";
 import "./SchedulingTabs.css";
+import UserStatus from "./UserStatus"; // NEW: logged-in pill + logout
 
 // Tab definitions — add/remove entries here to change what shows up
 const TABS = [
@@ -30,6 +31,7 @@ function SchedulingTabs() {
           </NavLink>
         ))}
       </div>
+      <UserStatus />
     </div>
   );
 }
