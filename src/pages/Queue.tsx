@@ -17,6 +17,12 @@ import SchedulingTabs from "../components/SchedulingTabs"; // NEW: replaces hard
 type Platform = "facebook" | "instagram" | "linkedin" | "tiktok";
 type QueueTab = "scheduled" | "published";
 
+interface QueueComment {
+  id: string;
+  text: string;
+  createdAt: string; // ISO timestamp
+}
+
 interface QueuePost {
   id: string;
   platform: Platform;
@@ -30,6 +36,7 @@ interface QueuePost {
   tag?: { label: string; email?: string };
   isRepeating?: boolean;
   status: QueueTab;
+  comments?: QueueComment[];
 }
 
 interface QueueAccount {
@@ -153,23 +160,50 @@ function Queue() {
   const [largeSize, setLargeSize] = useState<boolean>(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
-  const scheduledCount = MOCK_POSTS.filter((p) => p.status === "scheduled").length;
-  const publishedCount = MOCK_POSTS.filter((p) => p.status === "published").length;
+  // Pseudo comment feature — front-end only, no backend wiring yet. Posts need to
+  // be real state (not the static MOCK_POSTS array) so adding a comment actually
+  // re-renders. expandedPostId tracks which single card has its comment thread open.
+  const [posts, setPosts] = useState<QueuePost[]>(MOCK_POSTS);
+  const [expandedPostId, setExpandedPostId] = useState<string | null>(null);
+  const [draftComment, setDraftComment] = useState<string>("");
+
+  const scheduledCount = posts.filter((p) => p.status === "scheduled").length;
+  const publishedCount = posts.filter((p) => p.status === "published").length;
 
   const visiblePosts = useMemo(() => {
-    return MOCK_POSTS.filter((p) => {
+    return posts.filter((p) => {
       if (p.status !== activeTab) return false;
       if (accountFilter && p.accountName !== accountFilter) return false;
       if (search && !p.content.toLowerCase().includes(search.toLowerCase()))
         return false;
       return true;
     });
-  }, [activeTab, accountFilter, search]);
+  }, [posts, activeTab, accountFilter, search]);
 
   function toggleSelectAll() {
     const next = !selectAll;
     setSelectAll(next);
     setSelectedIds(next ? visiblePosts.map((p) => p.id) : []);
+  }
+
+  function toggleComments(postId: string) {
+    setExpandedPostId((prev) => (prev === postId ? null : postId));
+    setDraftComment("");
+  }
+
+  function handleAddComment(postId: string) {
+    if (!draftComment.trim()) return;
+    const newComment: QueueComment = {
+      id: `qc-${Date.now()}`,
+      text: draftComment.trim(),
+      createdAt: new Date().toISOString(),
+    };
+    setPosts((prev) =>
+      prev.map((p) =>
+        p.id === postId ? { ...p, comments: [...(p.comments ?? []), newComment] } : p
+      )
+    );
+    setDraftComment("");
   }
 
   function toggleSelectPost(id: string) {
@@ -383,13 +417,46 @@ function Queue() {
                           </span>
                         )}
                         <div className="q-footer-spacer" />
-                        <button className="q-footer-icon-btn" title="Comments">
+                        <button
+                          className="q-footer-icon-btn"
+                          title="Comments"
+                          onClick={() => toggleComments(post.id)}
+                        >
                           <IoChatbubbleOutline size={15} />
+                          {post.comments && post.comments.length > 0 && (
+                            <span className="q-comment-count">{post.comments.length}</span>
+                          )}
                         </button>
                         <button className="q-footer-icon-btn" title="Preview">
                           <IoEyeOutline size={16} />
                         </button>
                       </div>
+
+                      {expandedPostId === post.id && (
+                        <div className="q-comments-thread">
+                          {(post.comments ?? []).length === 0 ? (
+                            <p className="q-no-comments">No comments yet.</p>
+                          ) : (
+                            (post.comments ?? []).map((c) => (
+                              <div key={c.id} className="q-comment">
+                                {c.text}
+                              </div>
+                            ))
+                          )}
+                          <div className="q-add-comment">
+                            <input
+                              type="text"
+                              placeholder="Add a comment..."
+                              value={draftComment}
+                              onChange={(e) => setDraftComment(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handleAddComment(post.id);
+                              }}
+                            />
+                            <button onClick={() => handleAddComment(post.id)}>Post</button>
+                          </div>
+                        </div>
+                      )}
 
                       {post.isRepeating && (
                         <div className="q-repeat-bar">Repeat this post</div>
