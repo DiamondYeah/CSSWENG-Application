@@ -16,7 +16,7 @@ import Queue from './pages/Queue';
 import TimeslotsPage from './pages/TimeslotsPage';
 
 // Import logged in wrapper to wrap around pages that need an account logged in.
-import LoggedInWrapper from "./components/loggedInWrapper";
+import LoggedInWrapper from "./components/LoggedInWrapper";
 
 import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
 import { StrictMode } from 'react';
