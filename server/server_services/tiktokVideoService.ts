@@ -5,13 +5,13 @@ import fs from "fs";
 // Load env file
 dotenv.config();
 
-// Import IUser interface
-import {type IUser} from "../models/user.ts"
+// Import ItiktokUser interface
+import {type ISocialMediaAccount} from "../models/socialMediaAccount.ts"
 
 // Interface for video upload
 interface TikTokVideoUpload{
 
-    user: IUser;
+    tiktokUser: ISocialMediaAccount;
     title: string;
     privacyLevel: string;
     videoSize: number;
@@ -34,13 +34,13 @@ const TIKTOK_GETVIDEOSTATUS_URL = "https://open.tiktokapis.com/v2/post/publish/s
 export async function obtainInitialUpload(video: TikTokVideoUpload){
 
     // Post video details to TikTok for publishing and initial upload via the video parameter and API URL
-    const userInitUploadFetch = await fetch(TIKTOK_GETINITUPLOAD_URL, 
+    const tiktokUserInitUploadFetch = await fetch(TIKTOK_GETINITUPLOAD_URL, 
         {
 
             method: "POST",
             headers:{
 
-                "Authorization": `Bearer ${video.user.accessToken}`,
+                "Authorization": `Bearer ${video.tiktokUser.accessToken}`,
                 "Content-Type": "application/json; charset=UTF-8"
 
             },
@@ -72,37 +72,37 @@ export async function obtainInitialUpload(video: TikTokVideoUpload){
     );
 
     // Convert the fetch to JSON and store it in const. 
-    const userInitUpload = await userInitUploadFetch.json();
+    const tiktokUserInitUpload = await tiktokUserInitUploadFetch.json();
 
     // Check if there is error when posting information
-    if(userInitUpload.error && userInitUpload.error.code != "ok"){
+    if(tiktokUserInitUpload.error && tiktokUserInitUpload.error.code != "ok"){
 
-        // Check if user is not allowed to post
-        if(userInitUpload.error.code == "spam_risk_too_many_posts")
-            throw new Error("POSTING_CAP_REACHED", {cause: userInitUpload.error})
-        else if(userInitUpload.error.code == "spam_risk_user_banned_from_posting")
-            throw new Error("BANNED_FROM_POSTING", {cause: userInitUpload.error})
+        // Check if tiktokUser is not allowed to post
+        if(tiktokUserInitUpload.error.code == "spam_risk_too_many_posts")
+            throw new Error("POSTING_CAP_REACHED", {cause: tiktokUserInitUpload.error})
+        else if(tiktokUserInitUpload.error.code == "spam_risk_tiktokUser_banned_from_posting")
+            throw new Error("BANNED_FROM_POSTING", {cause: tiktokUserInitUpload.error})
 
-        throw new Error("userInitUpload error!", {cause: userInitUpload.error});
+        throw new Error("tiktokUserInitUpload error!", {cause: tiktokUserInitUpload.error});
 
     }
 
 
     // Send successful JSON 
-    return userInitUpload
+    return tiktokUserInitUpload
     
 }
 
 
-// Function uploads the video to the user's TikTok account via video and uploadURL parameters
+// Function uploads the video to the tiktokUser's TikTok account via video and uploadURL parameters
 // Returns upload results
 export async function uploadVideo(video: Express.Multer.File, uploadURL: string){
 
     // Read file to buffer by finding its path location via fileSystem
     const videoBuffer = await fs.promises.readFile(video.path);
 
-    //  Performs fetch to put the video to the user's TikTok account and return results
-    const userUploadFetch = await fetch(uploadURL, 
+    //  Performs fetch to put the video to the tiktokUser's TikTok account and return results
+    const tiktokUserUploadFetch = await fetch(uploadURL, 
         {
 
             method: "PUT",
@@ -120,28 +120,28 @@ export async function uploadVideo(video: Express.Multer.File, uploadURL: string)
 
 
     // Check if there is error when fetching information
-    if(!userUploadFetch.ok)
+    if(!tiktokUserUploadFetch.ok)
         throw new Error("Video upload to TikTok error!");
 
 
     // Send successful JSON 
-    return userUploadFetch
+    return tiktokUserUploadFetch
 
 }
 
 
-// Function obtains information of the video upload to the TikTok website via user, publishID and API URL
+// Function obtains information of the video upload to the TikTok website via tiktokUser, publishID and API URL
 // Returns information of post status such as whether it was successful or not. If not, shares the fail error
-export async function obtainPostStatus(user: IUser, publishID: string){
+export async function obtainPostStatus(tiktokUser: ISocialMediaAccount, publishID: string){
 
-    //  Performs fetch to obtain the video status results from the user's TikTok account and return results of status
-    const userStatusUploadFetch = await fetch(TIKTOK_GETVIDEOSTATUS_URL, 
+    //  Performs fetch to obtain the video status results from the tiktokUser's TikTok account and return results of status
+    const tiktokUserStatusUploadFetch = await fetch(TIKTOK_GETVIDEOSTATUS_URL, 
         {
 
             method: "POST",
             headers:{
 
-                "Authorization": `Bearer ${user.accessToken}`,
+                "Authorization": `Bearer ${tiktokUser.accessToken}`,
                 "Content-Type": "application/json; charset=UTF-8"
 
             },
@@ -151,13 +151,13 @@ export async function obtainPostStatus(user: IUser, publishID: string){
 
 
     // Convert the fetch to JSON and store it in const. 
-    const userStatusUpload = await userStatusUploadFetch.json();
+    const tiktokUserStatusUpload = await tiktokUserStatusUploadFetch.json();
 
     // Check if there is error when fetching information
-    if(userStatusUpload.error && userStatusUpload.error.code != "ok")
-        throw new Error("userStatusUpload error!", {cause: userStatusUpload.error});
+    if(tiktokUserStatusUpload.error && tiktokUserStatusUpload.error.code != "ok")
+        throw new Error("tiktokUserStatusUpload error!", {cause: tiktokUserStatusUpload.error});
 
     // Send successful JSON 
-    return userStatusUpload;
+    return tiktokUserStatusUpload;
 
 }

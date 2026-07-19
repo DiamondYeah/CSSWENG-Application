@@ -4,7 +4,11 @@ import dotenv from "dotenv";
 dotenv.config();
 
 // Import IUser interface
-import {type IUser} from "../models/user.ts"
+import {type ISocialMediaAccount} from "../models/socialMediaAccount.ts"
+
+// Import userRepo functions and service functions
+import {createOrSaveUserTokensFromSeconds, findUserByID} from "../dbcontrollers/tiktokRepository.ts"
+
 
 // Constants for Tiktok Paths
 const TIKTOK_AUTORIZE_URL = 'https://www.tiktok.com/v2/auth/authorize/';
@@ -60,7 +64,7 @@ export async function obtainTikTokToken(code: string){
 }
 
 // Function refereshes user token to prevent relogin when expired
-export async function refreshTikTokToken(user: IUser){
+export async function refreshTikTokToken(tiktokUser: ISocialMediaAccount){
 
 
     // Perform token fetch but for refreshing the token (grant type is refresh_token)
@@ -72,7 +76,7 @@ export async function refreshTikTokToken(user: IUser){
             client_key: process.env.TIKTOK_CLIENT_KEY as string, 
             client_secret: process.env.TIKTOK_CLIENT_SECRET as string,
             grant_type: "refresh_token", 
-            refresh_token: user.refreshToken,
+            refresh_token: tiktokUser.refreshToken,
         }),
 
     });
@@ -91,7 +95,7 @@ export async function refreshTikTokToken(user: IUser){
 }
 
 
-export async function disconnectTikTokAuth(user: IUser){
+export async function disconnectTikTokAuth(tiktokUser: ISocialMediaAccount){
 
 
     const disconnectAuth = await fetch(TIKTOK_DISCONNECT_URL, {
@@ -101,7 +105,7 @@ export async function disconnectTikTokAuth(user: IUser){
         body: new URLSearchParams({ 
             client_key: process.env.TIKTOK_CLIENT_KEY as string, 
             client_secret: process.env.TIKTOK_CLIENT_SECRET as string,
-            token: user.accessToken
+            token: tiktokUser.accessToken
         }),
 
     });
@@ -115,3 +119,40 @@ export async function disconnectTikTokAuth(user: IUser){
     // Send successful JSON 
     return disconnectAuth;
 }
+
+
+// Function refereshes user token to prevent relogin when expired
+export async function checkTokenIfExpired(tiktokAccountID: string): Promise<ISocialMediaAccount | null>{
+
+
+    let socialMediaAccount = await findUserByID(tiktokAccountID);
+
+    if(!socialMediaAccount){
+
+        console.error("TikTok Account not found with given ID!");
+        return null;
+
+    }
+
+    if(socialMediaAccount.tokenExpiresIn < new Date()){
+
+        let socialMediaAccountRefresh = await refreshTikTokToken(socialMediaAccount);
+
+        // If not null, update user's API
+        if(socialMediaAccountRefresh)
+            socialMediaAccount = await createOrSaveUserTokensFromSeconds({
+        
+            accountID: socialMediaAccount.accountID.toString(),
+            platformAccountID: socialMediaAccount.platformAccountID,
+            accessToken: socialMediaAccountRefresh.access_token,
+            refreshToken: socialMediaAccountRefresh.refresh_token,
+            scope: socialMediaAccountRefresh.scope,
+            tokenExpiresIn: socialMediaAccountRefresh.expires_in,      
+            refreshExpiresIn: socialMediaAccountRefresh.refresh_expires_in,
+        
+        });
+
+    }
+
+    return socialMediaAccount;
+};

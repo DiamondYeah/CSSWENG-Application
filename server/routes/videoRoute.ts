@@ -10,12 +10,13 @@ import crypto from "crypto";
 dotenv.config();
 
 // Import types
-import {type IUser} from "../models/user.ts"
+import {type ISocialMediaAccount} from "../models/socialMediaAccount.ts"
 import {type AuthUserRequest} from "../types/express.ts"
 
 // Import Service Functions, Middleware Functions, Database Controller Functions, and Util Functions
 import {obtainInitialUpload, uploadVideo, obtainPostStatus} from "../server_services/tiktokVideoService.ts"
-import {findUserAuth} from "../middleware/tiktokAuthMiddleware.ts";
+import {findAccountAuth} from "../middleware/accountAuthMiddleware.ts";
+import {findTikTokAccount} from "../middleware/tiktokAccountConnectMiddleware.ts";
 import {createUserPost, updatePostSchedule, updatePostStatus} from "../dbcontrollers/postRepository.ts";
 import {mapTikTokPostStatus, mapPostStatusToView} from "../server_utilities/videoUtilities.ts"
 
@@ -50,10 +51,10 @@ const upload = multer({storage: videoDiskStorage})
 
 
 
-router.post("/initupload", findUserAuth, async (req: AuthUserRequest, res: Response) => {
-    
-    // Get user from req
-    const user: IUser = req.user as IUser;
+router.post("/initupload", findAccountAuth, findTikTokAccount, async (req: AuthUserRequest, res: Response) => {
+
+    // Get tiktok account from req
+    const tiktokAccount: ISocialMediaAccount = req.tiktokAccount as ISocialMediaAccount;
 
     // Get info from request
     const {title, privacyLevel, videoSize, allowComments, allowDuet, allowStitch, isYourOwnBrand, 
@@ -65,7 +66,7 @@ router.post("/initupload", findUserAuth, async (req: AuthUserRequest, res: Respo
 
         // Get user TikTok initial upload info results by calling obtainInitialUpload and passing arguments below and return result
         const userInitUpload = await obtainInitialUpload({ 
-            user: user, 
+            tiktokUser: tiktokAccount, 
             title: title, 
             privacyLevel: privacyLevel, 
             videoSize: videoSize,
@@ -81,8 +82,8 @@ router.post("/initupload", findUserAuth, async (req: AuthUserRequest, res: Respo
             // Create document of initial post status by callindgcareateUserPost from db controller repo
             await createUserPost({
 
-                userID: user._id,
-                platformAccountID: user.tiktokOpenID,
+                userID: tiktokAccount.accountID,
+                platformAccountID: tiktokAccount.platformAccountID,
                 platform: "tiktok",
                 postType: "video",
                 publishID: userInitUpload.data.publish_id,
@@ -122,8 +123,7 @@ router.post("/initupload", findUserAuth, async (req: AuthUserRequest, res: Respo
 });
 
 
-
-router.post("/upload", findUserAuth, upload.single('videoFile'), async (req: AuthUserRequest, res: Response) => {
+router.post("/upload", findAccountAuth, findTikTokAccount, upload.single('videoFile'), async (req: AuthUserRequest, res: Response) => {
 
     // Get upload url from request and videoFile
     const {uploadURL} = req.body;
@@ -170,10 +170,11 @@ router.post("/upload", findUserAuth, upload.single('videoFile'), async (req: Aut
 
 
 
-router.post("/poststatus", findUserAuth, async (req: AuthUserRequest, res: Response) => {
-    
-    // Get user from req
-    const user: IUser = req.user as IUser;
+router.post("/poststatus", findAccountAuth, findTikTokAccount, async (req: AuthUserRequest, res: Response) => {
+
+    // Get tiktok account from req
+    const tiktokAccount: ISocialMediaAccount = req.tiktokAccount as ISocialMediaAccount;
+
 
     // Get publish id from req body
     const {publishID} = req.body;
@@ -183,7 +184,7 @@ router.post("/poststatus", findUserAuth, async (req: AuthUserRequest, res: Respo
     try{
 
         // Get user TikTok initial upload info results by calling obtainPostStatus and passing user and publishID and return status result
-        const userStatusUpload = await obtainPostStatus(user, publishID);
+        const userStatusUpload = await obtainPostStatus(tiktokAccount, publishID);
 
 
         if(userStatusUpload){

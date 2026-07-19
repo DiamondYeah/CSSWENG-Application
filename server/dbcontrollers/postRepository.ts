@@ -97,7 +97,7 @@ export async function findPostsOfUser(userID: Types.ObjectId): Promise<IPost[]>{
 }
 
 
-// Function returns User Info by checking userID parameter
+// Function returns Account Info by checking userID parameter
 // Mongoose and schema already provide implicit annotation of type
 export async function findScheduledPosts(userID: string, status: PostMediaStatus): Promise<IPost[]>{
 

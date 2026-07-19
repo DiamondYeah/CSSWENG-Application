@@ -33,7 +33,7 @@ export interface IPost extends Document{
 // Create schema for Post
 const postSchema = new Schema<IPost>({
 
-    userID: {type: Schema.Types.ObjectId, ref: "User", required: true},
+    userID: {type: Schema.Types.ObjectId, ref: "Account", required: true},
     platformAccountID: {type: String, required: true},
     platform: {type: String, enum:["tiktok", "linkedin", "facebook","instagram"], required: true},
     postType: {type: String, enum:["photo","video"], required: true},

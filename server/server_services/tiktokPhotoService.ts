@@ -4,12 +4,12 @@ import dotenv from "dotenv";
 dotenv.config();
 
 // Import IUser interface
-import {type IUser} from "../models/user.ts"
+import {type ISocialMediaAccount} from "../models/socialMediaAccount.ts"
 
 // Interface for photo upload
 interface TikTokPhotoUpload{
 
-    user: IUser;
+    tiktokUser: ISocialMediaAccount;
     title: string;
     description: string;
     photoURLs: string[];
@@ -32,7 +32,7 @@ export async function uploadUserPhoto(photos: TikTokPhotoUpload){
             method: "POST",
             headers:{
 
-                "Authorization": `Bearer ${photos.user.accessToken}`,
+                "Authorization": `Bearer ${photos.tiktokUser.accessToken}`,
                 "Content-Type": "application/json; charset=UTF-8",
 
             },

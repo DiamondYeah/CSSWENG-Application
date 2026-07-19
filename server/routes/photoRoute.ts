@@ -10,12 +10,13 @@ import fs from "fs";
 dotenv.config();
 
 // Import types
-import {type IUser} from "../models/user.ts"
+import {type ISocialMediaAccount} from "../models/socialMediaAccount.ts"
 import {type AuthUserRequest} from "../types/express.ts"
 
 // Import Service Functions, and Middleware Functions
 import {uploadUserPhoto} from "../server_services/tiktokPhotoService.ts"
-import {findUserAuth} from "../middleware/tiktokAuthMiddleware.ts";
+import {findAccountAuth} from "../middleware/accountAuthMiddleware.ts";
+import {findTikTokAccount} from "../middleware/tiktokAccountConnectMiddleware.ts";
 
 // Creater router
 const { Router } = pkg;
@@ -46,10 +47,10 @@ const photoStorage = multer.diskStorage({
 const upload = multer({ storage: photoStorage });
 
 
-router.post("/photoUpload", findUserAuth, upload.array("photos", 35), async (req: AuthUserRequest, res: Response) => {
+router.post("/photoUpload", findAccountAuth, findTikTokAccount, upload.array("photos", 35), async (req: AuthUserRequest, res: Response) => {
 
-    // Get user from req
-    const user: IUser = req.user as IUser;
+    // Get tiktok account from req
+    const tiktokAccount: ISocialMediaAccount = req.tiktokAccount as ISocialMediaAccount;
 
     // Get title and description from req body
     const {title, description} = req.body;
@@ -66,7 +67,7 @@ router.post("/photoUpload", findUserAuth, upload.array("photos", 35), async (req
     try{
 
         // Upload user photos to their account by calling uploadUserPhoto function in services and receive result of upload
-        const photoUploadResult = await uploadUserPhoto({user, title, description, photoURLs});
+        const photoUploadResult = await uploadUserPhoto({tiktokUser: tiktokAccount, title, description, photoURLs});
 
         // Send successful JSON 
         if(photoUploadResult)

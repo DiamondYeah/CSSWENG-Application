@@ -1,8 +1,12 @@
 // fetchController.ts
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
+const REGISTER_DIRECT =`${API_BASE}/account/register`;
+const LOGIN_DIRECT = `${API_BASE}/account/login`;
+const LOGOUT_DIRECT = `${API_BASE}/account/logout`;
 const DISCONNECT_DIRECT = `${API_BASE}/logAuth/disconnect`;
-const USERINFO_API = `${API_BASE}/userInfo/getuserinfo`;
+const ACCOUNTINFO_DIRECT = `${API_BASE}/account/accountinfo`;
+const USERINFO_DIRECT = `${API_BASE}/userInfo/getuserinfo`;
 const USER_TOKEN_DIRECT = `${API_BASE}/userInfo/getuser`
 const QUERY_DIRECT = `${API_BASE}/userInfo/queryinfo`;
 const INITIAL_UPLOAD_DIRECT = `${API_BASE}/videoUpload/initupload`;
@@ -15,6 +19,88 @@ const OPEN_SHARE_CALENDAR_DIRECT = `${API_BASE}/userInfo/sharecalendar`
 
 // Import type
 import {type PostMediaStatus} from "../types/tiktok.ts"
+
+
+// Function calls router to create a new account
+export async function registerAccount(username: string, email: string, password: string){
+
+    const res = await fetch(REGISTER_DIRECT,
+    {
+
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({username, email, password}),
+
+    })
+
+    // Convert res to json and return
+    const registerInfo = await res.json();
+
+    return registerInfo;
+
+
+}
+
+
+// Function calls router to log to an existing account
+export async function loginAccount(username: string, password: string){
+
+    const res = await fetch(LOGIN_DIRECT,
+    {
+
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({username, password}),
+
+    })
+
+    // Convert res to json and return
+    const loginInfo = await res.json();
+
+    return loginInfo;
+
+}
+
+
+// Function calls router to log out of logged in account
+export async function logoutAccount(){
+
+    const res = await fetch(LOGOUT_DIRECT,
+    {
+
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+
+    })
+
+    // Convert res to json and return
+    const logoutInfo = await res.json();
+
+    return logoutInfo;
+
+
+}
+
+
+// Function calls router to get account information from credentials/cookie with session_account_id
+export async function fetchAccountInfo(){
+
+    const res = await fetch(ACCOUNTINFO_DIRECT,{
+
+        credentials: "include",
+
+    })
+
+
+    // Convert res to json and return
+    const accountInfo = await res.json();
+
+    return accountInfo;
+
+}
 
 
 // Funcation calls router to disconnect TikTok user
@@ -40,7 +126,7 @@ export async function disconnectTikTokUser(){
 export async function fetchUserInfo(){
 
     // Fetch router with credentials
-    const res = await fetch(USERINFO_API, 
+    const res = await fetch(USERINFO_DIRECT, 
     {
         credentials: "include",
 

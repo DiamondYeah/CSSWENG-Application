@@ -6,6 +6,7 @@ import cookieParser from "cookie-parser";
 import path from "path";
 import dotenv from "dotenv";
 
+
 // Load env file
 dotenv.config();
 console.log("BASE_URL loaded as:", process.env.BASE_URL);
@@ -16,6 +17,7 @@ import userInfoRoute from "./routes/userInfoRoute.ts";
 import videoRoute from "./routes/videoRoute.ts";
 import photoRoute from "./routes/photoRoute.ts";
 import postRoute from "./routes/postRoute.ts";
+import accountRoute from "./routes/accountRoute.ts";
 
 // Import database
 import connectDB from "./database/db.ts"
@@ -43,6 +45,7 @@ app.use("/userInfo", userInfoRoute);
 app.use("/videoUpload", videoRoute);
 app.use("/photoUpload", photoRoute);
 app.use("/postInfo", postRoute);
+app.use("/account", accountRoute);
 
 // Access files stored in /publicfiles in browser
 app.use("/publicfiles", express.static(path.join(process.cwd(), "publicfiles"))); 
