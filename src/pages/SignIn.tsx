@@ -1,37 +1,52 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "./Auth.css";
+import { loginAccount } from "../controller/fetchController";
 
-const COMMON_USER = {
-  email: "demo@agilapost.app",
-  password: "DemoPass123!",
-  fullName: "Demo User",
-};
-
-function getStoredUser() {
-  const saved = localStorage.getItem("agilaPostUser");
-  if (!saved) return COMMON_USER;
-  try {
-    return JSON.parse(saved);
-  } catch {
-    return COMMON_USER;
-  }
-}
 
 export default function SignIn() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false); // Checks whether info has been submitted to backend
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    
     event.preventDefault();
-    const user = getStoredUser();
-    if (email.toLowerCase() === user.email.toLowerCase() && password === user.password) {
-      navigate("/dashboard");
-      return;
+    setError(null);
+
+    // Set information to true as it is in the process of being submitted to the backend
+    setIsSubmitting(true);
+
+
+    try{
+
+      // Call loginAccount function to get account from database given username and password
+      const loginResult = await loginAccount(username, password);
+
+
+      if(!loginResult.success){
+
+        setError(loginResult.message ?? "Error occured when logging into your account. Please try again!");
+        return;
+
+      }
+
+      navigate("/dashboard"); // Move back to dashboard
+
+    }catch(err){
+
+      setError("Something went wrong in logging into account. Please try again!");
+
+    }finally{
+
+      setIsSubmitting(false); // Set to false since info has already been submitted
+
     }
-    setError("Email or password is incorrect. Please try again or sign up for a new account.");
+
+
+
   }
 
   return (
@@ -48,15 +63,17 @@ export default function SignIn() {
 
         <form className="auth-form" onSubmit={handleSubmit}>
           <h1>Sign In</h1>
-          <p className="auth-subtitle">Access your AgilaPost workspace with your email and password.</p>
+          <p className="auth-subtitle">Access your AgilaPost workspace with your username and password.</p>
 
           <label>
-            Email address
+            Username
             <input
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="you@example.com"
+              type = "text"
+              autoComplete = "username"
+              value={username}
+              disabled = {isSubmitting}
+              onChange={(event) => setUsername(event.target.value)}
+              placeholder="Username123"
               required
             />
           </label>
@@ -66,6 +83,7 @@ export default function SignIn() {
             <input
               type="password"
               value={password}
+              disabled = {isSubmitting}
               onChange={(event) => setPassword(event.target.value)}
               placeholder="Enter your password"
               required
@@ -74,7 +92,12 @@ export default function SignIn() {
 
           {error ? <div className="auth-error">{error}</div> : null}
 
-          <button type="submit" className="auth-submit">Sign In</button>
+          {/** Disabled to prevent double clicking when signing in */}
+          <button type="submit" className="auth-submit" disabled = {isSubmitting}>
+
+            {isSubmitting ? "Signing In..." : "Sign In"}
+
+          </button>
 
           <div className="auth-footer-text">
             New here? <Link to="/signup">Create an account</Link>

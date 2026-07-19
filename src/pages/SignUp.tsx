@@ -2,33 +2,70 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "./Auth.css";
 
+// Import fetch controller functions
+import {registerAccount} from "../controller/fetchController";
+
 export default function SignUp() {
   const navigate = useNavigate();
-  const [fullName, setFullName] = useState("");
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
-  const [gender, setGender] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false); // Checks whether info has been submitted to backend
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+
     event.preventDefault();
-    if (password !== confirmPassword) {
+    setError(null);
+
+    if (password !== confirmPassword){
+
       setError("Passwords do not match.");
+
+      // Reset passwords
+      setPassword("");
+      setConfirmPassword("");
+
       return;
+
     }
-    if (password.length < 8) {
+    else if(password.length < 8){
+
       setError("Password must be at least 8 characters.");
       return;
+
     }
-    const account = {
-      fullName: fullName || "New User",
-      email: email.toLowerCase(),
-      gender,
-      password,
-    };
-    localStorage.setItem("agilaPostUser", JSON.stringify(account));
-    navigate("/dashboard");
+
+    // Set information to true as it is in the process of being submitted to the backend
+    setIsSubmitting(true);
+
+
+    try{
+
+      // Call registerAccount function to create account from database given username, email, and password
+      const registerResult = await registerAccount(username, email, password);
+
+
+      if(!registerResult.success){
+
+        setError(registerResult.message ?? "Error occured when creating your account. Please try again!");
+        return;
+
+      }
+
+      navigate("/dashboard"); // Move back to dashboard
+
+    }catch(err){
+
+      setError("Something went wrong in registering account. Please try again!");
+
+    }finally{
+
+      setIsSubmitting(false); // Set to false since info has already been submitted
+
+    }
+
   }
 
   return (
@@ -48,41 +85,23 @@ export default function SignUp() {
           <p className="auth-subtitle">Create your AgilaPost account using email and a secure password.</p>
 
           <label>
-            Full name
+            Username
             <input
               type="text"
-              value={fullName}
-              onChange={(event) => setFullName(event.target.value)}
-              placeholder="Your name"
+              value={username}
+              disabled = {isSubmitting}
+              onChange={(event) => setUsername(event.target.value)}
+              placeholder="Username123"
               required
             />
           </label>
-
-          <div className="auth-field">
-            <span className="auth-field-label">Gender</span>
-            <div className="gender-options">
-              <button
-                type="button"
-                className={gender === "male" ? "gender-option active male" : "gender-option male"}
-                onClick={() => setGender("male")}
-              >
-                Male
-              </button>
-              <button
-                type="button"
-                className={gender === "female" ? "gender-option active female" : "gender-option female"}
-                onClick={() => setGender("female")}
-              >
-                Female
-              </button>
-            </div>
-          </div>
 
           <label>
             Email address
             <input
               type="email"
               value={email}
+              disabled = {isSubmitting}
               onChange={(event) => setEmail(event.target.value)}
               placeholder="you@example.com"
               required
@@ -94,6 +113,7 @@ export default function SignUp() {
             <input
               type="password"
               value={password}
+              disabled = {isSubmitting}
               onChange={(event) => setPassword(event.target.value)}
               placeholder="At least 8 characters"
               required
@@ -105,6 +125,7 @@ export default function SignUp() {
             <input
               type="password"
               value={confirmPassword}
+              disabled = {isSubmitting}
               onChange={(event) => setConfirmPassword(event.target.value)}
               placeholder="Repeat your password"
               required
@@ -113,7 +134,12 @@ export default function SignUp() {
 
           {error ? <div className="auth-error">{error}</div> : null}
 
-          <button type="submit" className="auth-submit">Create account</button>
+          {/** Disabled to prevent double clicking when signing in */}
+          <button type="submit" className="auth-submit" disabled = {isSubmitting}>
+
+            {isSubmitting ? "Creating account..." : "Create account"}
+
+          </button>
 
           <div className="auth-footer-text">
             Already have an account? <Link to="/signin">Sign in</Link>

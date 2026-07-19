@@ -7,15 +7,18 @@ import crypto from "crypto";
 dotenv.config();
 
 // Import types
-import {type IUser} from "../models/user.ts"
+import {type IAccount} from "../models/account.ts"
+import {type ISocialMediaAccount} from "../models/socialMediaAccount.ts"
 import {type AuthUserRequest} from "../types/express.ts"
 import {type PostMediaStatus} from "../models/post.ts";
 
 // Import Service Functions, Middleware, and Database Functions
 import {obtainUserInfo, obtainQueryInfo} from "../server_services/tiktokUserService.ts"
-import {findUserAuth} from "../middleware/tiktokAuthMiddleware.ts";
-import {createUserShareToken, findUserByShareToken} from "../dbcontrollers/userRepository.ts";
+import {findAccountAuth} from "../middleware/accountAuthMiddleware.ts";
+import {findTikTokAccount} from "../middleware/tiktokAccountConnectMiddleware.ts";
+import {createAccountShareToken, findAccountByShareToken} from "../dbcontrollers/accountRepository.ts";
 import { findScheduledPosts } from "../dbcontrollers/postRepository.ts";
+import { findAllSocialMediaAccounts } from "../dbcontrollers/socialMediaAccountRepository.ts";
 
 
 // Constants for expiraition of share token calendar
@@ -29,19 +32,19 @@ const router = Router();
 
 
 
-router.get("/getuserinfo", findUserAuth, async (req: AuthUserRequest, res: Response) => {
-        
-    // Get user from req
-    const user: IUser = req.user as IUser;
+router.get("/getuserinfo", findAccountAuth, findTikTokAccount, async (req: AuthUserRequest, res: Response) => {
+
+    // Get tiktok account from req
+    const tiktokAccount: ISocialMediaAccount = req.tiktokAccount as ISocialMediaAccount;
 
     try{
 
         // Get user TikTok info by calling obtainUserInfo and passing user as argument
-        const userInfo = await obtainUserInfo(user);
+        const tiktokAccountInfo = await obtainUserInfo(tiktokAccount);
 
         // Send successful JSON 
-        if(userInfo)
-            return res.json({ success: true, data: userInfo.data.user})
+        if(tiktokAccountInfo)
+            return res.json({ success: true, data: tiktokAccountInfo.data.user})
 
         // Fallback in case nothing was returned
         return res.json({ success: false, message: "userInfo returned with no data from service call!"});
@@ -64,18 +67,18 @@ router.get("/getuser/:token", async (req: Request, res: Response) => {
     try{
 
         // Get user from database by calling findUserByShareToken and passing token as argument
-        const user: IUser = await findUserByShareToken(String(token)) as IUser;
+        const account: IAccount = await findAccountByShareToken(String(token)) as IAccount;
 
         // Check if user is undefined 
-        if(!user)
+        if(!account)
             return res.status(404).json({ success: false, message: "Invalid share link!"});
 
         // Check if shareToken exists and is not expired yet
-        if(!user.shareTokenExpiresIn || user.shareTokenExpiresIn < new Date())
+        if(!account.shareTokenExpiresIn || account.shareTokenExpiresIn < new Date())
             return res.status(401).json({ success: false, message: "Share link is expired!"});
 
         // Returned json with userInfo data
-        return res.json({ success: true, data: {name: user.tiktokOpenID}});
+        return res.json({ success: true, data: {name: account.username}});
 
     }catch(err){
 
@@ -88,15 +91,15 @@ router.get("/getuser/:token", async (req: Request, res: Response) => {
 
 
 
-router.get("/queryinfo", findUserAuth, async (req: AuthUserRequest, res: Response) => {
-    
-    // Get user from req
-    const user: IUser = req.user as IUser;
+router.get("/queryinfo", findAccountAuth, findTikTokAccount, async (req: AuthUserRequest, res: Response) => {
+
+    // Get tiktok account from req
+    const tiktokAccount: ISocialMediaAccount = req.tiktokAccount as ISocialMediaAccount;
 
     try{
 
          // Get user TikTok query by calling obtainQueryInfo and passing user as argument
-        const userQuery = await obtainQueryInfo(user);
+        const userQuery = await obtainQueryInfo(tiktokAccount);
 
         // Send successful JSON 
         if(userQuery)
@@ -117,30 +120,37 @@ router.get("/queryinfo", findUserAuth, async (req: AuthUserRequest, res: Respons
 
 
 // UPDATE ROUTE FOR OTHER APIs
-router.get("/getconnectedaccounts", findUserAuth, async (req: AuthUserRequest, res: Response) => {
+router.get("/getconnectedaccounts", findAccountAuth, async (req: AuthUserRequest, res: Response) => {
 
-    const user:IUser = req.user as IUser;
+    // Get account information from request
+    const account = req.account as IAccount;
+    const socialMediaAccounts: ISocialMediaAccount[] = await findAllSocialMediaAccounts(String(account._id));
 
 
     // Empty array holding account information
     const accounts = [];
 
-    // Currently has TikTok but other APIs can be added here
-    if(user.accessToken){ // TikTok API check
+    for(const socialAccount of socialMediaAccounts){
 
-        const tiktokInfo = await obtainUserInfo(user);
+        // Currently has TikTok but other APIs can be added here
+        if(socialAccount.platform == "tiktok"){ // TikTok API check
 
-        accounts.push({
+            const tiktokInfo = await obtainUserInfo(socialAccount);
 
-            platform: "tiktok",
-            id: tiktokInfo.data.user.open_id,
-            name: tiktokInfo.data.user.display_name ?? "unkonwn",
-            handle: `@${tiktokInfo.data.user.username ?? "unknown"}`,
+            accounts.push({
+
+                platform: "tiktok",
+                id: tiktokInfo.data.user.open_id,
+                name: tiktokInfo.data.user.display_name ?? "unkonwn",
+                handle: `@${tiktokInfo.data.user.username ?? "unknown"}`,
 
 
-        });
+            });
+
+        }
 
     }
+
 
     // Return empty array if theres nothing in accounts array
     if(accounts.length == 0)
@@ -152,9 +162,9 @@ router.get("/getconnectedaccounts", findUserAuth, async (req: AuthUserRequest, r
 
 
 
-router.post("/createsharetoken", findUserAuth, async (req: AuthUserRequest, res: Response) => {
+router.post("/createsharetoken", findAccountAuth, async (req: AuthUserRequest, res: Response) => {
 
-    const user:IUser = req.user as IUser;
+    const account: IAccount = req.account as IAccount;
 
 
     try{
@@ -165,7 +175,7 @@ router.post("/createsharetoken", findUserAuth, async (req: AuthUserRequest, res:
         expireDate.setDate(expireDate.getDate() + DAYS_UNTIL_SHARE_TOKEN_EXPIRY); // Set expiration date of token to 2 weeks from now
 
 
-        await createUserShareToken(String(user._id), cryptoToken, expireDate);
+        await createAccountShareToken(String(account._id), cryptoToken, expireDate);
 
         return res.json({ success: true, data: {cryptoToken, expireDate}})
 
@@ -190,19 +200,19 @@ router.get("/sharecalendar/:token", async (req: Request, res: Response) => {
 
     try{
 
-        // Function also accetps tokens
-        const user:IUser = await findUserByShareToken(String(token)) as IUser;
+        // Function also accepts tokens
+        const account: IAccount = await findAccountByShareToken(String(token)) as IAccount;
 
-        // Check if user is undefined 
-        if(!user)
+        // Check if account is undefined 
+        if(!account)
             return res.status(404).json({ success: false, message: "Invalid share link!"});
 
         // Check if shareToken exists and is not expired yet
-        if(!user.shareTokenExpiresIn || user.shareTokenExpiresIn < new Date())
+        if(!account.shareTokenExpiresIn || account.shareTokenExpiresIn < new Date())
             return res.status(401).json({ success: false, message: "Share link is expired!"});
 
 
-        const sharedPosts = await findScheduledPosts(String(user._id), status)
+        const sharedPosts = await findScheduledPosts(String(account._id), status)
 
         // Check if sharedPosts is undefined
         if(!sharedPosts)

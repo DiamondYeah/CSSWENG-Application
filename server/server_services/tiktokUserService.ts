@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 // Import IUser interface
-import {type IUser} from "../models/user.ts"
+import {type ISocialMediaAccount} from "../models/socialMediaAccount.ts"
 
 // Constants for Tiktok Paths
 const TIKTOK_GETUSERINFO_URL = "https://open.tiktokapis.com/v2/user/info/?fields="
@@ -12,7 +12,7 @@ const TIKTOK_GETQUERYINFO_URL = "https://open.tiktokapis.com/v2/post/publish/cre
 
 
 // Function obtains user information from their TikTok API via accessToken and API URL and return info details.
-export async function obtainUserInfo(user: IUser){
+export async function obtainUserInfo(tiktokUser: ISocialMediaAccount){
 
     // Perform fetch to get user's TikTok account given accessToken of user
     const userInfoFetch = await fetch(`${TIKTOK_GETUSERINFO_URL}${process.env.USER_INFO_FIELDS as string}`, 
@@ -22,7 +22,7 @@ export async function obtainUserInfo(user: IUser){
             method: "GET",
             headers:{
 
-                Authorization: `Bearer ${user.accessToken}`
+                Authorization: `Bearer ${tiktokUser.accessToken}`
 
             }
         }
@@ -43,7 +43,7 @@ export async function obtainUserInfo(user: IUser){
 
 
 // Function obtains user query information from their TikTok API via their accesstoken and API URL and returns info details.
-export async function obtainQueryInfo(user: IUser){
+export async function obtainQueryInfo(tiktokUser: ISocialMediaAccount){
         
     // Perform fetch on user's TikTok query info given accessToken of user
     const userCreatorQuery = await fetch(TIKTOK_GETQUERYINFO_URL, 
@@ -52,7 +52,7 @@ export async function obtainQueryInfo(user: IUser){
             method: "POST",
             headers:{
 
-                "Authorization": `Bearer ${user.accessToken}`,
+                "Authorization": `Bearer ${tiktokUser.accessToken}`,
                 "Content-Type": "application/json; charset=UTF-8",
 
             }

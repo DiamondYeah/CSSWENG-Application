@@ -15,26 +15,33 @@ import Category from './pages/Category';
 import Queue from './pages/Queue';
 import TimeslotsPage from './pages/TimeslotsPage';
 
+// Import logged in wrapper to wrap around pages that need an account logged in.
+import LoggedInWrapper from "./components/loggedInWrapper";
+
 import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
 import { StrictMode } from 'react';
 
 
 const router = createBrowserRouter([
   {path: "/", element: <LandingPage />},
-  {path:"/dashboard", element:<Navigate to="/calendar" replace />}, // Dashboard discarded — Calendar is now the default landing view after sign-in
-  { path: "/signin", element: <SignIn /> },
-  { path: "/signup", element: <SignUp /> },
-  { path: "/create-post", element: <CreatePost /> },
-  {path:"/privacy", element:<PrivacySection/>},
-  {path:"/terms", element:<TermsOfService/>},
-  {path:"/pricing", element:<Pricing/>},
-  {path:"/faq", element:<FAQ/>},
-  {path:"/calendar", element:<Calendar/>}, // CHANGED: pass sample props
-  {path:"/calendar/share/:token", element:<SharedCalendar/>}, // ADDED for working share calendar
-  {path:"/accounts", element:<Accounts/>},
-  {path:"/category", element:<Category/>},
-  { path: "/queue", element: <Queue /> },
-  { path: "/timeslots", element: <TimeslotsPage /> },
+
+  { path: "/signin", element: <SignIn />},
+  { path: "/signup", element: <SignUp />},
+  {path: "/privacy", element: <PrivacySection/>},
+  {path: "/terms", element: <TermsOfService/>},
+  {path: "/pricing", element: <Pricing/>},
+  {path: "/faq", element: <FAQ/>},
+  {path: "/calendar/share/:token", element: <SharedCalendar/>}, // ADDED for working share calendar
+
+
+  {path: "/category", element: <LoggedInWrapper><Category/></LoggedInWrapper>},
+  {path: "/accounts", element: <LoggedInWrapper><Accounts/></LoggedInWrapper>},
+  {path: "/create-post", element: <LoggedInWrapper><CreatePost /></LoggedInWrapper>},
+  {path: "/calendar", element: <LoggedInWrapper><Calendar/></LoggedInWrapper>}, // CHANGED: pass sample props
+  {path: "/dashboard", element: <LoggedInWrapper><Navigate to="/calendar" replace /></LoggedInWrapper>}, // Dashboard discarded — Calendar is now the default landing view after sign-in
+  {path: "/queue", element: <LoggedInWrapper><Queue /></LoggedInWrapper> },
+  {path: "/timeslots", element: <LoggedInWrapper><TimeslotsPage /></LoggedInWrapper>},
+
   {path:"*", element:<NotFoundPage/>}
 ])
 //Routing 

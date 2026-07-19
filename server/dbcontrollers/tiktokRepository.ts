@@ -1,10 +1,12 @@
 // Import User and interface
-import User, { type IUser } from "../models/user.ts"; 
+import SocialMediaAccount, { type ISocialMediaAccount } from "../models/socialMediaAccount.ts"; 
 
 // Interface for TikTokAPIResponse
 interface TiktokAPIResponse{
 
-    tiktokOpenID: string;
+    accountID: string;
+    platform?: string;
+    platformAccountID: string;
     accessToken: string;
     refreshToken: string;
     scope: string;
@@ -17,7 +19,9 @@ interface TiktokAPIResponse{
 // Interface for TikTokAPIResponse
 interface TiktokAPIResponseSeconds{
 
-    tiktokOpenID: string;
+    accountID: string;
+    platform?: string;
+    platformAccountID: string;
     accessToken: string;
     refreshToken: string;
     scope: string;
@@ -29,11 +33,11 @@ interface TiktokAPIResponseSeconds{
 
 
 // Function creates a new user document if open id has not yet existed. Else, updates current one
-export async function createOrSaveUserTokens(tiktokAPI: TiktokAPIResponse): Promise<IUser | null>{
+export async function createOrSaveUserTokens(tiktokAPI: TiktokAPIResponse): Promise<ISocialMediaAccount | null>{
 
-    return await User.findOneAndUpdate(
+    return await SocialMediaAccount.findOneAndUpdate(
 
-        {tiktokOpenID: tiktokAPI.tiktokOpenID}, // Identifier
+        {platformAccountID: tiktokAPI.platformAccountID}, // Identifier
         {   // Data to be stored
             ...tiktokAPI 
         },
@@ -49,7 +53,7 @@ export async function createOrSaveUserTokens(tiktokAPI: TiktokAPIResponse): Prom
 
 // Function creates a new user document if open id has not yet existed. Else, updates current one
 // Version uses Date for tokenExpiresIn and refreshExpiresIn
-export async function createOrSaveUserTokensFromSeconds(tiktokAPI: TiktokAPIResponseSeconds): Promise<IUser | null>{
+export async function createOrSaveUserTokensFromSeconds(tiktokAPI: TiktokAPIResponseSeconds): Promise<ISocialMediaAccount | null>{
 
 
     return createOrSaveUserTokens({
@@ -66,30 +70,10 @@ export async function createOrSaveUserTokensFromSeconds(tiktokAPI: TiktokAPIResp
 
 
 // Function returns User Info by checking userID parameter
-export async function findUserByID(userID: string): Promise<IUser | null>{
+export async function findUserByID(userID: string): Promise<ISocialMediaAccount | null>{
 
-    return await User.findById(userID);
-
-}
-
-
-// Function returns User Info by checking token parameter and using it to find a similar shareToken from database
-export async function findUserByShareToken(token: string): Promise<IUser | null>{
-
-    return await User.findOne({shareToken: token});
+    return await SocialMediaAccount.findById(userID);
 
 }
 
 
-// Function finds a user and updates said user to include a shareToken and expiration date of said shareToken
-// Returns updated user
-export async function createUserShareToken(userID: string, crytoToken: string, expireDate: Date){
-
-    return await User.findByIdAndUpdate(userID, {
-
-        shareToken: crytoToken,
-        shareTokenExpiresIn: expireDate,
-
-    })
-
-}
