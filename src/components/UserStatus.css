@@ -1,0 +1,92 @@
+.ap-user-status {
+  position: relative;
+}
+
+.ap-user-status__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px 6px 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(109, 40, 217, 0.25);
+  background: var(--accent-bg, rgba(139, 92, 246, 0.1));
+  color: var(--ap-blue, #6d28d9);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.ap-user-status__trigger:hover {
+  background: rgba(109, 40, 217, 0.16);
+  border-color: rgba(109, 40, 217, 0.4);
+}
+
+.ap-user-status__avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--ap-blue, #6d28d9);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.ap-user-status__label {
+  white-space: nowrap;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ap-user-status__chevron {
+  flex-shrink: 0;
+  opacity: 0.7;
+  transition: transform 0.15s ease;
+}
+
+.ap-user-status__chevron.is-open {
+  transform: rotate(180deg);
+}
+
+.ap-user-status__menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 160px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  padding: 6px;
+  z-index: 50;
+}
+
+.ap-user-status__menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #dc2626;
+  cursor: pointer;
+  text-align: left;
+}
+
+.ap-user-status__menu-item:hover {
+  background: #fef2f2;
+}
+
+.ap-user-status__menu-item:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
