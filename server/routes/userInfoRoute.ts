@@ -17,8 +17,10 @@ import {obtainUserInfo, obtainQueryInfo} from "../server_services/tiktokUserServ
 import {findAccountAuth} from "../middleware/accountAuthMiddleware.ts";
 import {findTikTokAccount} from "../middleware/tiktokAccountConnectMiddleware.ts";
 import {createAccountShareToken, findAccountByShareToken} from "../dbcontrollers/accountRepository.ts";
-import { findScheduledPosts } from "../dbcontrollers/postRepository.ts";
-import { findAllSocialMediaAccounts } from "../dbcontrollers/socialMediaAccountRepository.ts";
+import {findScheduledPosts, findSpecificPostOfUser, updatePostApproval, updateAllPostsForApproval, addComment} from "../dbcontrollers/postRepository.ts";
+import {findAllSocialMediaAccounts} from "../dbcontrollers/socialMediaAccountRepository.ts";
+import {validateAccountToken} from "../server_services/accountService.ts";
+import mongoose, { ObjectId, Types } from "mongoose";
 
 
 // Constants for expiraition of share token calendar
@@ -200,23 +202,20 @@ router.get("/sharecalendar/:token", async (req: Request, res: Response) => {
 
     try{
 
-        // Function also accepts tokens
-        const account: IAccount = await findAccountByShareToken(String(token)) as IAccount;
+        // Find and return account associated with token from req
+        const account = await validateAccountToken(String(token));
 
-        // Check if account is undefined 
+        // Check if an account was returned from validateAccountToken
         if(!account)
-            return res.status(404).json({ success: false, message: "Invalid share link!"});
-
-        // Check if shareToken exists and is not expired yet
-        if(!account.shareTokenExpiresIn || account.shareTokenExpiresIn < new Date())
-            return res.status(401).json({ success: false, message: "Share link is expired!"});
+            return res.status(401).json({ success: false, message: "Share link is either invalid or expired!"})
 
 
+        // Find list of posts associated with account id and status field
         const sharedPosts = await findScheduledPosts(String(account._id), status)
 
         // Check if sharedPosts is undefined
         if(!sharedPosts)
-            return res.json({ success: false, message: "No posts found form share link!"});    
+            return res.status(404).json({ success: false, message: "No posts found from share link!"});    
 
         // Returned json with sharedPosts data
         return res.json({ success: true, data: sharedPosts});
@@ -225,6 +224,180 @@ router.get("/sharecalendar/:token", async (req: Request, res: Response) => {
 
         console.error(err);
         return res.status(500).json({ success: false, message: "Unexpected error when obtaining shared calendar" });
+
+    }
+
+})
+
+
+// No authentication as it is meant to be shared
+router.patch("/sharecalendar/:token/:postID/approve", async (req: Request, res: Response) => {
+
+    const {token, postID} = req.params;
+
+    try{
+
+        // Find and return account associated with token from req
+        const account = await validateAccountToken(String(token));
+
+        // Check if an account was returned from validateAccountToken
+        if(!account)
+            return res.status(401).json({ success: false, message: "Share link is either invalid or expired!"})
+
+
+        // Find list of posts associated with account id and status field
+        const post = await findSpecificPostOfUser(new mongoose.Types.ObjectId(String(postID)), account._id);
+
+        // Check if sharedPosts is undefined
+        if(!post)
+            return res.status(404).json({ success: false, message: "No post found from share link!"});  
+        
+
+        // Update specific post with approved status
+        const updatedPost = await updatePostApproval({postID: String(postID), approvalStatus: "approved" });
+
+        // Returned json with sharedPosts data
+        return res.json({ success: true, message: "Post successfully approved!", data: updatedPost});
+
+    }catch(err){
+
+        console.error(err);
+        return res.status(500).json({ success: false, message: "Unexpected error when approving post" });
+
+    }
+
+})
+
+
+// No authentication as it is meant to be shared
+router.patch("/sharecalendar/:token/:postID/reject", async (req: Request, res: Response) => {
+
+    const {token, postID} = req.params;
+    const {reason} = req.body;
+
+    try{
+
+        // Find and return account associated with token from req
+        const account = await validateAccountToken(String(token));
+
+        // Check if an account was returned from validateAccountToken
+        if(!account)
+            return res.status(401).json({ success: false, message: "Share link is either invalid or expired!"})
+
+
+        // Find list of posts associated with account id and status field
+        const post = await findSpecificPostOfUser(new mongoose.Types.ObjectId(String(postID)), account._id);
+
+        // Check if sharedPosts is undefined
+        if(!post)
+            return res.status(404).json({ success: false, message: "No post found from share link!"});  
+        
+
+        // Update specific post with rejected status
+        const updatedPost = await updatePostApproval({postID: String(postID), approvalStatus: "rejected", reason: reason});
+
+        // Returned json with sharedPosts data
+        return res.json({ success: true, message: "Post successfully denied!", data: updatedPost});
+
+    }catch(err){
+
+        console.error(err);
+        return res.status(500).json({ success: false, message: "Unexpected error when rejecting post!" });
+
+    }
+
+})
+
+
+// No authentication as it is meant to be shared
+router.patch("/sharecalendar/:token/approveallposts", async (req: Request, res: Response) => {
+
+    const {token} = req.params;
+
+    try{
+
+        // Find and return account associated with token from req
+        const account = await validateAccountToken(String(token));
+
+        // Check if an account was returned from validateAccountToken
+        if(!account)
+            return res.status(401).json({ success: false, message: "Share link is either invalid or expired!"})
+
+
+        // Update all posts with rejected status
+        await updateAllPostsForApproval(String(account._id), {postID: "", approvalStatus: "approved"});
+
+        // Returned json with sharedPosts data
+        return res.json({ success: true, message: "All posts have been approved"});
+
+    }catch(err){
+
+        console.error(err);
+        return res.status(500).json({ success: false, message: "Unexpected error when accepting all posts!" });
+
+    }
+
+})
+
+
+// No authentication as it is meant to be shared
+router.patch("/sharecalendar/:token/rejectallposts", async (req: Request, res: Response) => {
+
+    const {token} = req.params;
+    const {reason} = req.body;
+
+    try{
+
+        // Find and return account associated with token from req
+        const account = await validateAccountToken(String(token));
+
+        // Check if an account was returned from validateAccountToken
+        if(!account)
+            return res.status(401).json({ success: false, message: "Share link is either invalid or expired!"})
+
+
+        // Update all posts with rejected status
+        await updateAllPostsForApproval(String(account._id), {postID: "", approvalStatus: "rejected", reason: reason});
+
+        // Returned json with sharedPosts data
+        return res.json({ success: true, message: "All posts have been rejected"});
+
+    }catch(err){
+
+        console.error(err);
+        return res.status(500).json({ success: false, message: "Unexpected error when rejecting all posts!" });
+
+    }
+
+})
+
+
+// No authentication as it is meant to be shared
+router.post("/sharecalendar/:token/:postID/comment", async (req: Request, res: Response) => {
+
+    const {token, postID} = req.params;
+    const {username, text} = req.body;
+
+    try{
+
+        // Find and return account associated with token from req
+        const account = await validateAccountToken(String(token));
+
+        // Check if an account was returned from validateAccountToken
+        if(!account)
+            return res.status(401).json({ success: false, message: "Share link is either invalid or expired!"})
+
+
+        // Update posts with comment
+        const updatedPost = await addComment({postID: String(postID), username: username, text: text});
+
+        // Returned json with sharedPosts data
+        return res.json({ success: true, message: "Comment has been added to post!", data: updatedPost});
+
+    }catch(err){
+
+        console.error(err);
+        return res.status(500).json({ success: false, message: "Unexpected error when adding commment to post!" });
 
     }
 

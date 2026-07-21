@@ -159,7 +159,7 @@ export function TikTokSettings({queryInfo, privacyLevel, isPhotoPost, setPrivacy
 
 
                                     <span className = "cp-section-commercial-sub">By selecting this option, you are promoting your own brand or business. 
-                                            This video will be classified as Branded Organic.</span>
+                                            This video will be classified as <b>Branded Organic</b>.</span>
 
                                 </div>
 
@@ -176,7 +176,7 @@ export function TikTokSettings({queryInfo, privacyLevel, isPhotoPost, setPrivacy
                                     </label>
 
                                     <span className = "cp-section-commercial-sub">By selecting this option, you are promoting another brand or third party. 
-                                        This video will be classified as Branded Content.</span>
+                                        This video will be classified as <b>Branded Content</b>.</span>
 
                                 </div>
 

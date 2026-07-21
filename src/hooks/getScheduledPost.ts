@@ -33,7 +33,7 @@ export function useScheduledPosts(passedStatus: PostMediaStatus){
                 // Get data of fetch return
                 const scheduledPostsInfo = postsFetch.data ?? [];
 
-                // Create a const that mapps the posts from fetch as ScheduledPost array
+                // Create a const that maps the posts from fetch as ScheduledPost array
                 const mappedPosts: ScheduledPost[] = scheduledPostsInfo.map(mapPostToSchedulePost);
 
                 // Add to scheduledPots

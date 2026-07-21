@@ -1,82 +1,29 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { MessageCircle, X, Check, XCircle } from "lucide-react";
 
 // Import types
-import {type ScheduledPost, type PostComment} from "../types/post.ts"
+import {type ScheduledPost} from "../types/post.ts"
 
-// Import controller and frontend utilities functionsz
+// Import controller and frontend utilities functions
 import { fetchSharedCalenderToken, fetchUserInfoViaToken } from "../controller/fetchController.ts";
 import { mapPostToSchedulePost } from "../frontend_utilities/calendarUtilities.ts";
+
+// Import calendar share actions from fetch controller
+import {fetchPostToApprove, fetchPostToReject, fetchAllPostsToApprove, fetchAllPostsToReject, fetchPostToComment} from "../controller/fetchController.ts";
 
 // Import CalendarGrid from components
 import { CalendarGrid } from "../components/CalendarGrid.tsx";
 
-// ---------------------------------------------------------------
-// Sample posts — front-end only, since the real shared-calendar
-// backend fetch isn't wired up yet. These populate when the real
-// fetch fails or returns nothing, so the review UI is testable
-// without a working backend. Spans a mix of approval states and
-// two different accounts, so account filtering is testable too.
-// ---------------------------------------------------------------
-
-const SAMPLE_POSTS: ScheduledPost[] = [
-    {
-        id: "sample-1",
-        accountId: "acc-demo-1",
-        platform: "tiktok",
-        date: new Date().toISOString().split("T")[0],
-        time: "10:00 AM",
-        title: "Behind the scenes at our studio",
-        snippet: "Take a look at how we prep every shoot before going live...",
-        approvalStatus: "pending",
-        comments: [],
-    },
-    {
-        id: "sample-2",
-        accountId: "acc-demo-1",
-        platform: "tiktok",
-        date: new Date().toISOString().split("T")[0],
-        time: "02:30 PM",
-        title: "New product drop",
-        snippet: "Our summer collection just landed.",
-        approvalStatus: "approved",
-        comments: [
-            { id: "c1", text: "Love this one, ship it!", createdAt: new Date().toISOString() },
-        ],
-    },
-    {
-        id: "sample-3",
-        accountId: "acc-demo-2",
-        platform: "linkedin",
-        date: new Date(Date.now() + 86400000).toISOString().split("T")[0],
-        time: "09:00 AM",
-        title: "Hiring: Senior Frontend Engineer",
-        snippet: "We're growing the team — check out the full job posting.",
-        approvalStatus: "rejected",
-        rejectionReason: "Please remove the salary range, HR wants that handled separately.",
-        comments: [
-            { id: "c2", text: "Also can we push this to next week instead?", createdAt: new Date().toISOString() },
-        ],
-    },
-    {
-        id: "sample-4",
-        accountId: "acc-demo-2",
-        platform: "linkedin",
-        date: new Date(Date.now() + 86400000).toISOString().split("T")[0],
-        time: "11:15 AM",
-        title: "Case study: 3x engagement in 30 days",
-        snippet: "Here's exactly how one of our clients grew their reach.",
-        approvalStatus: "pending",
-        comments: [],
-    },
-];
 
 // A minimal display label derived from an accountId, since the shared view
 // only receives accountId + platform on each post — no account display name.
 function accountLabel(accountId: string): string {
+
     return accountId.replace(/^acc-/, "").replace(/-/g, " ");
+    
 }
+
 
 function SharedCalendar(): React.JSX.Element{
 
@@ -89,11 +36,9 @@ function SharedCalendar(): React.JSX.Element{
     const [postsView, setPostsView] = useState<"pending" | "published">("published");
     const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(false);
-     const [error] = useState<string>("");
+    const [error, setError] = useState<string>("");
 
     // Account filtering — derived from whatever accounts are actually present
-    // in the loaded posts (real or sample), since the shared view has no
-    // separate account-fetching hook of its own.
     const [checkedAccounts, setCheckedAccounts] = useState<Record<string, boolean>>({});
 
     // Currently open review panel — null when no post is selected.
@@ -103,15 +48,19 @@ function SharedCalendar(): React.JSX.Element{
     const [showRejectInput, setShowRejectInput] = useState<boolean>(false);
 
 
+    // Shared calendar action error if an action fails
+    const [actionError, setActionError] = useState<string>("");
 
-    useEffect(() => {
 
-        // Function to load Shared Posts from Token
-        async function loadSharedPosts(){
+
+
+    // use callback for loadSharedPosts to help optimization by preventing unnedded re-renders
+    const loadSharedPosts = useCallback(async() => {
 
             try{
 
                 setIsLoading(true);
+                setError("");
 
                 // Fetch the sharedCalendarToken to be used from the params
                 const [postRes, userRes] = await Promise.all([fetchSharedCalenderToken(String(token), postsView), fetchUserInfoViaToken(String(token))])
@@ -121,35 +70,32 @@ function SharedCalendar(): React.JSX.Element{
                 if(userRes.success)
                     setOwnerName(userRes.data.name)
 
-                // Create a const that mapps the posts from fetch as ScheduledPost array via utility function
+                // Create a const that mapps the posts from fetch as ScheduledPost array via utility function and store it to scheduledPosts
                 const mappedPosts: ScheduledPost[] = postRes.data.map(mapPostToSchedulePost);
-
-                // Fall back to sample posts if the real fetch succeeded but returned nothing —
-                // the backend for this feature isn't wired up yet, so this keeps the review UI
-                // testable on the front end alone.
-                setScheduledPosts(mappedPosts.length > 0 ? mappedPosts : SAMPLE_POSTS);
+                setScheduledPosts(mappedPosts);
 
             }catch(err){
 
-                // Real fetch failed (expected right now, since the backend isn't built yet) —
-                // fall back to sample posts instead of surfacing an error, so the front end
-                // stays testable.
-                setScheduledPosts(SAMPLE_POSTS);
-                setOwnerName("Demo Account");
+                setError(err instanceof Error ? err.message : "This calendar link is either invalid or expired!")
 
             }finally{
 
                 setIsLoading(false);
+                setHasLoadedOnce(true);
 
             }
 
 
-        }
+        }, [token, postsView]);
 
+
+    // Call function whenever theres an update to the function itself
+    useEffect(() => {
 
         loadSharedPosts();
 
-    }, [token, postsView]);
+    }, [loadSharedPosts])
+
 
     // Seed checkedAccounts once posts load, defaulting every account present to checked.
     useEffect(() => {
@@ -163,6 +109,7 @@ function SharedCalendar(): React.JSX.Element{
         });
     }, [scheduledPosts]);
 
+    
     const accountIds = Array.from(new Set(scheduledPosts.map(p => p.accountId)));
     const allChecked = accountIds.length > 0 && accountIds.every(id => checkedAccounts[id] !== false);
 
@@ -180,56 +127,154 @@ function SharedCalendar(): React.JSX.Element{
     // Approval handlers — front-end only for now, updates local state.
     // ---------------------------------------------------------------
 
-    function updatePost(postId: string, updates: Partial<ScheduledPost>) {
-        setScheduledPosts(prev => prev.map(p => p.id === postId ? { ...p, ...updates } : p));
-        setSelectedPost(prev => prev && prev.id === postId ? { ...prev, ...updates } : prev);
+    
+    function handlePostUpdate(updatedPost: ScheduledPost) {
+
+        setScheduledPosts(prev => prev.map(p => p.id === updatedPost.id ? updatedPost : p));
+        setSelectedPost(prev => prev && prev.id === updatedPost.id ? updatedPost : prev);
+
     }
 
-    function handleApprovePost(postId: string) {
-        updatePost(postId, { approvalStatus: "approved", rejectionReason: undefined });
+    async function handleApprovePost(postID: string) {
+
+        setActionError("");
+
+        try{
+
+            // Call associated function to approve post
+            const fetchResult = await fetchPostToApprove(String(token), postID);
+
+            // Throw error if fetch result is not successful
+            if(!fetchResult.success)
+                throw new Error(fetchResult.message ?? "Faied to approve post!")
+
+            // Perform post update and reset fields
+            handlePostUpdate(mapPostToSchedulePost(fetchResult.data));
+
+        }catch(err){
+
+            setActionError(err instanceof Error ? err.message : "Faied to approve post!");
+
+        }
+
     }
 
-    function handleRejectPost(postId: string, reason: string) {
-        updatePost(postId, { approvalStatus: "rejected", rejectionReason: reason });
-        setShowRejectInput(false);
-        setDraftRejectionReason("");
+    async function handleRejectPost(postID: string, reason: string) {
+
+        setActionError("");
+
+        try{
+
+            // Call associated function to reject post
+            const fetchResult = await fetchPostToReject(String(token), postID, reason);
+
+            // Throw error if fetch result is not successful
+            if(!fetchResult.success)
+                throw new Error(fetchResult.message ?? "Failed to reject post!")
+
+            // Perform post update and reset fields
+            handlePostUpdate(mapPostToSchedulePost(fetchResult.data));
+            setShowRejectInput(false);
+            setDraftRejectionReason("");
+
+        }catch(err){
+
+            setActionError(err instanceof Error ? err.message : "Failed to reject post!");
+
+        }
+
     }
 
-    function handleAddComment(postId: string) {
-        if (!draftComment.trim()) return;
-        const newComment: PostComment = {
-            id: `c-${Date.now()}`,
-            text: draftComment.trim(),
-            createdAt: new Date().toISOString(),
-        };
-        setScheduledPosts(prev => prev.map(p =>
-            p.id === postId ? { ...p, comments: [...(p.comments ?? []), newComment] } : p
-        ));
-        setSelectedPost(prev => prev && prev.id === postId
-            ? { ...prev, comments: [...(prev.comments ?? []), newComment] }
-            : prev
-        );
-        setDraftComment("");
+    async function handleAddComment(postID: string) {
+
+        // Return if draftComment is empty
+        if (!draftComment.trim()){
+
+            setActionError("No comment added. Please enter a comment before posting!");
+            return;
+
+        }
+
+
+        setActionError("");
+
+        try{
+
+            // Call associated function to add comment to post
+            const fetchResult = await fetchPostToComment(String(token), postID, draftComment.trim());
+
+            // Throw error if fetch result is not successful
+            if(!fetchResult.success)
+                throw new Error(fetchResult.message ?? "Failed to create comment on post!")
+
+            // Perform post update and reset fields
+            handlePostUpdate(mapPostToSchedulePost(fetchResult.data));
+            setDraftComment("");
+
+        }catch(err){
+
+            setActionError(err instanceof Error ? err.message : "Failed to create comment on post!");
+
+        }
+
     }
 
-    function handleApproveEntireCalendar() {
-        setScheduledPosts(prev => prev.map(p => ({ ...p, approvalStatus: "approved", rejectionReason: undefined })));
+    async function handleApproveEntireCalendar() {
+        
+        setActionError("");
+
+        try{
+
+            // Call associated function to approve all posts
+            const fetchResult = await fetchAllPostsToApprove(String(token));
+
+            // Throw error if fetch result is not successful
+            if(!fetchResult.success)
+                throw new Error(fetchResult.message ?? "Failed to approve all posts!")
+
+            // Call loadSharedPosts to update posts
+            await loadSharedPosts();
+
+        }catch(err){
+
+            setActionError(err instanceof Error ? err.message : "Faied to approve all posts!");
+
+        }
+
     }
 
-    function handleRejectEntireCalendar() {
+    async function handleRejectEntireCalendar() {
+
+        // Ask user for their reason for rejecting entire calendar via prompt
         const reason = window.prompt("Reason for rejecting the entire calendar (optional):") ?? "";
-        setScheduledPosts(prev => prev.map(p => ({ ...p, approvalStatus: "rejected", rejectionReason: reason || undefined })));
+
+        setActionError("");
+
+        try{
+
+            // Call associated function to reject all posts
+            const fetchResult = await fetchAllPostsToReject(String(token), reason);
+
+            // Throw error if fetch result is not successful
+            if(!fetchResult.success)
+                throw new Error(fetchResult.message ?? "Failed to reject all posts!")
+
+            // Call loadSharedPosts to update posts
+            await loadSharedPosts();
+
+        }catch(err){
+
+            setActionError(err instanceof Error ? err.message : "Failed to reject all posts!");
+
+        }
+
     }
 
 
 
     // Return these based on if isLoading or error is true
-    if(isLoading && !hasLoadedOnce) {
-
-        setHasLoadedOnce(true);
+    if(isLoading && !hasLoadedOnce) 
         return <div className="shared-calendar-loading">Loading calendar...</div>;
-
-    }
 
 
     if(error)
@@ -249,6 +294,10 @@ function SharedCalendar(): React.JSX.Element{
     <>
     
         <div className = "ap-calendar">
+
+            {actionError && (
+                <div className = "shared-calendar-action-error">{actionError}</div>
+            )}
 
             {/* top bar */}
             <div className="ap-topbar shared-calendar-topbar">
