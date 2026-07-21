@@ -1,22 +1,19 @@
 import pkg from "express";
 import type { Response } from "express";
 import multer from "multer";
-import fs from "fs/promises";
-import path from "path";
-import crypto from "crypto";
 import { findUserAuth, type AuthUserRequest } from "../middleware/tiktokAuthMiddleware.ts";
 import { findOwnedSocialConnection } from "../dbcontrollers/userRepository.ts";
-import { createMediaContainer, checkContainerStatus, publishContainer } from "../server_services/instagramPostService.ts";
+import { publishInstagramMedia } from "../server_services/instagramPostService.ts";
+import { saveFileToGridFS } from "../server_services/gridfsService.ts";
+import Post from "../models/post.ts";
 
 const { Router } = pkg;
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
-const PUBLIC_MEDIA_DIR = path.join(process.cwd(), "publicfiles", "instagram");
-
 router.post("/upload", findUserAuth, upload.single("media"), async (req: AuthUserRequest, res: Response) => {
     const user = req.user!;
-    const { title, connectionId } = req.body;
+    const { title, connectionId, scheduleMode, scheduledDate } = req.body;
     const mediaFile = req.file;
 
     if (!mediaFile) {
@@ -35,54 +32,41 @@ router.post("/upload", findUserAuth, upload.single("media"), async (req: AuthUse
     const accessToken = connection.accessToken;
     const isVideo = mediaFile.mimetype.startsWith("video/");
 
-    let savedFilePath: string | null = null;
-
     try {
-        // Instagram's container API needs a public URL, not raw binary — so we
-        // temporarily host the uploaded file under /publicfiles/instagram.
-        await fs.mkdir(PUBLIC_MEDIA_DIR, { recursive: true });
+        if (scheduleMode === "schedule") {
+            const schedule = new Date(scheduledDate);
+            if (!scheduledDate || Number.isNaN(schedule.getTime()) || schedule.getTime() <= Date.now()) {
+                return res.status(400).json({ success: false, message: "Choose a valid future date and time." });
+            }
 
-        const ext = mediaFile.originalname.split(".").pop() || (isVideo ? "mp4" : "jpg");
-        const filename = `${crypto.randomUUID()}.${ext}`;
-        savedFilePath = path.join(PUBLIC_MEDIA_DIR, filename);
+            const gridfsFileId = await saveFileToGridFS(mediaFile.buffer, mediaFile.originalname, mediaFile.mimetype);
+            const post = await Post.create({
+                userID: user._id,
+                platform: "instagram",
+                connectionId: connection._id,
+                postType: isVideo ? "video" : "photo",
+                publishID: "",
+                status: "pending",
+                scheduledDate: schedule,
+                title,
+                description: title,
+                gridfsFileId,
+            });
 
-        await fs.writeFile(savedFilePath, mediaFile.buffer);
-
-        const mediaUrl = `${process.env.PUBLIC_URL}/publicfiles/instagram/${filename}`;
-
-        const container = await createMediaContainer(igUserId, accessToken, mediaUrl, title, isVideo);
-
-        // Videos need processing time; poll until FINISHED (or fail on ERROR/EXPIRED).
-        let status = await checkContainerStatus(container.id, accessToken);
-        let attempts = 0;
-        const MAX_ATTEMPTS = 20; // ~60s at 3s intervals
-
-        while (status.status_code === "IN_PROGRESS" && attempts < MAX_ATTEMPTS) {
-            await new Promise((resolve) => setTimeout(resolve, 3000));
-            status = await checkContainerStatus(container.id, accessToken);
-            attempts++;
+            return res.json({ success: true, message: "Instagram post scheduled successfully.", data: { postId: post._id } });
         }
 
-        if (status.status_code === "ERROR" || status.status_code === "EXPIRED") {
-            return res.status(500).json({ success: false, message: `Instagram failed to process the media (${status.status_code}).` });
-        }
-
-        if (status.status_code === "IN_PROGRESS") {
-            return res.status(504).json({ success: false, message: "Instagram is still processing the media. Try again shortly." });
-        }
-
-        const mediaId = await publishContainer(igUserId, accessToken, container.id);
+        const mediaId = await publishInstagramMedia(igUserId, accessToken, title, {
+            buffer: mediaFile.buffer,
+            contentType: mediaFile.mimetype,
+            filename: mediaFile.originalname,
+        });
 
         return res.json({ success: true, data: { mediaId } });
 
     } catch (err: any) {
         console.error("Instagram post error: " + (err?.response?.data ? JSON.stringify(err.response.data) : err));
         return res.status(500).json({ success: false, message: "Unexpected error when posting to Instagram!" });
-    } finally {
-        // Clean up the temp public file regardless of outcome.
-        if (savedFilePath) {
-            fs.unlink(savedFilePath).catch(() => {});
-        }
     }
 });
 

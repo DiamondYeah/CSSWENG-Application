@@ -3,10 +3,10 @@ import Navbar from "../components/Navbar";
 import "./Accounts.css";
 import { fetchQueryInfo, fetchUserInfo, fetchLinkedInUserInfo, fetchLinkedInConnectLink, fetchFacebookUserInfo, fetchInstagramUserInfo, deleteSocialConnection } from "../controller/fetchController.ts";
 
-const LOGINREDIRECT           = "https://spyglass-employee-probable.ngrok-free.dev/auth/linkedinlogin/logAuth/tiktoklogin";
-const LINKEDIN_LOGINREDIRECT = "https://spyglass-employee-probable.ngrok-free.dev/auth/linkedinlogin";
-const FACEBOOK_LOGINREDIRECT  = "https://spyglass-employee-probable.ngrok-free.dev/facebookAuth/facebooklogin";
-const INSTAGRAM_LOGINREDIRECT = "https://spyglass-employee-probable.ngrok-free.dev/instagramAuth/instagramlogin";
+const LOGINREDIRECT           = "https://amber-scorch-corrosive.ngrok-free.dev/auth/linkedinlogin/logAuth/tiktoklogin";
+const LINKEDIN_LOGINREDIRECT  = "https://amber-scorch-corrosive.ngrok-free.dev/auth/linkedinlogin";
+const FACEBOOK_LOGINREDIRECT  = "https://amber-scorch-corrosive.ngrok-free.dev/facebookAuth/facebooklogin";
+const INSTAGRAM_LOGINREDIRECT = "https://amber-scorch-corrosive.ngrok-free.dev/instagramAuth/instagramlogin";
 
 
 export type PlatformId = "facebook" | "instagram" | "linkedin" | "tiktok";

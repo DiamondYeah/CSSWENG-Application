@@ -13,6 +13,7 @@ const FACEBOOK_UPLOAD_DIRECT    = `${API_BASE}/facebookPost/upload`;
 const INSTAGRAM_USERINFO_API    = `${API_BASE}/userInfo/instagram`;
 const INSTAGRAM_UPLOAD_DIRECT = `${API_BASE}/instagramPost/upload`;
 const POSTS_API = `${API_BASE}/userInfo/posts`;
+const CONNECTED_ACCOUNTS_API = `${API_BASE}/userInfo/getconnectedaccounts`;
 
 const CORS_HEADER: Record<string, string> = { "ngrok-skip-browser-warning": "true"}
 
@@ -163,11 +164,19 @@ export async function fetchFacebookUserInfo() {
     return await res.json();
 }
 
-export async function uploadToFacebook(title: string, connectionId: string, mediaFile?: File) {
+export async function uploadToFacebook(
+    title: string,
+    connectionId: string,
+    mediaFile?: File,
+    scheduleMode?: string,
+    scheduledDate?: string
+) {
     const formData = new FormData();
     formData.append("title", title);
     formData.append("connectionId", connectionId);
     if (mediaFile) formData.append("media", mediaFile);
+    if (scheduleMode) formData.append("scheduleMode", scheduleMode);
+    if (scheduledDate) formData.append("scheduledDate", scheduledDate);
 
     const res = await fetch(FACEBOOK_UPLOAD_DIRECT, {
         method: "POST",
@@ -192,11 +201,19 @@ export async function fetchInstagramUserInfo() {
     return await res.json();
 }
 
-export async function uploadToInstagram(title: string, connectionId: string, mediaFile?: File) {
+export async function uploadToInstagram(
+    title: string,
+    connectionId: string,
+    mediaFile?: File,
+    scheduleMode?: string,
+    scheduledDate?: string
+) {
     const formData = new FormData();
     formData.append("title", title);
     formData.append("connectionId", connectionId);
     if (mediaFile) formData.append("media", mediaFile);
+    if (scheduleMode) formData.append("scheduleMode", scheduleMode);
+    if (scheduledDate) formData.append("scheduledDate", scheduledDate);
 
     const res = await fetch(INSTAGRAM_UPLOAD_DIRECT, {
         method: "POST",
@@ -216,4 +233,12 @@ export async function fetchPosts() {
 
     return await res.json();
 
+}
+
+export async function fetchConnectedAccounts() {
+    const res = await fetch(CONNECTED_ACCOUNTS_API, {
+        credentials: "include",
+        headers: CORS_HEADER
+    });
+    return await res.json();
 }

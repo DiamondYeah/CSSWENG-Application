@@ -8,7 +8,7 @@ const POLL_INTERVALS = 5000;
 
 interface PostUpload {
     title: string;
-    mediaFile: File;
+    mediaFile?: File;
     privacyLevel: string;
     allowComments: boolean;
     allowDuet: boolean;
@@ -102,7 +102,9 @@ export function usePostUpload(){
                         const facebookResult = await uploadToFacebook(
                             postDetails.title,
                             connectionId,
-                            postDetails.mediaFile
+                            postDetails.mediaFile,
+                            postDetails.scheduleMode,
+                            postDetails.scheduledDate
                         );
 
                         if (facebookResult?.success) {
@@ -118,7 +120,9 @@ export function usePostUpload(){
                 const facebookTotal = postDetails.facebookConnectionIds.length;
 
                 if (facebookFailures.length === 0) {
-                    results.push(`Facebook: posted to all ${facebookTotal} Page(s)`);
+                    results.push(postDetails.scheduleMode === "schedule"
+                        ? `Facebook: scheduled for all ${facebookTotal} Page(s)`
+                        : `Facebook: posted to all ${facebookTotal} Page(s)`);
                 } else if (facebookSuccessCount > 0) {
                     results.push(
                         `Facebook: ${facebookSuccessCount} succeeded, ${facebookFailures.length} failed (${facebookFailures.join("; ")})`
@@ -145,7 +149,9 @@ export function usePostUpload(){
                         const instagramResult = await uploadToInstagram(
                             postDetails.title,
                             connectionId,
-                            postDetails.mediaFile
+                            postDetails.mediaFile,
+                            postDetails.scheduleMode,
+                            postDetails.scheduledDate
                         );
 
                         if (instagramResult?.success) {
@@ -161,7 +167,9 @@ export function usePostUpload(){
                 const instagramTotal = postDetails.instagramConnectionIds.length;
 
                 if (instagramFailures.length === 0) {
-                    results.push(`Instagram: posted to all ${instagramTotal} account(s)`);
+                    results.push(postDetails.scheduleMode === "schedule"
+                        ? `Instagram: scheduled for all ${instagramTotal} account(s)`
+                        : `Instagram: posted to all ${instagramTotal} account(s)`);
                 } else if (instagramSuccessCount > 0) {
                     results.push(
                         `Instagram: ${instagramSuccessCount} succeeded, ${instagramFailures.length} failed (${instagramFailures.join("; ")})`
@@ -186,6 +194,7 @@ export function usePostUpload(){
     }
 
     async function uploadToTikTokFlow(postDetails: PostUpload) {
+        if (!postDetails.mediaFile) throw new Error("TikTok requires a video file.");
         const initUploadResult = await initializeUploadPost(
             postDetails.title, postDetails.privacyLevel, postDetails.mediaFile.size,
             postDetails.allowComments, postDetails.allowDuet, postDetails.allowStitch

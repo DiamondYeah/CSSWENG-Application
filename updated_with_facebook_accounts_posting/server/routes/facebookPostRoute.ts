@@ -1,20 +1,19 @@
 import pkg from "express";
 import type { Response } from "express";
 import multer from "multer";
-import axios from "axios";
 import { findUserAuth, type AuthUserRequest } from "../middleware/tiktokAuthMiddleware.ts";
 import { findOwnedSocialConnection } from "../dbcontrollers/userRepository.ts";
+import Post from "../models/post.ts";
+import { saveFileToGridFS } from "../server_services/gridfsService.ts";
+import { publishFacebookPost } from "../server_services/facebookPostService.ts";
 
 const { Router } = pkg;
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
-const FB_API_VERSION = "v21.0";
-const FACEBOOK_GRAPH_BASE = `https://graph.facebook.com/${FB_API_VERSION}`;
-
 router.post("/upload", findUserAuth, upload.single("media"), async (req: AuthUserRequest, res: Response) => {
     const user = req.user!;
-    const { title, connectionId } = req.body;
+    const { title, connectionId, scheduleMode, scheduledDate } = req.body;
     const mediaFile = req.file;
 
     if (!title || !title.trim())
@@ -31,30 +30,37 @@ router.post("/upload", findUserAuth, upload.single("media"), async (req: AuthUse
     const pageAccessToken = connection.accessToken;
 
     try {
-        let postID: string;
+        if (scheduleMode === "schedule") {
+            const schedule = new Date(scheduledDate);
+            if (!scheduledDate || Number.isNaN(schedule.getTime()) || schedule.getTime() <= Date.now()) {
+                return res.status(400).json({ success: false, message: "Choose a valid future date and time." });
+            }
 
-        if (mediaFile) {
-            const isVideo = mediaFile.mimetype.startsWith("video/");
-            const endpoint = isVideo ? "videos" : "photos";
-            const fieldName = isVideo ? "source" : "source";
-            const captionField = isVideo ? "description" : "caption";
+            const gridfsFileId = mediaFile
+                ? await saveFileToGridFS(mediaFile.buffer, mediaFile.originalname, mediaFile.mimetype)
+                : undefined;
 
-            const form = new (await import("form-data")).default();
-            form.append(fieldName, mediaFile.buffer, { filename: mediaFile.originalname, contentType: mediaFile.mimetype });
-            form.append(captionField, title);
-            form.append("access_token", pageAccessToken);
-
-            const response = await axios.post(`${FACEBOOK_GRAPH_BASE}/${pageID}/${endpoint}`, form, {
-                headers: form.getHeaders(),
+            const post = await Post.create({
+                userID: user._id,
+                platform: "facebook",
+                connectionId: connection._id,
+                postType: mediaFile?.mimetype.startsWith("video/") ? "video" : "photo",
+                publishID: "",
+                status: "pending",
+                scheduledDate: schedule,
+                title,
+                description: title,
+                gridfsFileId,
             });
 
-            postID = response.data.id ?? response.data.post_id;
-        } else {
-            const response = await axios.post(`${FACEBOOK_GRAPH_BASE}/${pageID}/feed`, null, {
-                params: { message: title, access_token: pageAccessToken },
-            });
-            postID = response.data.id;
+            return res.json({ success: true, message: "Facebook post scheduled successfully.", data: { postId: post._id } });
         }
+
+        const postID = await publishFacebookPost(pageID, pageAccessToken, title, mediaFile ? {
+            buffer: mediaFile.buffer,
+            contentType: mediaFile.mimetype,
+            filename: mediaFile.originalname,
+        } : undefined);
 
         return res.json({ success: true, data: { postID } });
 

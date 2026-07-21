@@ -6,32 +6,16 @@ import { publishLinkedInMedia } from "./linkedinPostService.ts";
 
 
 export async function checkScheduledLinkedInPosts() {
-
-    console.log("Checking scheduled LinkedIn posts...");
-
-    const posts = await Post.find({
+    let post = await Post.findOneAndUpdate({
         platform: "linkedin",
         status: "pending",
-        scheduledDate: {
-            $lte: new Date()
-        }
-    });
+        scheduledDate: { $lte: new Date() }
+    }, { $set: { status: "processing" } }, { sort: { scheduledDate: 1 }, returnDocument: "after" });
 
-    console.log("Posts ready to publish:", posts.length)
-
-    for (const post of posts) {
-        
-        console.log("Processing:", post._id);
-
-        await Post.findByIdAndUpdate(post._id, { status: "processing" });
-        
+    while (post) {
+      try {
         if (!post.gridfsFileId) {
-            
-            console.log("No media found for post:", post._id);
-
-            await Post.findByIdAndUpdate(post._id, { status: "failed" });
-
-            continue;
+            throw new Error("No media found for scheduled LinkedIn post.");
         }
 
         const media = await getFileFromGridFS(
@@ -42,19 +26,13 @@ export async function checkScheduledLinkedInPosts() {
         console.log("Content Type:", media.contentType);
 
         if (!post.connectionId) {
-            
-            console.log("No LinkedIn connection");
-            continue;
+            throw new Error("No LinkedIn connection is associated with this post.");
         }
 
         const connection = await findOwnedSocialConnection(post.userID.toString(), post.connectionId.toString());
         
-        if (!connection) {
-            console.log("LinkedIn connection not found:", post.connectionId);
-
-            await Post.findByIdAndUpdate(post._id, { status: "failed" });
-
-            continue;
+        if (!connection || connection.platform !== "linkedin") {
+            throw new Error("LinkedIn connection not found for this user.");
         }
 
         const personURN = `urn:li:person:${connection.platformOpenID}`;
@@ -69,7 +47,23 @@ export async function checkScheduledLinkedInPosts() {
 
         console.log("Published LinkedIn Post:", postURN);
 
-        await Post.findByIdAndUpdate(post._id, { status: "published", publishID: postURN });
-    }
+        await Post.findOneAndUpdate(
+            { _id: post._id, status: "processing" },
+            { $set: { status: "published", publishID: postURN } }
+        );
+      } catch (error) {
+        const message = error instanceof Error ? error.message.slice(0, 500) : "Unexpected scheduler error.";
+        console.error(`Scheduled LinkedIn post ${post._id} failed:`, message);
+        await Post.findOneAndUpdate(
+            { _id: post._id, status: "processing" },
+            { $set: { status: "failed", rawResponse: { message } } }
+        );
+      }
 
+      post = await Post.findOneAndUpdate({
+          platform: "linkedin",
+          status: "pending",
+          scheduledDate: { $lte: new Date() }
+      }, { $set: { status: "processing" } }, { sort: { scheduledDate: 1 }, returnDocument: "after" });
+    }
 }

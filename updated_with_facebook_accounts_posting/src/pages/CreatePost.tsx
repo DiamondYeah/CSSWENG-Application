@@ -162,6 +162,17 @@ function CreatePost() {
     if(selectedAccounts.length === 0)
       return setValidationMessage("Please select an account to upload to!")
 
+    if (scheduleMode === "schedule") {
+      if (!scheduleDate || !scheduleTime) {
+        return setValidationMessage("Please choose both a date and time for the scheduled post!");
+      }
+
+      const localSchedule = new Date(`${scheduleDate.toISOString().split("T")[0]}T${scheduleTime}`);
+      if (Number.isNaN(localSchedule.getTime()) || localSchedule.getTime() <= Date.now()) {
+        return setValidationMessage("Please choose a future date and time for the scheduled post!");
+      }
+    }
+
 
     // Clear validation messages and remove errors
     setValidationMessage("")
@@ -200,7 +211,7 @@ function CreatePost() {
     
     await uploadPost({
         title: title,
-        mediaFile: mediaFile!,
+        mediaFile: mediaFile ?? undefined,
         privacyLevel: privacyLevel,
         allowComments: allowComments,
         allowDuet: allowDuet,

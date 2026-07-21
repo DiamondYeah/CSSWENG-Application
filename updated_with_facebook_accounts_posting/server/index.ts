@@ -27,6 +27,7 @@ import facebookPostRoute from "./routes/facebookPostRoute.ts";
 
 // Import Scheduler
 import { checkScheduledLinkedInPosts } from "./server_services/linkedinScheduler.ts";
+import { checkScheduledMetaPosts } from "./server_services/metaScheduler.ts";
 
 // Create/Open Database
 await connectDB();
@@ -63,10 +64,18 @@ app.listen(process.env.PORT || 5000, () => {
     console.log(`Server has opened with port ${process.env.PORT || 5000}`);
 });
 
+let schedulerRunning = false;
+const schedulerIntervalMs = 5 * 1000;
+
 setInterval(async () => {
-
-    await checkScheduledLinkedInPosts();
-
-}, 5 * 1000);
-
-
+    if (schedulerRunning) return;
+    schedulerRunning = true;
+    try {
+        await checkScheduledLinkedInPosts();
+        await checkScheduledMetaPosts();
+    } catch (error) {
+        console.error("Scheduled post check failed:", error instanceof Error ? error.message : error);
+    } finally {
+        schedulerRunning = false;
+    }
+}, schedulerIntervalMs);

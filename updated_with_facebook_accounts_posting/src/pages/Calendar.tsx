@@ -8,7 +8,7 @@ import {
   Check,
 } from "lucide-react";
 import "./Calendar.css";
-import { fetchPosts, fetchLinkedInUserInfo } from "../controller/fetchController";
+import { fetchConnectedAccounts, fetchPosts } from "../controller/fetchController";
 
 // ---------------------------------------------------------------
 // platform icons
@@ -95,7 +95,7 @@ interface DatabasePost {
   platform: Platform;
   scheduledDate: string;
   status: string; // for toggling scheduled/published in calendar view
-  gridfsFileId?: String
+  gridfsFileId?: string
   postType: "photo" | "video";
   title?: string;
   description?: string;
@@ -247,7 +247,6 @@ function PostCard({
 
 export default function AgilaPostCalendar({
   accounts = [],
-  posts = [],
   timezone = "Asia/Manila",
   onConnectAccount,
   onSelectPost,
@@ -280,18 +279,18 @@ export default function AgilaPostCalendar({
           console.log("Loaded Posts:", result.data);
         }
 
-        const accountsResult = await fetchLinkedInUserInfo();
+        const accountsResult = await fetchConnectedAccounts();
 
         console.log("ACCOUNTS:", accountsResult);
 
         if (accountsResult.success) {
 
           setLoadedAccounts(
-              accountsResult.data.map((account: any) => ({
+              accountsResult.data.map((account: { id: string; name: string; platform: Platform }) => ({
 
                 id: account.id,
                 name: account.name,
-                platform: "linkedin"
+                platform: account.platform
               }))
           );
         }
@@ -302,6 +301,7 @@ export default function AgilaPostCalendar({
   }, []);
 
   const calendarPosts: Post[] = loadedPosts
+      .filter((post) => Boolean(post.scheduledDate))
       .filter((post) => {
 
           if (postsView === "scheduled") {
@@ -346,9 +346,10 @@ export default function AgilaPostCalendar({
 
   const weeks = useMemo(() => buildMonthGrid(year, month), [year, month]);
 
+  const visibleAccounts = accounts.length > 0 ? accounts : loadedAccounts;
   const accountsById = useMemo(
-    () => Object.fromEntries(loadedAccounts.map((a) => [a.id, a])),
-    [loadedAccounts]
+    () => Object.fromEntries(visibleAccounts.map((a) => [a.id, a])),
+    [visibleAccounts]
   );
 
   const postsByDate = useMemo(() => {
@@ -359,9 +360,9 @@ export default function AgilaPostCalendar({
       map[p.date].push(p);
     }
     return map;
-  }, [posts, checkedAccounts]);
+  }, [calendarPosts, checkedAccounts]);
 
-  const allChecked = accounts.length > 0 && accounts.every((a) => checkedAccounts[a.id] !== false);
+  const allChecked = visibleAccounts.length > 0 && visibleAccounts.every((a) => checkedAccounts[a.id] !== false);
 
   const goPrevMonth = () => setCursorDate(new Date(year, month - 1, 1));
   const goNextMonth = () => setCursorDate(new Date(year, month + 1, 1));
@@ -371,7 +372,7 @@ export default function AgilaPostCalendar({
 
   const toggleSelectAll = () =>
     setCheckedAccounts(
-      accounts.reduce((acc, a) => ({ ...acc, [a.id]: !allChecked }), {} as Record<string, boolean>)
+      visibleAccounts.reduce((acc, a) => ({ ...acc, [a.id]: !allChecked }), {} as Record<string, boolean>)
     );
 
   return (
@@ -398,7 +399,7 @@ export default function AgilaPostCalendar({
 
           <div className="ap-accounts-header">
             <span className="ap-accounts-header__label">Accounts</span>
-            {accounts.length > 0 && (
+            {visibleAccounts.length > 0 && (
               <button className="ap-select-all" onClick={toggleSelectAll}>
                 <span className={`ap-checkbox ${allChecked ? "is-checked" : ""}`}>
                   {allChecked && <Check size={11} color="#fff" />}
@@ -409,7 +410,7 @@ export default function AgilaPostCalendar({
           </div>
 
           <div className="ap-accounts-list">
-            {accounts.length === 0 ? (
+            {visibleAccounts.length === 0 ? (
               <div className="ap-accounts-empty">
                 <p className="ap-accounts-empty__text">
                   No accounts connected yet.
@@ -421,7 +422,7 @@ export default function AgilaPostCalendar({
                 </button>
               </div>
             ) : (
-              accounts.map((acc) => {
+              visibleAccounts.map((acc) => {
                 const { Icon, color } = PLATFORM_META[acc.platform];
                 const checked = checkedAccounts[acc.id] !== false;
                 return (
