@@ -1,7 +1,114 @@
 # CSSWENG-Application - AgilaPost
 Repo for version control for the development of the application. Description will change for any additions and updates to the app.
 
-## Update - 1.2 (Calendar Post View and Sharing & TikTok Settings for Approval)
+### Live Domain Link (Render.com)
+https://agila-post.onrender.com/
+
+&emsp;
+
+## Changelog
+
+### Update - 1.4 (Accounts! Accounts! Accounts! And also Shared Calendar Functionality)
+<details>
+<summary><b>Update Details</b></summary>
+
+### Additions
+
+<ol>
+<b><li>Working Accounts :D</li></b>
+<ul>
+    <li>Added Account Model (username, email, password) for AgilaPost</li>
+    <li>Almost everything in the backend has been restructured to fit the new Account-SocialMediaAccount format. (Took a lot of time :C)</li>
+    <li>Social Media Connections like TikTok and LinkedIn now live independently as SocialMediaAccount documents; they are now linked to an Account document</li>
+    <li>SocialMediaAccount now requires a logged-in Account to properly work, instead of it working by itself</li>
+    <li>Multiple Social Media Connections can exist in one Account Document</li>
+    <li>Added working registration pages, including associated routes and functions to create Accounts</li>
+    <li>Used Bcyrpt for password hashing for security purposes</li>
+    <li>Error-checking for Sign In and Sign Up such as invalid password or mismatch</li>
+    <li>Added a protected-route wrapper for pages that require an account so it will redirect you back to the Sign In page when you try to access them.</li>
+</ul>
+    
+<b><li>Shared Calendar Functionality</li></b>
+<ul>
+    <li>Shared Calendar Functionality now allows any user who has the link to reject, accept, and comment on posts.</li>
+    <li>Replace the sample data with data fetched from the database</li>
+    <li>Approval status is separate from publish status, as depending on the status of a post, it will either publish or not (Rejected won't be published unless changed)</li>
+    <li>Users can reject posts and give an optional message as to the rejection.</li>
+    <li>Users can comment on posts anonymously</li>
+    <li>Users can also approve and reject all posts found in the upper-right corner (Reject also gives an optional field for reason)</li>
+    <li>Results of posts are now reflected properly on the Calendar page with the status of said posts.</li>
+    <li>Rebuilt Queue Page to actually contain data fetched from the database, including the acceptance status and comments of each post.</li>
+</ul>
+
+<b><li>Queue Updates</li></b>
+<ul>
+    <li>Replace the sample data with data fetched from the database</li>
+    <li>Removed unneeded functions and displays, and only kept the important ones (mainly ones for displaying the posts)</li>
+    <li>Changed some functions such as the search bar to make it more simplistic</li>
+    <li>Posts are split into Scheduled and Published Posts with a working counter for each</li>
+    <li>Each section will show associated posts, including info of posts, approval status, and comments (if any)</li>
+    <li>Each status has an associated color for better view as seen in the color of the left border and the status below each post (Red = Rejected)</li>
+    <li>Rejected posts will have a reason right beside them</li>
+    <li>Popup for comment icons will show the number of posts associated with the post.</li>
+    <li>Clicking the comment icon, will reveal a dropdown with a list of comments and the date they were created at.</li>
+</ul>
+
+<b><li>Post Page Update</li></b>
+<ul>
+    <li>Fixed display for TikTok Settings as CSS for them was lost</li>
+    <li>Added a media preview for both uploaded videos and images. Deallocated when unmounting to prevent memory leaks.</li>
+    <li>Semi-fixed the checkbox hover issue to prevent hover when disabled (Still hovers when on label but not on checkbox).</li>
+</ul>
+
+</ol>
+
+
+### Changes
+<ul>
+    <li>Social Media accounts are now associated with an Account document instead of being independent of each other</li>
+    <li>Queue.tsx's tab values changed "scheduled"/"published" to "pending"/"published" status values to match what the backend actually uses</li>
+    <li>Removed a lot of Queue functionality like account filter, document/media preview since there's no functionality for them yet</li>
+    <li>Added account name to Shared Calendar to let users know which account it comes from</li>
+    <li>mapPostToSchedulePost middle now carries approval status and rejection reason to include the new changes for post approval status and reason</li>
+    <li>Updated README with new Changes and to include what was lost...</li>
+</ul>
+
+### Fixes
+<ul>
+  <li>CSS display for TikTok settings being lost and using default style.</li>
+  <li>Fixed an object-literal syntax mistake in the comment-mapping function that caused every mapped comment to come out as undefined instead of a real comment object</li>
+  <li>Two mismatched field-name lookups that caused approval status and rejection reason to always fall back to default regardless of post's real state</li>
+  <li>Removed several unused imports, types, and state variables left over from earlier drafts and commits, as it would prevent render from working</li>
+</ul>
+
+### Next Goals
+<ul>
+  <b><li> What I'll do Next (A lot of stuff again :\ :\ )</li></b>
+  <ul>
+    <li>Make sure posts actually don't immediately post if they have a schedule</li>
+    <li>Add remaining TikTok error codes (unaudited_client_can_only_post_to_private_accounts, etc.</li>
+    <li>Fix the hover effect as it still works when hovering on the label but not the checkbox</li>
+    <li>Check for error fields/conditions (ESPECIALLY FOR TikTok Commercial Content fields)</li>
+    <li>Add TikTok Account name to the TikTok account document (Add a new optional username field)</li>
+    <li>Add an option to provide a username for commenters or people who used the shared calendar link?</li>
+  </ul>
+  <b><li> Future Additions/To Do List </li></b>
+  <ul>
+    <li>Add Instagram and YouTube platform support following the same pattern as TikTok (useInstagramUpload, InstagramSettings.tsx)</li>
+    <li>Fix UserPost.tsx to make it cleaner and less cluttered (Tbh it's still cluttered even with my changes :/)</li>
+    <li>Category Working</li>
+    <li>Fix any bugs and up the security</li>
+  </ul>
+</ul>
+</details>
+
+### Update - 1.3 (Live Domain!)
+
+<b>It's gone... README got overwritten and the 1.3 changelog is just gone from any branch or commit :(</b><br>
+<b>If i have motivation maybe ill add it again </b>
+
+
+### Update - 1.2 (Calendar Post View and Sharing & TikTok Settings for Approval)
 <details>
 <summary><b>Update Details</b></summary>
 
@@ -111,7 +218,7 @@ Repo for version control for the development of the application. Description wil
 </ul>
 </details>
 
-## Update - 1.1 (TikTok Integration)
+### Update - 1.1 (TikTok Integration)
 <details>
 <summary><b>Update Details</b></summary>
     
@@ -176,11 +283,9 @@ Repo for version control for the development of the application. Description wil
 <ul>
   <li> What I'll do Next </li>
   <ul>
-<<<<<<< HEAD
     <li>Prepare for Live Domain</li>
 =======
     <li>Fix the stupid CORS issue </li>
->>>>>>> origin/main
     <li>Add Music Usage Confirmation declaration above post button (required for TikTok approval)</li>
     <li>Add Commercial Content Disclosure component when you toggle "Your Brand" and "Branded Content" checkboxes (required for TikTok approval)</li>
     <li>Post prevental check when user has reached their daily posting limit (required for TikTok approval)</li>
@@ -202,24 +307,22 @@ Repo for version control for the development of the application. Description wil
 
 ## Features
 - UI Pages (Landing Page, Dashboard, Accounts, Post Page, etc.)
+- Live Domain via Render.com
 - Calendar Page with date Navigation
-<<<<<<< HEAD
-- Account Page to connect to various social media accounts (TikTok works only so far) w/ LogOut
-=======
-- Account Page to connect to various social media accounts (TikTok works only so far)
->>>>>>> origin/main
+- Registration and Login for Website Account
+- Account Page to connect to various social media accounts (TikTok works only so far) w/ LogOut (Connected to Account document)
 - Obtaining OAuth token and refreshing token if expired (TikTok)
 - CSRF Safety
-- Models for Database storing of said User and Post Information (Made to be generalized to be used by various APIS)
+- Models for database storage of said User and Post Information (Made to be generalized to be used by various APIS)
 - Fetch functions for API calls, such as obtaining User Info and Queries
 - Semi-working post page with fields (Title, Caption, Video Upload, TikTok API Settings)
 - Field Validation for Post Page
 - Publishing and Uploading Videos to TikTok
-<<<<<<< HEAD
-- Calendar Post View and Sharing
 - TikTok Commercial Content and Disclosure Settings
-=======
->>>>>>> origin/main
+- Calendar Post View and Sharing
+- Shared Calendar Functionality including approving, denying, and commenting on posts
+- Queue view to see status of posts, including comments for each
+
 
 ## Project Structure
 
@@ -232,25 +335,21 @@ tiktok_api/
 │       ├── controller/              # Backend API call functions
 │       ├── frontend_utilities/      # Helper functions for the frontend, such as a timer
 │       ├── hooks/                   # Custom React hooks (Run on mount and update UI)
-│       └── pages/                   # Page components
-<<<<<<< HEAD
-|       └── pages/                   # Interfaces
+│       └── pages/                   # User views w/ functionality
+|       └── types/                   # Interfaces
 =======
->>>>>>> origin/main
 │
 └── server/
     ├── database/                    # MongoDB connection setup
     ├── dbcontrollers/               # Database CRUD logic
     ├── middleware/                  # Auth/request middleware for routes
     ├── models/                      # Mongoose schemas
-    ├── publicfiles/                 # Static folder for uploaded photos
+    ├── publicfiles/                 # Static folder for uploaded videos
+    ├── publicphotos/                 # Static folder for uploaded photos
     ├── routes/                      # HTTP route handlers
     ├── server_services/             # External API call logic
     ├── server_utilities/            # Helper functions
-<<<<<<< HEAD
-    └── pages/                   # Interfaces
-=======
->>>>>>> origin/main
+    └── pages/                       # Interfaces
     └── index.ts                     # Creation and entry point for server
 ```
 
