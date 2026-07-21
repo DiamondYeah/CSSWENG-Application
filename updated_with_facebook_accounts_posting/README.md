@@ -185,3 +185,363 @@ tiktok_api/
   posting won't work out of the box without your own stable domain. So we need a live domain.
 - Posts are restricted to private until we pass the review process for our application
 - Using an ngrok domain instead of a live one in the internet. Required to run ngrok everytime
+
+  ## Update - 1.2 (LinkedIn Integration)
+
+<details>
+<summary><b>Update Details</b></summary>
+
+### Additions
+
+#### LinkedIn Integration with Accounts and Post Page
+
+- Added LinkedIn OAuth 2.0 (OpenID Connect) authentication.
+- Clicking the LinkedIn button in the Accounts page now redirects users to LinkedIn for OAuth authentication.
+- Successful authentication returns the user's LinkedIn profile and stores it in the database.
+- Connected LinkedIn accounts are now displayed in the Accounts page alongside TikTok accounts.
+- Added a unified Connected Accounts endpoint to retrieve all linked social media accounts from a single API call.
+
+#### LinkedIn Post Integration
+
+- Added support for publishing LinkedIn text posts.
+- Added support for publishing LinkedIn image posts.
+- Added support for publishing LinkedIn video posts.
+- Users can now upload an image or video directly from the Post Page and publish it to LinkedIn.
+- Video uploads automatically wait until LinkedIn finishes processing before publishing the post.
+- Upload status is handled automatically before post creation to prevent publishing incomplete media.
+- LinkedIn posting is now integrated into the existing multi-platform upload flow together with TikTok.
+
+#### Multiple LinkedIn Account Support
+
+- Implemented support for connecting multiple LinkedIn accounts to a single AgilaPost account.
+- Since LinkedIn automatically reuses the current browser session during OAuth authentication, the system generates a unique authentication URL that users can open in an Incognito/Private browsing window.
+- Users can authenticate a different LinkedIn account without signing out of their existing browser session.
+- After successful authentication, users are automatically redirected back to AgilaPost where the newly connected LinkedIn account is added to the Connected Accounts page.
+- Connected LinkedIn accounts can be selected individually when publishing posts.
+
+#### Calendar Scheduling
+
+- Added a Calendar Scheduler for planning future social media posts.
+- Users can choose between publishing immediately or scheduling a post for a future date and time.
+- Scheduled posts are automatically displayed on the Calendar page.
+- The backend stores scheduled posts in the database and continuously monitors pending scheduled posts.
+- When the scheduled date and time is reached, the system automatically publishes the post to the selected social media platforms.
+- Scheduled publishing currently supports TikTok, LinkedIn, Facebook, and Instagram.
+- Users can easily view all upcoming scheduled posts from the calendar interface.
+
+#### Backend Support
+
+- Added LinkedIn Authentication Service for OAuth handling.
+- Added LinkedIn Post Service for creating text, image, and video posts.
+- Added LinkedIn Post Route for handling all LinkedIn publishing requests.
+- Added LinkedIn User Information endpoint for retrieving authenticated user profile information.
+- Extended the generalized User model to support LinkedIn account information.
+- Reused the existing authentication middleware for LinkedIn protected routes.
+
+### Changes
+
+- Accounts page now supports Facebook, Instagram, LinkedIn, and TikTok accounts.
+- Connected accounts are now loaded from a single backend endpoint instead of fetching each platform separately.
+- Post upload hook now supports posting to multiple social media platforms.
+- fetchController now includes LinkedIn upload and profile fetch functions.
+- Upload controller now determines whether media should be uploaded as an image or video before creating the LinkedIn post.
+- Improved project structure by separating LinkedIn authentication and posting logic into dedicated services.
+- Added support for connecting multiple LinkedIn accounts.
+- Updated the LinkedIn OAuth flow to generate an Incognito/Private Browsing authentication URL, allowing users to connect additional LinkedIn accounts without signing out of their existing browser session.
+- Improved the Connected Accounts workflow to display and manage multiple LinkedIn accounts.
+- Post publishing now supports selecting from multiple connected LinkedIn accounts.
+- Calendar page now displays all scheduled posts based on their assigned date and time.
+- Upload workflow now determines whether a post should be published immediately or scheduled for automatic publishing.
+- Backend scheduler continuously checks pending scheduled posts and publishes them automatically when their scheduled time is reached.
+- Database models were extended to store scheduling information such as scheduled date, scheduled time, and publishing status.
+
+### Future Additions
+
+- Improve upload progress feedback for larger media uploads.
+- Calendar Approval / Rejection workflow.
+- Calendar comments.
+
+</details>
+
+## Prerequisites
+
+### General
+
+- Node.js
+- MongoDB running locally (Use Compass to view the database)
+- ngrok account (free tier works).
+- Backend server runs locally on **port 5000** (or update the ngrok command if you use another port).
+
+### For LinkedIn
+
+- A LinkedIn Developer account at https://www.linkedin.com/developers/
+- A LinkedIn application created in the LinkedIn Developer Portal with:
+  - Sign In with LinkedIn using OpenID Connect enabled.
+  - Share on LinkedIn (`w_member_social`) permission enabled.
+- A public HTTPS URL (ngrok) because LinkedIn OAuth callbacks require HTTPS.
+
+---
+
+## Setup (LinkedIn)
+
+1. Clone the repository.
+
+2. Install the frontend dependencies.
+
+```bash
+npm install
+```
+
+3. Navigate to the `/server` folder and install the required dependencies.
+
+```bash
+npm install
+npm install mongoose
+npm install multer
+npm install axios
+```
+
+4. Copy `.env.example` to `.env` inside `/server` and configure the following variables:
+
+```env
+LINKEDIN_CLIENT_ID=<your-linkedin-client-id>
+LINKEDIN_CLIENT_SECRET=<your-linkedin-client-secret>
+
+LINKEDIN_REDIRECT_URI=https://<your-ngrok-url>/auth/linkedin/oauth2/callback
+
+BASE_URL=http://localhost:5173
+ACCOUNTS_REDIRECT_URL=http://localhost:5173/accounts
+
+PORT=5000
+```
+
+> **Important:** Do **NOT** add a trailing slash to `BASE_URL` or CORS will fail.
+
+5. Download ngrok and obtain an authentication token:
+
+https://dashboard.ngrok.com/get-started/setup/windows
+
+6. Start ngrok.
+
+```bash
+ngrok http 5000
+```
+
+7. Copy the generated HTTPS URL.
+
+8. In the LinkedIn Developer Portal, add the following Authorized Redirect URL:
+
+```text
+https://<your-ngrok-url>/auth/linkedin/oauth2/callback
+```
+
+9. Update the following environment variables whenever your ngrok URL changes:
+
+- `LINKEDIN_REDIRECT_URI`
+- `VITE_API_BASE_URL`
+
+10. Run the backend.
+
+```bash
+npm run dev
+```
+
+11. Run the frontend.
+
+```bash
+npm run dev
+```
+
+12. Visit:
+
+```text
+http://localhost:5173
+```
+
+13. Navigate to the **Accounts** page and click **Connect LinkedIn** to begin the OAuth authentication flow.
+
+### Connecting Multiple LinkedIn Accounts
+
+1. Click **Connect LinkedIn** from the Accounts page.
+2. The application generates a unique authentication URL for connecting another LinkedIn account.
+3. Open the generated URL in an **Incognito/Private Browsing** window.
+4. Sign in using a different LinkedIn account.
+5. After successful authentication, you will automatically be redirected back to AgilaPost.
+6. The newly connected LinkedIn account will appear in the Connected Accounts page and can be selected when creating posts.
+
+## Update - 1.3 (Facebook & Instagram Integration)
+
+<details>
+<summary><b>Update Details</b></summary>
+
+### Additions
+
+#### Facebook Integration with Accounts and Post Page
+
+- Added Facebook OAuth authentication.
+- Clicking the Facebook button in the Accounts page now redirects users to Facebook for OAuth authentication.
+- Successful authentication returns the user's Facebook profile and stores it in the database.
+- Connected Facebook accounts are now displayed in the Accounts page alongside TikTok and LinkedIn accounts.
+- Added Facebook account support to the unified Connected Accounts endpoint.
+
+#### Instagram Integration with Accounts and Post Page
+
+- Added Instagram OAuth authentication.
+- Clicking the Instagram button in the Accounts page now redirects users to Instagram for OAuth authentication.
+- Successful authentication returns the user's Instagram profile and stores it in the database.
+- Connected Instagram accounts are now displayed in the Accounts page alongside Facebook, LinkedIn, and TikTok accounts.
+- Added Instagram account support to the unified Connected Accounts endpoint.
+
+#### Facebook Post Integration
+
+- Added support for publishing Facebook text posts.
+- Added support for publishing Facebook image posts.
+- Added support for publishing Facebook video posts.
+- Users can now upload media directly from the Post Page and publish it to Facebook.
+- Facebook posting is integrated into the existing multi-platform upload workflow.
+
+#### Instagram Post Integration
+
+- Added support for publishing Instagram image posts.
+- Added support for publishing Instagram video posts.
+- Users can now upload media directly from the Post Page and publish it to Instagram.
+- Instagram posting is integrated into the existing multi-platform upload workflow.
+
+#### Backend Support
+
+- Added Facebook Authentication Service for OAuth handling.
+- Added Instagram Authentication Service for OAuth handling.
+- Added Facebook Post Service for creating Facebook posts.
+- Added Instagram Post Service for creating Instagram posts.
+- Added Facebook User Information endpoint for retrieving authenticated user information.
+- Added Instagram User Information endpoint for retrieving authenticated user information.
+- Extended the generalized User model to support Facebook and Instagram account information.
+- Reused the existing authentication middleware for Facebook and Instagram protected routes.
+
+### Changes
+
+- Accounts page now fully supports Facebook, Instagram, LinkedIn, and TikTok accounts.
+- Connected Accounts endpoint now retrieves all connected social media accounts through a single backend request.
+- Post upload hook now supports Facebook and Instagram uploads.
+- Upload controller automatically determines the appropriate upload flow depending on the selected platform.
+- Calendar Scheduler now supports scheduled publishing for Facebook and Instagram.
+- Scheduled Facebook and Instagram posts are automatically published when their scheduled date and time is reached.
+- Unified the multi-platform upload workflow to support Facebook, Instagram, LinkedIn, and TikTok from a single post.
+- Improved media upload handling across all supported social media platforms.
+
+### Future Additions
+
+- Improve upload progress feedback for larger media uploads.
+
+</details>
+
+## Prerequisites
+
+### General
+
+- Node.js
+- MongoDB running locally (Use Compass to view the database)
+- ngrok account (free tier works).
+- Backend server runs locally on **port 5000** (or update the ngrok command if you use another port).
+
+### For Facebook
+
+- A Facebook Developer account at https://developers.facebook.com/
+- A Facebook App created in the Meta Developer Dashboard.
+- A public HTTPS URL (ngrok) because Facebook OAuth callbacks require HTTPS.
+
+### For Instagram
+
+- An Instagram Professional (Business or Creator) account.
+- An Instagram App created in the Meta Developer Dashboard.
+- A public HTTPS URL (ngrok) because Instagram OAuth callbacks require HTTPS.
+
+---
+
+## Setup (Meta)
+
+Clone the repository.
+
+Run the frontend installation:
+
+```bash
+npm install
+```
+
+Navigate to the server folder and install the required dependencies:
+
+```bash
+npm install
+npm install mongoose
+npm install multer
+npm install axios
+```
+
+Copy `.env.example` to `.env` inside `/server` and fill in:
+
+```env
+FACEBOOK_APP_ID=<your-facebook-app-id>
+FACEBOOK_APP_SECRET=<your-facebook-app-secret>
+FACEBOOK_REDIRECT_URI=https://<your-ngrok-url>/facebookAuth/facebook/oauth2/callback
+
+INSTAGRAM_APP_ID=<your-instagram-app-id>
+INSTAGRAM_APP_SECRET=<your-instagram-app-secret>
+INSTAGRAM_REDIRECT_URI=https://<your-ngrok-url>/instagramAuth/instagram/oauth2/callback
+
+BASE_URL=http://localhost:5173
+ACCOUNTS_REDIRECT_URL=http://localhost:5173/accounts
+
+PORT=5000
+```
+
+**Important:** Do **NOT** add a trailing slash to `BASE_URL` or CORS will fail.
+
+Download ngrok and create an account to obtain an authentication token:
+
+https://dashboard.ngrok.com/get-started/setup/windows
+
+Start ngrok:
+
+```bash
+ngrok http 5000
+```
+
+Copy the HTTPS URL generated by ngrok.
+
+In the Facebook Developer Dashboard, add the following Valid OAuth Redirect URI:
+
+```text
+https://<your-ngrok-url>/facebookAuth/facebook/oauth2/callback
+```
+
+In the Instagram Developer Dashboard, add the following Valid OAuth Redirect URI:
+
+```text
+https://<your-ngrok-url>/instagramAuth/instagram/oauth2/callback
+```
+
+Update the following environment variables whenever your ngrok URL changes:
+
+- `FACEBOOK_REDIRECT_URI`
+- `INSTAGRAM_REDIRECT_URI`
+- `VITE_API_BASE_URL` (frontend)
+
+Run the backend inside `/server`:
+
+```bash
+npm run dev
+```
+
+Run the frontend from the project root:
+
+```bash
+npm run dev
+```
+
+Visit:
+
+```text
+http://localhost:5173
+```
+
+Navigate to the **Accounts** page and click **Connect Facebook** or **Connect Instagram** to begin the OAuth authentication flow.
