@@ -502,6 +502,7 @@ function CreatePost() {
 
   // Stateful const that store info user and video info fetched from TikTokAPI
   const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const [mediaFilePreview, setMediaFilePreview] = useState<string | null>(null);
 
   // Scheduling
   const [scheduleDate, setScheduleDate] = useState<string>("");
@@ -557,7 +558,18 @@ function CreatePost() {
     if (!file)
       return;
 
-    if (queryInfo) {
+
+    // Clean up previous preview URL if data is stored in media preview to prevent memory leaks
+    if(mediaFilePreview)
+      URL.revokeObjectURL(mediaFilePreview);
+
+    
+    // Create a preview URL object for the uploaded video file and update mediaFilePreview
+    const previewURL = URL.createObjectURL(file);
+    setMediaFilePreview(previewURL);
+
+
+    if (queryInfo && file.type.startsWith("video/")) {
 
       // Create new video document and assign its source to the url of a file
       const video = document.createElement("video");
@@ -570,6 +582,7 @@ function CreatePost() {
           setMediaError(true);
           setValidationMessage(`Video exceeds maximum duration of TikTok's allowed post duration of ${queryInfo.max_video_post_duration_sec} seconds.`);
           URL.revokeObjectURL(video.src);
+          setMediaFilePreview(null);
           return;
 
         }
@@ -696,6 +709,21 @@ function CreatePost() {
     }
 
   }, [isBrandedContent, privacyLevel]);
+
+
+  // Removes URL object from mediaFilePreview on unmount/leaving the page to prevent memory leaks
+  useEffect(() => {
+
+    return () => {
+
+      if(mediaFilePreview)
+        URL.revokeObjectURL(mediaFilePreview);
+
+    }
+
+
+  }, [mediaFilePreview]);
+
 
 
   return (
@@ -849,11 +877,46 @@ function CreatePost() {
                   </div>
                 </label>
 
-                {mediaFile ? (
+                {mediaFile && mediaFilePreview ? (
+
                   <>
+
                     <div className="cp-dropzone-title">{mediaFile.name}</div>
                     <div className="cp-dropzone-sub">{(mediaFile.size / 1024 / 1024).toFixed(2)} MB</div>
+
+                    {/** Show video preview if mediaFile is an video */}
+                    {mediaFile.type.startsWith("video/") && (
+                      <>
+
+                        <div className="cp-media-preview-title">Video Preview</div>
+
+                        <video className = "cp-media-preview" height = "320" width = "500" controls>
+
+                          <source src = {mediaFilePreview} type = "video/mp4" ></source>
+                          Browser does not support video format for preview.
+
+                        </video>
+
+                      </>
+
+                    )}
+
+                    {/** Show video preview if mediaFile is an image */}
+                    {mediaFile.type.startsWith("image/") && (
+                      <>
+
+                        <div className="cp-media-preview-title">Image Preview</div>
+
+                        <img src = {mediaFilePreview} alt = "Image Preview" className = "cp-media-preview"></img>
+
+                      </>
+
+                    )}
+
                   </>
+
+
+
                 ) : (
                   <>
                     <div className="cp-dropzone-title">Click or drag files to upload</div>

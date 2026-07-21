@@ -1,6 +1,6 @@
 // Import types
 import {type Platform} from "../types/account.ts"
-import {type ScheduledPost} from "../types/post.ts"
+import {type ScheduledPost, type PostComment, type PostApprovalStatus} from "../types/post.ts"
 
 
 // If called, maps any post passed into and converts it into a scheduled post and returns it
@@ -12,6 +12,15 @@ export function mapPostToSchedulePost(post: any): ScheduledPost{
         throw new Error("Passed post has no schedule date!");
 
     const date = new Date(post.scheduledDate);
+
+    // Map passed comments into scheduled comment format
+    const mappedComments: PostComment[] = (post.comments ?? []).map((c: any) => ({
+
+        id: c._id,
+        text: c.text,
+        createdAt: c.createdAt,
+
+    }));
     
     // Return a mapped version of post instance to ScheduledPost
     return{
@@ -24,6 +33,9 @@ export function mapPostToSchedulePost(post: any): ScheduledPost{
         title: post.title ?? "No Title",
         snippet: post.description || undefined,
 
+        approvalStatus: (post.postApprovalStatus as PostApprovalStatus) ?? "pending",
+        rejectionReason: post.rejectionReason  ?? undefined,
+        comments: mappedComments,
 
     }
 

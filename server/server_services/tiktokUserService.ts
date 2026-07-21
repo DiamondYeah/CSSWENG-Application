@@ -32,8 +32,13 @@ export async function obtainUserInfo(tiktokUser: ISocialMediaAccount){
     const userInfo = await userInfoFetch.json();
 
     // Check if there is error when fetching information
-    if(userInfo.error && userInfo.error.code != "ok")
+    if(userInfo.error && userInfo.error.code != "ok"){
+
+        console.error("TikTok userInfo error cause:", userInfo.error); 
         throw new Error("userInfo error!", {cause: userInfo.error});
+
+    }
+
 
     
     // Send successful JSON 
