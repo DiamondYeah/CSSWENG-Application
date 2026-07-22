@@ -42,10 +42,10 @@ export async function createLinkedInPost(accessToken: string, personURN: string,
         }
     );
 
-    // The created post's URN comes back in the x-restli-id header
     return response.headers["x-restli-id"];
-
 }
+
+
 export async function registerImageUpload(
     accessToken: string,
     personURN: string
@@ -99,6 +99,75 @@ export async function uploadImageBinary(
     );
 
 }
+
+// to upload PDF bytes
+export async function uploadDocumentBinary(uploadUrl: string, buffer: Buffer, contentType: string) {
+
+    await axios.put(
+        uploadUrl,
+        buffer,
+        {
+            headers: {
+                "Content-Type": contentType
+            }
+        }
+    );
+
+}
+
+
+// check document status if ready to upload
+export async function checkDocumentStatus(accessToken: string, documentURN: string) {
+
+    const response = await axios.get(
+        `${LINKEDIN_API_BASE}/documents/${encodeURIComponent(documentURN)}`,
+        {
+            headers: commonHeaders(accessToken)
+        }
+    );
+
+    return response.data;
+
+}
+
+
+// creating the actual document post
+// based on Documents API request format
+export async function createLinkedInDocumentPost(accessToken: string, personURN: string, commentary: string, title: string, documentURN: string) {
+
+    const body = {
+        author: personURN,
+        commentary,
+        visibility: "PUBLIC",
+
+        distribution: {
+            feedDistribution: "MAIN_FEED",
+            targetEntities: [],
+            thirdPartyDistributionChannels: []
+        },
+
+        content: {
+            media: {
+                title,
+                id: documentURN
+            }
+        },
+
+        lifecycleState: "PUBLISHED",
+    };
+
+    const response = await axios.post(
+        `${LINKEDIN_API_BASE}/posts`,
+        body,
+        {
+            headers: commonHeaders(accessToken)
+        }
+    );
+
+    return response.headers["x-restli-id"];
+}
+
+
 export async function createLinkedInImagePost(
     accessToken: string,
     personURN: string,
@@ -170,6 +239,31 @@ export async function registerVideoUpload(
 
     return response.data.value;
 }
+
+// to handle document uploads
+export async function initializeDocumentUpload(accessToken: string, personURN: string) {
+
+    const body = {
+        initializeUploadRequest: {
+            owner: personURN
+        }
+    };
+
+    const response = await axios.post(
+        `${LINKEDIN_API_BASE}/documents?action=initializeUpload`,
+        body,
+        {
+            headers: commonHeaders(accessToken)
+        }
+    );
+
+    console.log("Document upload response:");
+    console.dir(response.data, { depth: null });
+
+    return response.data.value;
+}
+
+
 export async function checkVideoStatus(
     accessToken: string,
     asset: string
@@ -245,29 +339,75 @@ export async function publishLinkedInMedia(
     mimeType: string
 ): Promise<string> {
 
+    const isPdf = mimeType === "application/pdf"; // added for PDFs
     const isVideo = mimeType.startsWith("video/");
 
-    const uploadInfo = isVideo
-        ? await registerVideoUpload(
-            accessToken,
-            personURN
-        )
-        : await registerImageUpload(
-            accessToken,
-            personURN
+    let uploadInfo;
+
+    if (isPdf) {
+        uploadInfo = await initializeDocumentUpload(accessToken, personURN);
+    } else if (isVideo) {
+        uploadInfo = await registerVideoUpload(accessToken, personURN);
+    } else {
+        uploadInfo = await registerImageUpload(accessToken, personURN);
+    }
+    
+    let uploadUrl: string;
+
+    if (isPdf) {
+        uploadUrl = uploadInfo.uploadUrl;
+    } else {
+        uploadUrl =
+            uploadInfo.uploadMechanism["com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest"].uploadUrl;
+    }
+
+    if (isPdf) {
+
+        await uploadDocumentBinary(
+            uploadUrl,
+            mediaBuffer,
+            mimeType
         );
+    } else {
 
-    const uploadRequest = uploadInfo.uploadMechanism["com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest"];
-
-    await uploadImageBinary(
-        uploadRequest.uploadUrl,
-        mediaBuffer,
-        mimeType
-    );
+        await uploadImageBinary(
+            uploadUrl,
+            mediaBuffer,
+            mimeType
+        );
+    }
 
     let postURN: string;
 
-    if (isVideo) {
+    if (isPdf) {
+
+        console.log("Waiting for LinkedIn to process document...");
+
+        let documentStatus = "";
+
+        while (documentStatus !== "AVAILABLE") {
+
+            await new Promise(resolve => setTimeout(resolve, 3000));
+
+            const status = await checkDocumentStatus(
+                accessToken,
+                uploadInfo.document
+            );
+
+            documentStatus = status.status;
+        }
+
+        console.log("Document is ready!");
+
+        postURN = await createLinkedInDocumentPost(
+            accessToken,
+            personURN,
+            title,
+            title,
+            uploadInfo.document
+        );
+
+    } else if (isVideo) {
 
         console.log("Waiting for LinkedIn to process video...");
 
@@ -306,3 +446,5 @@ export async function publishLinkedInMedia(
 
     return postURN;
 }
+
+

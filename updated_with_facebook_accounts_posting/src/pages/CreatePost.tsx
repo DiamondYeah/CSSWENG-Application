@@ -41,6 +41,8 @@ function CreatePost() {
 
   const [caption, setCaption] = useState<string>("");
   const [title, setTitle] = useState<string>(""); // Added for post that have title field
+  
+
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
   const [scheduleMode, setScheduleMode] = useState<"now" | "schedule" | "queue">("schedule");
 
@@ -87,6 +89,14 @@ function CreatePost() {
       // Return if no file
       if(!file)
         return;
+
+      if (!file.type.startsWith("video/")) {
+        setMediaFile(file);
+        setValidationMessage("");
+        setMediaError(false);
+        return;
+      }
+
 
       if(queryInfo){
 
@@ -346,6 +356,7 @@ function CreatePost() {
                 </div>
               </div>
 
+
               {/** Wired to a file input now */}
               <div className= {`cp-card ${mediaError ? "cp-card-error" : ""}`}>
 
@@ -369,12 +380,12 @@ function CreatePost() {
                   </>) : (
                   <>
                     <div className="cp-dropzone-title">Click or drag files to upload</div>
-                    <div className="cp-dropzone-sub">PNG, JPG, MP4 up to 50MB</div>
+                    <div className="cp-dropzone-sub">PNG, JPG, MP4, PDF up to 50MB</div>
                   </>)}
 
 
                   {/** Input field linked to label field to handle file uploading */}
-                  <input id = "media-upload" type = "file" accept = "video/mp4, image/png, image/jpg" 
+                  <input id = "media-upload" type = "file" accept = "video/mp4, image/png, image/jpg, application/pdf,.pdf" 
                     onChange = {(e) => handleFileSelect(e)}></input>
                     
               </div>

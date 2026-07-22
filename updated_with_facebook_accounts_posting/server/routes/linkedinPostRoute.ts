@@ -28,13 +28,6 @@ router.post("/upload", findUserAuth, upload.single("media"), async (req: AuthUse
     
     const mediaFile = req.file;
 
-    // TESTT
-    console.log({
-    title,
-    connectionId,
-    scheduleMode,
-    scheduledDate
-    });
 
     if (scheduleMode === "schedule") {
 
