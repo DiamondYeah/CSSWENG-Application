@@ -4,6 +4,10 @@ import "./Category.css";
 
 import SchedulingTabs from "../components/SchedulingTabs"; // NEW: replaces hardcoded tab divs
 
+// Shared frontend-only category store (also read by Calendar.tsx)
+import { useCategories, saveCategory, deleteCategory, createCategory } from "../store/categoryStore";
+import type { Category } from "../types/category";
+
 // ---------------------------------------------------------------
 // types
 // ---------------------------------------------------------------
@@ -17,16 +21,8 @@ export interface ConnectedAccount {
   avatarUrl?: string;
 }
 
-export interface Category {
-  id: string;
-  name: string;
-  color: string; // hex
-  accountIds: string[];
-}
-
 export interface CategoryPageProps {
   accounts?: ConnectedAccount[];
-  categories?: Category[];
   onCreateCategory?: () => void;
   onSaveCategory?: (category: Category) => void;
   onDeleteCategory?: (categoryId: string) => void;
@@ -53,7 +49,7 @@ const PLATFORM_META: Record<Platform, { label: string; color: string }> = {
 };
 
 // ---------------------------------------------------------------
-// default demo data (used only if no props supplied)
+// default demo data (used only if no accounts prop supplied)
 // ---------------------------------------------------------------
 
 const DEFAULT_ACCOUNTS: ConnectedAccount[] = [
@@ -61,12 +57,6 @@ const DEFAULT_ACCOUNTS: ConnectedAccount[] = [
   { id: "acc-2", name: "AgilaPost Biz", platform: "linkedin" },
   { id: "acc-3", name: "Creator Hub", platform: "tiktok" },
   { id: "acc-4", name: "Community Page", platform: "facebook" },
-];
-
-const DEFAULT_CATEGORIES: Category[] = [
-  { id: "cat-1", name: "Product Launches", color: "#d97706", accountIds: ["acc-1", "acc-2"] },
-  { id: "cat-2", name: "Behind the Scenes", color: "#059669", accountIds: ["acc-3"] },
-  { id: "cat-3", name: "Client Work", color: "#a8124a", accountIds: ["acc-1", "acc-3", "acc-4"] },
 ];
 
 // ---------------------------------------------------------------
@@ -242,23 +232,24 @@ function CategoryCard({
 
 export default function CategoryPage({
   accounts = DEFAULT_ACCOUNTS,
-  categories: initialCategories = DEFAULT_CATEGORIES,
   onCreateCategory,
   onSaveCategory,
   onDeleteCategory,
 }: CategoryPageProps) {
-  const [categories, setCategories] = useState<Category[]>(initialCategories);
+  // Categories now live in a shared frontend store so Calendar.tsx sees
+  // the same list live — no backend involved, purely in-memory for now.
+  const categories = useCategories();
   const [openId, setOpenId] = useState<string | null>(null);
 
   const handleToggleOpen = (id: string) => setOpenId((prev) => (prev === id ? null : id));
 
   const handleSave = (updated: Category) => {
-    setCategories((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+    saveCategory(updated);
     onSaveCategory?.(updated);
   };
 
   const handleDelete = (id: string) => {
-    setCategories((prev) => prev.filter((c) => c.id !== id));
+    deleteCategory(id);
     setOpenId((prev) => (prev === id ? null : prev));
     onDeleteCategory?.(id);
   };
@@ -270,7 +261,7 @@ export default function CategoryPage({
       color: COLOR_OPTIONS[categories.length % COLOR_OPTIONS.length],
       accountIds: [],
     };
-    setCategories((prev) => [...prev, newCategory]);
+    createCategory(newCategory);
     setOpenId(newCategory.id);
     onCreateCategory?.();
   };
