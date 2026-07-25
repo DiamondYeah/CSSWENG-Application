@@ -5,6 +5,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import path from "path";
 import dotenv from "dotenv";
+import cron from 'node-cron';
 
 
 // Load env file
@@ -18,6 +19,9 @@ import videoRoute from "./routes/videoRoute.ts";
 import photoRoute from "./routes/photoRoute.ts";
 import postRoute from "./routes/postRoute.ts";
 import accountRoute from "./routes/accountRoute.ts";
+
+// Import function to check for any awaiting scheduled posts that require to be posted
+import {processScheduledDuePosts} from "./server_services/tiktokScheduledPostService.ts";
 
 // Import database
 import connectDB from "./database/db.ts"
@@ -48,12 +52,50 @@ app.use("/postInfo", postRoute);
 app.use("/account", accountRoute);
 
 // Access files stored in /publicfiles in browser
-app.use("/publicfiles", express.static(path.join(process.cwd(), "publicfiles"))); 
+app.use("/publicfiles", express.static(path.join(process.cwd(), "publicfiles")));
+
+
+// Variable that will act as a gate to prevent any double checks if an existing promise is already running.
+let isProcessingPosts = false;
+
+
+// Perform a cron schedule that will call a function that will find for any awaiting schedule posts and process due ones.
+cron.schedule(String(process.env.CRON_SCHEDULE_CHECK), async () => {
+
+    if(isProcessingPosts){
+
+        console.log("Check currently in progress. Skipping this schedule check.");  
+        return;
+
+    }
+
+    isProcessingPosts = true;
+    console.log("Checking for scheduled posts...");
+
+    try{
+
+        // Call function to find and process any awiting scheduled posts
+        await processScheduledDuePosts();
+
+    }catch(err){
+
+        console.error("Error occured when processing awaiting scheduled posts: ", err);
+
+    }finally{
+
+        isProcessingPosts = false; // Set to false so it will allow next cron schedule check to go through
+    }
+
+
+});
+
+
 
 // Create server
 app.listen(process.env.PORT || 5000, () => {
 
     console.log(`Server has opened with port ${process.env.PORT || 5000}`);
+
 });
 
 

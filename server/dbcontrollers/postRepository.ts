@@ -1,5 +1,5 @@
 // Import User and interface
-import Post, { type IPost, type Platform, type PostMediaType, type PostMediaStatus, type IComment } from "../models/post.ts"; 
+import Post, { type IPost, type Platform, type PostMediaType, type PostMediaStatus, type IComment, type PublishMediaStatus } from "../models/post.ts"; 
 import mongoose, { Types } from "mongoose";
 
 // Import types
@@ -17,6 +17,17 @@ interface PostInput{
     scheduledDate?: Date;
     title?: string;
     description?: string;
+
+    publishMediaStatus: PublishMediaStatus 
+    localFilePath?: string 
+
+    // TikTok specific settings
+    privacyLevel?: string
+    allowComments?: boolean
+    allowDuet?: boolean
+    allowStitch?: boolean
+    isYourOwnBrand?: boolean
+    isBrandedContent?: boolean
 
 };
 
@@ -71,10 +82,20 @@ export async function createUserPost(postDetails: PostInput): Promise<IPost>{
         platform: postDetails.platform,
         postType: postDetails.postType,
         publishID: postDetails.publishID,
-        status: "pending",
+        status: postDetails.status ?? "pending",
         scheduledDate: postDetails.scheduledDate,
-        title: postDetails.title,
-        description: postDetails.description,
+        title: postDetails.title ?? "",
+        description: postDetails.description ?? "",
+
+        publishMediaStatus: postDetails.publishMediaStatus ?? "published_to_platform",
+        localFilePath: postDetails.localFilePath,
+
+        privacyLevel: postDetails.privacyLevel ?? "SELF_ONLY",
+        allowComments: postDetails.allowComments ?? true,
+        allowDuet: postDetails.allowDuet ?? false,
+        allowStitch: postDetails.allowStitch ?? false,
+        isYourOwnBrand: postDetails.isYourOwnBrand ?? false,
+        isBrandedContent: postDetails.isBrandedContent ?? false,
         
     });
 
@@ -89,7 +110,7 @@ export async function updatePostStatus(postUpdateDetails: PostStatusUpdate): Pro
 
         {publishID: postUpdateDetails.publishID},  // Identifier
         {status: postUpdateDetails.status, rawResponse: postUpdateDetails.rawResponse}, // Update with new values
-        {returnDocument: 'after'} // Return modified document
+        {returnDocument: "after"} // Return modified document
     
     );
 }
@@ -103,7 +124,7 @@ export async function updatePostSchedule(postUpdateDetails: PostScheduleUpdate):
 
         {publishID: postUpdateDetails.publishID},  // Identifier
         {scheduleDate: postUpdateDetails.scheduleDate, rawResponse: postUpdateDetails.rawResponse}, // Update with new values
-        {returnDocument: 'after'} // Return modified document
+        {returnDocument: "after"} // Return modified document
     
     );
 }
@@ -152,7 +173,7 @@ export async function addComment(commentDetails: PostComments): Promise<IPost | 
 
         commentDetails.postID,
         {$push: {comments: {username: commentDetails.username, text: commentDetails.text}}},
-        {new: true}
+        {returnDocument: "after"}
 
     )
 
@@ -167,7 +188,7 @@ export async function updatePostApproval(approvalDetails: PostApproval){
 
         approvalDetails.postID,
         {postApprovalStatus: approvalDetails.approvalStatus, rejectionReason: approvalDetails.reason ?? null},
-        {new: true}
+        {returnDocument: "after"}
 
     )
 
@@ -176,7 +197,7 @@ export async function updatePostApproval(approvalDetails: PostApproval){
 
 
 // Function updates all posts associated with account with a new approval status by checking the accoundID and approvalDetails parameter
-// Returns arraw of updated posts with new approval status
+// Returns array of updated posts with new approval status
 export async function updateAllPostsForApproval(accountID: string, approvalDetails: PostApproval){
 
     return await Post.updateMany(
@@ -186,5 +207,49 @@ export async function updateAllPostsForApproval(accountID: string, approvalDetai
 
     )
 
+
+}
+
+
+// Function finds all posts that have an awaiting schedule in their publishMediaStatus 
+// Returns array of  posts with awaiting schedule
+export async function findAwaitingSchedulePosts(): Promise<IPost[]>{
+
+    return await Post.find({
+
+        publishMediaStatus: "awaiting_schedule",
+        scheduledDate: {$lte: new Date()},
+
+    })
+
+}
+
+
+// Function updates posts associated with publish statis to be ready to be uploaded to the platform by checking the postID parameter
+// Returns updated post with new publish status
+export async function updatePublishToPlatformPost(postID: string, publishID: string, uploadURL?: string): Promise<IPost| null>{
+
+    return await Post.findByIdAndUpdate(
+
+        postID,
+        {publishMediaStatus: "published_to_platform", publishID, uploadURL, status: "processing"},
+        {returnDocument: "after"},
+
+    )
+
+}
+
+
+// Function finds post with associated publishID in parameter and updates posts with given localFilePath 
+// Returns updated post with given localFilePath
+export async function updatePostFilePathInDisk(publishID: string, localFilePath: string): Promise<IPost| null>{
+
+    return await Post.findOneAndUpdate(
+
+        {publishID},
+        {localFilePath},
+        {returnDocument: "after"},
+
+    )
 
 }

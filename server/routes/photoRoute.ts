@@ -18,6 +18,10 @@ import {uploadUserPhoto} from "../server_services/tiktokPhotoService.ts"
 import {findAccountAuth} from "../middleware/accountAuthMiddleware.ts";
 import {findTikTokAccount} from "../middleware/tiktokAccountConnectMiddleware.ts";
 
+// Constant for the max media file size
+const MAX_MEDIA_FILE_SIZE: number = 750 * 1024 * 1024;
+
+
 // Creater router
 const { Router } = pkg;
 const router = Router();
@@ -44,7 +48,7 @@ const photoStorage = multer.diskStorage({
 
 });
 
-const upload = multer({ storage: photoStorage });
+const upload = multer({ storage: photoStorage, limits: { fileSize: MAX_MEDIA_FILE_SIZE }});
 
 
 router.post("/photoUpload", findAccountAuth, findTikTokAccount, upload.array("photos", 35), async (req: AuthUserRequest, res: Response) => {

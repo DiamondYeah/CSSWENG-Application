@@ -16,6 +16,7 @@ const UPLOAD_PHOTOS_DIRECT = `${API_BASE}/photoUpload/photoUpload`;
 const SCHEDULED_POSTS_DIRECT = `${API_BASE}/postInfo/getscheduledposts`;
 const GENERATE_SHARE_CALENDAR_DIRECT = `${API_BASE}/userInfo/createsharetoken`
 const OPEN_SHARE_CALENDAR_DIRECT = `${API_BASE}/userInfo/sharecalendar`
+const UPDATE_POST_FILEPATH_DIRECT = `${API_BASE}/postInfo/updatepostfilepath`
 
 // Import type
 import {type PostMediaStatus} from "../types/tiktok.ts"
@@ -214,12 +215,13 @@ export async function initializeUploadPost(title: string, privacyLevel: string, 
 
 
 // Function calls router to upload videoFile to TikTok API with given uploadURL 
-export async function uploadToTikTok(videoFile: File, uploadURL: string){
+export async function uploadToTikTok(videoFile: File, uploadURL: string, isScheduled: boolean = false){
 
     // Create FormData object and append videoFile and uploadURL
     const formData = new FormData();
     formData.append('videoFile', videoFile);
     formData.append('uploadURL', uploadURL);
+    formData.append('isScheduled', String(isScheduled));
 
     // Fetch router with credentials
     const res = await fetch(UPLOAD_VIDEO_DIRECT, {
@@ -336,7 +338,7 @@ export async function fetchSharedCalenderToken(token: string, status: PostMediaS
     // Fetch router with credentials
     const res = await fetch(`${OPEN_SHARE_CALENDAR_DIRECT}/${token}?status=${status}`, 
     {
-
+        headers: { "ngrok-skip-browser-warning": "true" },
     })
 
     // Convert res to json and return
@@ -348,12 +350,15 @@ export async function fetchSharedCalenderToken(token: string, status: PostMediaS
 }
 
 
+// Function calls router to update a post to give it an post approval status for publishing
 export async function fetchPostToApprove(token: string, postID: string){
 
     // Fetch router with credentials
     const res = await fetch(`${OPEN_SHARE_CALENDAR_DIRECT}/${token}/${postID}/approve`, 
     {
+        headers: { "ngrok-skip-browser-warning": "true" },
         method: "PATCH",
+
     })
 
     // Convert res to json and return
@@ -366,7 +371,7 @@ export async function fetchPostToApprove(token: string, postID: string){
 }
 
 
-
+// Function calls router to update a post to give it an post rejection status for publishing with an optional reason
 export async function fetchPostToReject(token: string, postID: string, reason?: string){
 
     // Fetch router with credentials
@@ -374,7 +379,7 @@ export async function fetchPostToReject(token: string, postID: string, reason?: 
     {
 
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" },
         body: JSON.stringify({reason}),
 
     })
@@ -389,6 +394,7 @@ export async function fetchPostToReject(token: string, postID: string, reason?: 
 }
 
 
+// Function calls router to update all posts in the calendar to give it an post approval status for publishing
 export async function fetchAllPostsToApprove(token: string){
 
     // Fetch router with credentials
@@ -409,6 +415,7 @@ export async function fetchAllPostsToApprove(token: string){
 }
 
 
+// Function calls router to update all posts in the calendar to give it an post rejection status for publishing with an optional reason
 export async function fetchAllPostsToReject(token: string, reason?: string){
 
     // Fetch router with credentials
@@ -416,6 +423,7 @@ export async function fetchAllPostsToReject(token: string, reason?: string){
     {
 
         method: "PATCH",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({reason}),
         
     })
@@ -428,7 +436,8 @@ export async function fetchAllPostsToReject(token: string, reason?: string){
 }
 
 
-export async function fetchPostToComment(token: string, postID: string,  text: string, username?: string){
+// Function calls router to update a post to give it an attached comment based on the text parameter
+export async function fetchPostToComment(token: string, postID: string, text: string, username?: string){
 
     // Fetch router with credentials
     const res = await fetch(`${OPEN_SHARE_CALENDAR_DIRECT}/${token}/${postID}/comment`, 
@@ -445,5 +454,25 @@ export async function fetchPostToComment(token: string, postID: string,  text: s
 
     return commentPostInfo;
 
+}
 
+
+// Function calls router to update post with a local file path. (Mainly for scheduled posts as they don't post immediately)
+export async function performPostUpdateToFilePath(publishID: string, localFilePath: string){
+
+    // Fetch router with credentials
+    const res = await fetch(UPDATE_POST_FILEPATH_DIRECT, 
+    {
+
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({publishID, localFilePath}),
+        
+    })
+
+    // Convert res to json and return
+    const postWithPathInfo = await res.json();
+
+    return postWithPathInfo;
 }

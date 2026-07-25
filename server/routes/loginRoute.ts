@@ -106,7 +106,7 @@ router.post("/disconnect", findAccountAuth, async (req: AuthUserRequest, res: Re
 
     try{
 
-        // Find specific tiktok account with the given account id
+        // Find specific tiktok accounts with the given account id
         const tiktokAccount = await findSpecificSocialMediaAccount(String(account._id), "tiktok");
 
         // Checks if tiktokAccount exists

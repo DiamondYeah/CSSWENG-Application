@@ -7,7 +7,7 @@ export type PostMediaType = "photo" | "video"
 
 export type PostMediaStatus = "pending" | "processing" | "failed" | "expired" | "published"
 
-
+export type PublishMediaStatus = "awaiting_schedule" | "published_to_platform";
 
 
 // Create interface for Comments stored in Posts
@@ -28,19 +28,30 @@ export interface IPost extends Document{
     platform: Platform;
     postType: PostMediaType;
 
-    publishID: string           // TikTok = Publish ID 
-    uploadURL?: string           // TikTok = Upload URL (Upload Location for publishing videos)
+    publishID: string // TikTok = Publish ID 
+    uploadURL?: string // TikTok = Upload URL (Upload Location for publishing videos)
 
-    status: PostMediaStatus     // Determines current status of post
+    status: PostMediaStatus // Determines current status of post
     postApprovalStatus: PostApprovalStatus // Determines whether post was reject, approved, or pending for approval
     uploadURLExpiration?: Date  // TikTok = 1 Hour (Determines how long until the upload url expires)
     rejectionReason?: String // Stores the reason for rejecting post
 
-    scheduledDate?: Date        // If null/undefined = Post right away
+    scheduledDate?: Date // If null/undefined = Post right away
+    publishMediaStatus: PublishMediaStatus // Determines the status of the scheduled post whether it is awaiting or already published
+    localFilePath?: string // Location of file path for scheduled post to be accessed later
+
     title?: string
     description?: string
 
     comments: IComment[] // Store string of comments
+
+    // TikTok specific settings
+    privacyLevel?: string
+    allowComments?: boolean
+    allowDuet?: boolean
+    allowStitch?: boolean
+    isYourOwnBrand?: boolean
+    isBrandedContent?: boolean
 
     rawResponse?: Record<string, unknown>       // Last raw status from platform, mainly for debugging purposes
 
@@ -75,11 +86,21 @@ const postSchema = new Schema<IPost>({
     rejectionReason: { type: String, required: false },
     uploadURLExpiration: {type: Date, required: false},  
 
-    scheduledDate: {type: Date, required: false} ,         
+    scheduledDate: {type: Date, required: false} ,
+    publishMediaStatus: {type: String, enum:["awaiting_schedule", "published_to_platform"], required: true, default: "published_to_platform"},
+    localFilePath: {type: String, required: false},
+    
     title: {type: String, required: false},
     description: {type: String, required: false},
 
     comments: {type: [commentSchema], default: []},
+
+    privacyLevel: {type: String, required: false, default: "SELF_ONLY"},
+    allowComments: {type: Boolean, required: false, default: true},
+    allowDuet: {type: Boolean, required: false, default: false},
+    allowStitch: {type: Boolean, required: false, default: false},
+    isYourOwnBrand: {type: Boolean, required: false, default: false},
+    isBrandedContent: {type: Boolean, required: false, default: false},
 
     rawResponse: {type: Schema.Types.Mixed, required: false}     
 
