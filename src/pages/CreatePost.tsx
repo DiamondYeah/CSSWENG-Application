@@ -23,6 +23,11 @@ import {usePostUpload} from "../hooks/postUpload.ts"
 // Import TikTok Settings Component
 import { TikTokSettings } from "../components/TikTokSettings.tsx";
 
+// Shared frontend-only category store (same data Category.tsx and
+// Calendar.tsx read/write). Purely in-memory for now — no backend calls
+// here, this is just for quick-selecting accounts by category.
+import { useCategories } from "../store/categoryStore";
+
 
 // ---------- Constants for media posting ---------- //
 
@@ -64,6 +69,20 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
   { id: "demo-linkedin", name: "Demo LinkedIn", handle: "@demo.linkedin", platform: "linkedin" },
   { id: "demo-facebook", name: "Demo Facebook", handle: "@demo.facebook", platform: "facebook" },
   { id: "demo-instagram", name: "Demo Instagram", handle: "@demo.instagram", platform: "instagram" },
+];
+
+// ---------- Demo accounts matching the shared categoryStore's demo category IDs ---------- //
+// The categoryStore's default categories (Product Launches, Behind the Scenes, Client Work)
+// reference account IDs acc-1..acc-4 — same IDs Category.tsx and Calendar.tsx use for their
+// own demo fallback accounts. These are ONLY pulled in when "Show demo categories" is on, so
+// the category quick-select has something real to filter, and are never mixed into a real
+// submission (same demo-id guard pattern as DEMO_ACCOUNTS above).
+
+const DEMO_CATEGORY_ACCOUNTS: DemoAccount[] = [
+  { id: "acc-1", name: "AgilaPost Official", handle: "@agilapost", platform: "instagram" },
+  { id: "acc-2", name: "AgilaPost Biz", handle: "@agilapostbiz", platform: "linkedin" },
+  { id: "acc-3", name: "Creator Hub", handle: "@creatorhub", platform: "tiktok" },
+  { id: "acc-4", name: "Community Page", handle: "@communitypage", platform: "facebook" },
 ];
 
 
@@ -491,9 +510,22 @@ function CreatePost() {
   const navigate = useNavigate();
   const {accounts: realAccounts, isLoading: accountsLoading, error: accountsError} = useConnectAccounts();
   const [showDemoAccounts, setShowDemoAccounts] = useState<boolean>(false);
-  const accounts = showDemoAccounts ? [...realAccounts, ...DEMO_ACCOUNTS] : realAccounts;
+  // "Show demo categories" pulls in the acc-1..acc-4 demo accounts that match the
+  // shared categoryStore's default categories, kept separate from showDemoAccounts
+  // since these two demo sets exist for different reasons (settings preview vs.
+  // previewing the category quick-select).
+  const [showDemoCategories, setShowDemoCategories] = useState<boolean>(false);
+  const accounts = [
+    ...realAccounts,
+    ...(showDemoAccounts ? DEMO_ACCOUNTS : []),
+    ...(showDemoCategories ? DEMO_CATEGORY_ACCOUNTS : []),
+  ];
   const {queryInfo} = useUserQueryInfo();
   const {isUploading, uploadStatus, uploadPost} = usePostUpload();
+
+  // Categories come from the same shared store Category.tsx and Calendar.tsx use.
+  // Purely for quick-selecting a group of accounts here — no backend involved.
+  const allCategories = useCategories();
 
   const [caption, setCaption] = useState<string>("");
   const [title, setTitle] = useState<string>("");
@@ -547,6 +579,34 @@ function CreatePost() {
     setSelectedAccounts((prev) =>
       prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id]
     );
+  }
+
+  // Only show categories that have at least one account present in this page's
+  // current account list (real + whichever demo sets are toggled on) — same
+  // "only show if it has members" rule used in Calendar's sidebar.
+  const categoriesWithAccounts = allCategories
+    .map((cat) => ({
+      ...cat,
+      memberAccounts: accounts.filter((a) => cat.accountIds.includes(a.id)),
+    }))
+    .filter((cat) => cat.memberAccounts.length > 0);
+
+  // A category reads as "checked" only when every one of its member accounts
+  // currently present here is selected.
+  function isCategoryChecked(memberIds: string[]): boolean {
+    return memberIds.length > 0 && memberIds.every((id) => selectedAccounts.includes(id));
+  }
+
+  // Toggling a category selects/deselects all of its member accounts together.
+  function toggleCategory(memberIds: string[]) {
+    const nextValue = !isCategoryChecked(memberIds);
+    setSelectedAccounts((prev) => {
+      if (nextValue) {
+        const toAdd = memberIds.filter((id) => !prev.includes(id));
+        return [...prev, ...toAdd];
+      }
+      return prev.filter((id) => !memberIds.includes(id));
+    });
   }
 
   // Function handles any file uploads in HTML input file and stores it in mediaFile const
@@ -633,10 +693,13 @@ function CreatePost() {
     if (missingCommercialContent)
       return setValidationMessage("You need to indicate if your content promotes yourself, a third party, or both.");
 
-    // Guard: demo accounts are for previewing the settings UI only, never for real submission.
-    const selectedDemoAccounts = selectedAccounts.filter(id => id.startsWith("demo-"));
+    // Guard: demo accounts are for previewing the settings/category UI only, never for real
+    // submission. Covers both the "demo-*" settings-preview accounts and the acc-1..acc-4
+    // category-preview accounts.
+    const demoCategoryIds = new Set(DEMO_CATEGORY_ACCOUNTS.map(a => a.id));
+    const selectedDemoAccounts = selectedAccounts.filter(id => id.startsWith("demo-") || demoCategoryIds.has(id));
     if (selectedDemoAccounts.length > 0)
-      return setValidationMessage("Demo accounts are for previewing settings only — deselect them and choose a real connected account before posting.");
+      return setValidationMessage("Demo accounts are for previewing settings/categories only — deselect them and choose a real connected account before posting.");
 
     // Validation checking if selected accounts is 0
     if (selectedAccounts.length === 0)
@@ -707,10 +770,7 @@ function CreatePost() {
             <button className="cp-back-btn" onClick={() => navigate("/dashboard")}>
               <IoArrowBack size={18} />
             </button>
-            <div>
-              <h1><a href="/create-post">Create a post</a></h1>
-              <p>Design and schedule your content</p>
-            </div>
+         
           </div>
 
           <div className="cp-compose-layout">
@@ -728,6 +788,45 @@ function CreatePost() {
                 Show demo accounts (for previewing settings only)
               </label>
 
+              <label className="cp-demo-toggle">
+                <input
+                  type="checkbox"
+                  checked={showDemoCategories}
+                  onChange={(e) => setShowDemoCategories(e.target.checked)}
+                />
+                Show demo categories (for previewing category select only)
+              </label>
+
+              {categoriesWithAccounts.length > 0 && (
+                <div className="cp-category-quickselect">
+                  <span className="cp-section-sub" style={{ marginBottom: 6, display: "block" }}>
+                    Select by category
+                  </span>
+                  <div className="cp-category-chip-row">
+                    {categoriesWithAccounts.map((cat) => {
+                      const memberIds = cat.memberAccounts.map((a) => a.id);
+                      const checked = isCategoryChecked(memberIds);
+                      return (
+                        <button
+                          type="button"
+                          key={cat.id}
+                          className={`cp-category-chip${checked ? " selected" : ""}`}
+                          onClick={() => toggleCategory(memberIds)}
+                        >
+                          <span
+                            className="cp-category-chip__dot"
+                            style={{ background: cat.color }}
+                          />
+                          {cat.name}
+                          <span className="cp-category-chip__count">{memberIds.length}</span>
+                          {checked && <IoCheckmark size={12} />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               <div className="cp-account-list">
 
                 {accountsLoading && <div className="cp-section-sub"> Loading accounts... </div>}
@@ -739,7 +838,7 @@ function CreatePost() {
 
                 {accounts.map((acc) => {
                   const selected = selectedAccounts.includes(acc.id);
-                  const isDemo = acc.id.startsWith("demo-");
+                  const isDemo = acc.id.startsWith("demo-") || DEMO_CATEGORY_ACCOUNTS.some(d => d.id === acc.id);
 
                   // Show TikTok avatar from queryInfo if available
                   const avatarSrc = (queryInfo && acc.platform === "tiktok")
