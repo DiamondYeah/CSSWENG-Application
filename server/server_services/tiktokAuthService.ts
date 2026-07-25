@@ -134,9 +134,23 @@ export async function checkTokenIfExpired(tiktokAccountID: string): Promise<ISoc
 
     }
 
+      console.log("Token expires:", socialMediaAccount.tokenExpiresIn);
+    console.log("Token expired?", socialMediaAccount.tokenExpiresIn < new Date());
+    console.log("Refresh expires:", socialMediaAccount.refreshExpiresIn);
+    console.log("Refresh expired?", socialMediaAccount.refreshExpiresIn < new Date());
+
     if(socialMediaAccount.tokenExpiresIn < new Date()){
 
+        if (socialMediaAccount.refreshExpiresIn < new Date()) {
+            
+            console.error("Refresh token also expired — user must reconnect TikTok");
+            return null;
+
+        }
+
+      console.log("Attempting token refresh...");
         let socialMediaAccountRefresh = await refreshTikTokToken(socialMediaAccount);
+      console.log("Refresh result:", socialMediaAccountRefresh);
 
         // If not null, update user's API
         if(socialMediaAccountRefresh)

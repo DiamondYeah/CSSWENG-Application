@@ -14,7 +14,7 @@ import {type AuthUserRequest} from "../types/express.ts"
 // Import Middleware Functions, and Database Controller Functions Functions
 import {findAccountAuth} from "../middleware/accountAuthMiddleware.ts";
 import {findTikTokAccount} from "../middleware/tiktokAccountConnectMiddleware.ts";
-import {findScheduledPosts} from "../dbcontrollers/postRepository.ts";
+import {findScheduledPosts, updatePostFilePathInDisk} from "../dbcontrollers/postRepository.ts";
 import { type IAccount } from "../models/account.ts";
 
 
@@ -52,6 +52,37 @@ router.get("/getscheduledposts", findAccountAuth, async (req: AuthUserRequest, r
 
 
 })
+
+
+router.patch("/updatepostfilepath", findAccountAuth, async (req: AuthUserRequest, res: Response) => {
+
+    const {publishID, localFilePath} = req.body;
+
+    try{
+
+        // Call database function to update post with given publishID and localFilePath
+        const updatedPostWithPath = await updatePostFilePathInDisk(publishID, localFilePath);
+
+
+        // Send successful JSON with data holding updated post
+        if(updatedPostWithPath)
+            return res.json({ success: true, message: "Upated the post with a file path!" ,data: updatedPostWithPath})
+
+        // Fallback in case nothing was returned
+        return res.json({ success: false, message: "updatedPostWithPath returned with no data from service call!"});
+
+
+    }catch(err){
+
+        console.error("Error: " + err);
+        return res.status(500).json({ success: false, message: "Unexpected error when updated file path of post!" });
+
+    }
+
+
+})
+
+
 
 
 export default router;

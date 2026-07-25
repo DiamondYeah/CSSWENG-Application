@@ -20,11 +20,13 @@ import {findTikTokAccount} from "../middleware/tiktokAccountConnectMiddleware.ts
 import {createUserPost, updatePostSchedule, updatePostStatus} from "../dbcontrollers/postRepository.ts";
 import {mapTikTokPostStatus, mapPostStatusToView} from "../server_utilities/videoUtilities.ts"
 
+// Constant for the max media file size
+const MAX_MEDIA_FILE_SIZE: number = 750 * 1024 * 1024;
+
+
 // Creater router
 const { Router } = pkg;
 const router = Router();
-
-
 
 // Create a directory to store the uploaded videos at
 const VIDEO_STORAGE_DIRECTORY = "mediauploads/"
@@ -43,11 +45,12 @@ const videoDiskStorage = multer.diskStorage({
         const encryptedName = crypto.randomBytes(16).toString("hex") + path.extname(file.originalname);
         cb(null, encryptedName);
 
-    }
+    },
 
 });
 
-const upload = multer({storage: videoDiskStorage})
+// Create upload multer with a limit of 750MB
+const upload = multer({storage: videoDiskStorage, limits: { fileSize: MAX_MEDIA_FILE_SIZE }});
 
 
 
@@ -61,11 +64,52 @@ router.post("/initupload", findAccountAuth, findTikTokAccount, async (req: AuthU
             isBrandedContent, scheduleDate} = req.body;
 
 
+    const isScheduledForLaterDate = !!scheduleDate && new Date(scheduleDate) > new Date();
+
+
     // Try-catch getting user information basic and profile from Tiktok API
     try{
 
+        // Checks if the post is scheduled to be posted at a later date. If so, create a document and return it
+        // Will not call TikTok API
+        if(isScheduledForLaterDate){
+
+            // Create a random encryped placeholder ID for later
+            const encryptedPlaceholderID = `scheduled_${crypto.randomUUID()}`;
+
+
+            // Create document of initial scheduled post status by calling createUserPost from db controller repo 
+            await createUserPost({
+
+                userID: tiktokAccount.accountID,
+                platformAccountID: tiktokAccount.platformAccountID,
+                platform: "tiktok",
+                postType: "video",
+                publishID: encryptedPlaceholderID,
+                status: "pending",
+                title: title,
+                scheduledDate: new Date(scheduleDate) ?? undefined,
+                publishMediaStatus: "awaiting_schedule",
+                privacyLevel: privacyLevel,
+                allowComments: allowComments,
+                allowDuet: allowDuet,
+                allowStitch: allowStitch,
+                isYourOwnBrand: isYourOwnBrand,
+                isBrandedContent: isBrandedContent                
+
+            });
+
+
+            // Send successful JSON of scheduled document. Return encryptedPlaceholderID
+            return res.json({ success: true, data: {publish_id: encryptedPlaceholderID, upload_url: "scheduled" }})
+
+        }
+
+
+        // If not scheduled, then perform steps for TikTok upload via the API
         // Get user TikTok initial upload info results by calling obtainInitialUpload and passing arguments below and return result
         const userInitUpload = await obtainInitialUpload({ 
+
             tiktokUser: tiktokAccount, 
             title: title, 
             privacyLevel: privacyLevel, 
@@ -74,12 +118,15 @@ router.post("/initupload", findAccountAuth, findTikTokAccount, async (req: AuthU
             allowDuet: allowDuet,
             allowStitch: allowStitch,
             isYourOwnBrand: isYourOwnBrand,
-            isBrandedContent: isBrandedContent})
+            isBrandedContent: isBrandedContent,
+
+        })
 
 
+        // If info is returned from initial upload, create a user document
         if(userInitUpload){
 
-            // Create document of initial post status by callindgcareateUserPost from db controller repo
+            // Create document of initial post status by calling createUserPost from db controller repo
             await createUserPost({
 
                 userID: tiktokAccount.accountID,
@@ -89,7 +136,15 @@ router.post("/initupload", findAccountAuth, findTikTokAccount, async (req: AuthU
                 publishID: userInitUpload.data.publish_id,
                 status: "pending",
                 title: title,
-                scheduledDate: scheduleDate ? new Date(scheduleDate) : undefined
+                scheduledDate: scheduleDate ? new Date(scheduleDate) : undefined,
+                publishMediaStatus: !!scheduleDate ? "awaiting_schedule" : "published_to_platform",
+                localFilePath: !!scheduleDate ? req.file?.path : undefined,
+                privacyLevel: privacyLevel,
+                allowComments: allowComments,
+                allowDuet: allowDuet,
+                allowStitch: allowStitch,
+                isYourOwnBrand: isYourOwnBrand,
+                isBrandedContent: isBrandedContent                
 
             });
 
@@ -126,15 +181,23 @@ router.post("/initupload", findAccountAuth, findTikTokAccount, async (req: AuthU
 router.post("/upload", findAccountAuth, findTikTokAccount, upload.single('videoFile'), async (req: AuthUserRequest, res: Response) => {
 
     // Get upload url from request and videoFile
-    const {uploadURL} = req.body;
+    const {uploadURL, isScheduled} = req.body;
     const videoFile = req.file;
 
     if(!videoFile)
-        return res.status(401).json({ success: false, message: "Video file not found!" });
+        return res.status(401).json({ success: false, message: "Video file not found!"});
 
 
     // Try-catch for uploading video to Tiktok API
     try{
+
+
+        // Return JSON of successful upload of scheduled video (Has not been uploaded to TikTok yet).
+        if(isScheduled == true || isScheduled == "true")
+            return res.json({ success: true, message: "Video saved for upload!", data: { localFilePath: videoFile.path}});
+
+
+        // Any further are immediates/posts with no schedule
 
         // Upload user videos to the user's TikTok account by calling obtainInitialUpload with the arguments below and return result
         const userUpload = await uploadVideo(videoFile, uploadURL);
@@ -155,14 +218,19 @@ router.post("/upload", findAccountAuth, findTikTokAccount, upload.single('videoF
     }
     finally{
 
-        // Remove/clean up file from fileSystem
-        fs.unlink(videoFile.path, (err) => {
+        // Remove/clean up file from fileSystem (Only immediates get removed)
+        if(isScheduled == false || isScheduled == "false"){
 
-            // Display error for unlink
-            if(err)
-                console.error("Error in deleting file from fileSystem: ", err);
-            
-        });
+            fs.unlink(videoFile.path, (err) => {
+
+                // Display error for unlink
+                if(err)
+                    console.error("Error in deleting file from fileSystem: ", err);
+                
+            });
+
+        }
+
 
     }
 

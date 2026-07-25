@@ -33,6 +33,7 @@ import { useCategories } from "../store/categoryStore";
 
 const MAX_TITLE_LENGTH: number = 2200;
 const MAX_CAPTION_LENGTH: number = 2200;
+const MAX_MEDIA_FILE_SIZE: number = 750 * 1024 * 1024;
 
 
 // ---------- Placeholder settings for platforms without real fields yet ---------- //
@@ -618,6 +619,15 @@ function CreatePost() {
     if (!file)
       return;
 
+    // Checks if file size exceeds the given MAX_MEDIA_FILE constant. If so, show error and return
+    if(file.size > MAX_MEDIA_FILE_SIZE){
+
+      setMediaError(true);
+      setValidationMessage(`File size exceeds current file size limit. ${(file.size / 1024 / 1024).toFixed(2)} MB`);
+      return;
+
+    }
+
 
     // Clean up previous preview URL if data is stored in media preview to prevent memory leaks
     if(mediaFilePreview)
@@ -680,31 +690,31 @@ function CreatePost() {
     // PLEASE FIX TO MAKE IT MUCH BETTER. I GOT SO LAZY HERE :P
     // Validation checking if media and/or title is empty
     if (missingTitle && missingMedia && privacyError)
-      return setValidationMessage("Please enter a title, upload a media and select a privacy level before posting!");
+      return setValidationMessage("Error! Please enter a title, upload a media and select a privacy level before posting!");
 
     if (missingTitle && missingMedia)
-      return setValidationMessage("Please enter a title before posting and upload a media!");
+      return setValidationMessage("Error! Please enter a title before posting and upload a media!");
 
     if (missingMedia && privacyError)
-      return setValidationMessage("Please upload a media and select a privacy level before posting!");
+      return setValidationMessage("Error! Please upload a media and select a privacy level before posting!");
 
     if (missingTitle && privacyError)
-      return setValidationMessage("Please enter a title before posting and select a privacy level before posting!");
+      return setValidationMessage("Error! Please enter a title before posting and select a privacy level before posting!");
 
     if (missingTitle)
-      return setValidationMessage("Please enter a title before posting!");
+      return setValidationMessage("Error! Please enter a title before posting!");
 
     if (missingMedia)
-      return setValidationMessage("Please upload a media before posting!");
+      return setValidationMessage("Error! Please upload a media before posting!");
 
     if (missingPrivacy)
-      return setValidationMessage("Please select a privacy level before posting!");
+      return setValidationMessage("Error! Please select a privacy level before posting!");
 
     if (missingSchedule)
-      return setValidationMessage("Please select a date and/or time to schedule your post!");
+      return setValidationMessage("Error! Please select a date and/or time to schedule your post!");
 
     if (missingCommercialContent)
-      return setValidationMessage("You need to indicate if your content promotes yourself, a third party, or both.");
+      return setValidationMessage("Error! You need to indicate if your content promotes yourself, a third party, or both.");
 
     // Guard: demo accounts are for previewing the settings/category UI only, never for real
     // submission. Covers both the "demo-*" settings-preview accounts and the acc-1..acc-4
@@ -1019,7 +1029,7 @@ function CreatePost() {
                 ) : (
                   <>
                     <div className="cp-dropzone-title">Click or drag files to upload</div>
-                    <div className="cp-dropzone-sub">PNG, JPG, MP4 up to 50MB</div>
+                    <div className="cp-dropzone-sub">PNG, JPG, MP4 up to 750MB</div>
                   </>
                 )}
 
@@ -1121,7 +1131,7 @@ function CreatePost() {
 
                   {statusToView && (
                     <div className={`cp-upload-status ${statusToView.toLowerCase().includes("failed")
-                      || statusToView.toLowerCase().includes("please") ? "cp-status-failed" : "cp-status-success"}`}>
+                      || statusToView.toLowerCase().includes("error!") ? "cp-status-failed" : "cp-status-success"}`}>
                       {statusToView}
                     </div>
                   )}

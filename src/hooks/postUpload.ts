@@ -1,7 +1,7 @@
 import {useState} from "react";
 
 // Import functions from controller and utilities
-import {initializeUploadPost, uploadToTikTok, checkUploadStatus} from "../controller/fetchController.ts" 
+import {initializeUploadPost, uploadToTikTok, checkUploadStatus, performPostUpdateToFilePath} from "../controller/fetchController.ts" 
 import {timer} from "../frontend_utilities//genericUtilities.ts";
 
 // Constants for Status Checking
@@ -46,18 +46,28 @@ export function usePostUpload(){
                                                                 postDetails.isYourOwnBrand, postDetails.isBrandedContent, postDetails.scheduleDate);
 
           if(initUploadResult?.code == "POSTING_CAP_REACHED")  
-            return setUploadStatus(initUploadResult.message ?? "You have reached your posting limit. Please try again later.");                                                        
+            return setUploadStatus(initUploadResult.message ?? "Error! You have reached your posting limit. Please try again later.");                                                        
           else if(initUploadResult?.code == "BANNED_FROM_POSTING")  
-            return setUploadStatus(initUploadResult.message ?? "Your account is banned from posting. Please use a different account.");  
+            return setUploadStatus(initUploadResult.message ?? "Error! Your account is banned from posting. Please use a different account.");  
 
 
-          if(!initUploadResult?.data?.upload_url)
-            throw new Error("No upload url found from initial upload!");
-    
+          if(!initUploadResult?.data?.upload_url && !postDetails.scheduleDate)
+            throw new Error("Error! No upload url found from initial upload!");
+
     
           // Upload video to the TikTok API given upload url found from initUploadResult
           setUploadStatus("Uploading...")
-          await uploadToTikTok(postDetails.mediaFile, initUploadResult.data.upload_url);
+          const uploadToTikTokResult = await uploadToTikTok(postDetails.mediaFile, initUploadResult.data.upload_url, !!postDetails.scheduleDate);
+
+          
+          // If scheduled, dont poll and just return insteaed
+          if(!!postDetails.scheduleDate && uploadToTikTokResult.data.localFilePath){
+
+            await performPostUpdateToFilePath(initUploadResult.data.publish_id, uploadToTikTokResult.data.localFilePath );
+            setUploadStatus("Post has been scheduled successfully! Please check the calendar to view the schedule.")
+            return;
+
+          }
     
           // Call loopCheckMediaStatus to continously check for final status until it either stops processing or timeout occurs in loop
           await loopCheckMediaStatus(initUploadResult);
@@ -66,7 +76,7 @@ export function usePostUpload(){
         }
         catch(e){
     
-          setUploadStatus("Upload Failed! Please check error for more details!")
+          setUploadStatus("Error! Upload Failed! Please check error for more details!")
     
         }
         finally{
@@ -90,27 +100,27 @@ export function usePostUpload(){
         // Loop through checks until status returns one from the terminal array or timed out.
         for(let i = 0; i < MAX_LOOP_CHECKS; i++){
 
-        // Wait between each check
-        await timer(POLL_INTERVALS);
+          // Wait between each check
+          await timer(POLL_INTERVALS);
 
-        // fetch videoStatus result and obtain the status result
-        const videoStatusFetch = await checkUploadStatus(initUploadResult.data.publish_id);
-        const status = videoStatusFetch.data.status;
-        setUploadStatus(status);
+          // fetch videoStatus result and obtain the status result
+          const videoStatusFetch = await checkUploadStatus(initUploadResult.data.publish_id);
+          const status = videoStatusFetch.data.status;
+          setUploadStatus(status);
 
 
-        // If status rettained is includes in the terminalStatus array, then set the upload status and stop.
-        if(TERMINAL_STATUS.includes(status)){
+          // If status rettained is includes in the terminalStatus array, then set the upload status and stop.
+          if(TERMINAL_STATUS.includes(status)){
 
-            setUploadStatus(status);
-            return status;
+              setUploadStatus(status);
+              return status;
 
-        }
+          }
 
         }
 
         // If loop stops after reaching maxLoopChecks, then video is still processing
-        const timeoutMessage = "Upload is still processing... Please check TikTok for the result.";
+        const timeoutMessage = "Error! Upload is still processing... Please check TikTok for the result.";
         setUploadStatus(timeoutMessage)
         return timeoutMessage;
 
