@@ -284,7 +284,6 @@ https://agila-post.onrender.com/
   <li> What I'll do Next </li>
   <ul>
     <li>Prepare for Live Domain</li>
-=======
     <li>Fix the stupid CORS issue </li>
     <li>Add Music Usage Confirmation declaration above post button (required for TikTok approval)</li>
     <li>Add Commercial Content Disclosure component when you toggle "Your Brand" and "Branded Content" checkboxes (required for TikTok approval)</li>
@@ -337,7 +336,6 @@ tiktok_api/
 │       ├── hooks/                   # Custom React hooks (Run on mount and update UI)
 │       └── pages/                   # User views w/ functionality
 |       └── types/                   # Interfaces
-=======
 │
 └── server/
     ├── database/                    # MongoDB connection setup
