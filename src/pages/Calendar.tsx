@@ -69,11 +69,11 @@ export interface AgilaPostCalendarProps {
 
 
 // ---------------------------------------------------------------
-// Demo fallback accounts — only used when useConnectAccounts() returns
-// nothing (e.g. no backend running yet / no accounts connected). IDs match
-// the demo category accountIds in store/categoryStore.ts so the Categories
-// section in the sidebar actually has something to show out of the box.
-// Safe to delete once real accounts are always coming back from the hook.
+// Demo accounts — always merged in alongside real connected accounts (not
+// just an empty-state fallback), so the Categories section in the sidebar
+// always has demo data to show regardless of how many real accounts exist.
+// IDs match the demo category accountIds in store/categoryStore.ts.
+// Safe to remove once category filtering is tested against real data only.
 // ---------------------------------------------------------------
 
 const DEMO_ACCOUNTS: Account[] = [
@@ -83,10 +83,10 @@ const DEMO_ACCOUNTS: Account[] = [
   { id: "acc-4", name: "Community Page", platform: "facebook" },
 ];
 
-// Demo posts to go with DEMO_ACCOUNTS above, so the grid itself isn't blank
-// while there's no backend to pull real posts from. Dates are generated
-// relative to "today" so they always land inside the currently visible
-// month instead of going stale. Delete alongside DEMO_ACCOUNTS later.
+// Demo posts to go with DEMO_ACCOUNTS above — always merged in alongside
+// real posts so there's sample content on the demo accounts. Dates are
+// generated relative to "today" so they always land inside the currently
+// visible month instead of going stale.
 function buildDemoPosts(): Post[] {
   const today = new Date();
   const dateStr = (offsetDays: number) => {
@@ -184,11 +184,11 @@ export default function AgilaPostCalendar({
   const [postsView, setPostsView] = useState<"pending" | "published">("published");
   const {posts: fetchedPosts, isLoading: _postsLoading, error: _postsError} = useScheduledPosts(postsView);
 
-  // Fall back to demo posts when nothing comes back from the backend, so the
-  // grid has something to render alongside DEMO_ACCOUNTS. Remove once
-  // useScheduledPosts is reliably backed by a live API.
+  // Demo posts are always merged in alongside real ones (not just an
+  // empty-state fallback) so the demo accounts/categories always have
+  // sample content to show in the grid.
   const posts = useMemo(
-    () => (fetchedPosts && fetchedPosts.length > 0 ? fetchedPosts : buildDemoPosts()),
+    () => [...(fetchedPosts || []), ...buildDemoPosts()],
     [fetchedPosts]
   );
 
@@ -200,26 +200,22 @@ export default function AgilaPostCalendar({
 
   // Use useMemo to avoid heavy recalculations so refernce only changes when accounts actually change data
   // No useEffect as that causes an infinite loop with setCheckedAccounts
+  // Demo accounts are always merged in alongside real ones (not just as an
+  // empty-state fallback) so the Categories section always has something to
+  // show, regardless of how many real accounts are connected.
   const accounts: Account[] = useMemo(() => {
-    if (!unmappedAccounts || unmappedAccounts.length === 0) {
-      // Nothing connected yet / hook returned empty — show demo data so the
-      // Calendar (and its Categories filter) isn't blank. Remove DEMO_ACCOUNTS
-      // and this branch once accounts always come from a live backend.
-      return DEMO_ACCOUNTS;
-    }
-    return unmappedAccounts.map(account => ({
+    const mappedReal: Account[] = (unmappedAccounts || []).map(account => ({
       id: account.id,
       name: account.name,
       platform: account.platform.toLowerCase().trim() as Platform
     }));
+    return [...mappedReal, ...DEMO_ACCOUNTS];
   }, [unmappedAccounts]);
 
   const [checkedAccounts, setCheckedAccounts] = useState<Record<string, boolean>>(
     () => accounts.reduce((acc, a) => ({ ...acc, [a.id]: true }), {} as Record<string, boolean>)
   );
   const [expandAll, setExpandAll] = useState(true);
-  const [showDrafts, setShowDrafts] = useState(false);
-  const [showFutureRepeats, setShowFutureRepeats] = useState(false);
   const [categoriesExpanded, setCategoriesExpanded] = useState(true);
 
 
@@ -420,27 +416,12 @@ export default function AgilaPostCalendar({
             <label className="ap-option">
               <input
                 type="checkbox"
-                checked={showFutureRepeats}
-                onChange={() => setShowFutureRepeats((v) => !v)}
-              />
-              Show future instances of repeating posts
-            </label>
-            <label className="ap-option">
-              <input
-                type="checkbox"
                 checked={expandAll}
                 onChange={() => setExpandAll((v) => !v)}
               />
               Expand all posts
             </label>
-            <label className="ap-option">
-              <input
-                type="checkbox"
-                checked={showDrafts}
-                onChange={() => setShowDrafts((v) => !v)}
-              />
-              Show drafts in Calendar
-            </label>
+          
           </div>
         </aside>
 
