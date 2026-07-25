@@ -1,11 +1,24 @@
 import mongoose, { Schema, Document, Types } from "mongoose";
-
+import {type PostApprovalStatus} from "../types/post.ts"; // Import PostApprovalStatus
 
 export type Platform = "tiktok" | "linkedin" | "facebook" | "instagram"
 
 export type PostMediaType = "photo" | "video"
 
 export type PostMediaStatus = "pending" | "processing" | "failed" | "expired" | "published"
+
+
+
+
+// Create interface for Comments stored in Posts
+export interface IComment{
+
+    commentID: Types.ObjectId,
+    username?: string,
+    text: string,
+
+
+}
 
 // Create interface for Post type-safety
 export interface IPost extends Document{
@@ -18,17 +31,33 @@ export interface IPost extends Document{
     publishID: string           // TikTok = Publish ID 
     uploadURL?: string           // TikTok = Upload URL (Upload Location for publishing videos)
 
-    status: PostMediaStatus     // Determins current status of post
+    status: PostMediaStatus     // Determines current status of post
+    postApprovalStatus: PostApprovalStatus // Determines whether post was reject, approved, or pending for approval
     uploadURLExpiration?: Date  // TikTok = 1 Hour (Determines how long until the upload url expires)
+    rejectionReason?: String // Stores the reason for rejecting post
 
     scheduledDate?: Date        // If null/undefined = Post right away
     title?: string
     description?: string
 
+    comments: IComment[] // Store string of comments
+
     rawResponse?: Record<string, unknown>       // Last raw status from platform, mainly for debugging purposes
 
 }
 
+
+// Create schema for Comments
+const commentSchema = new Schema<IComment>({
+
+    username: {type: String, required: false},
+    text: {type: String, required: true},
+
+},   
+
+    { timestamps: true } // Adds cretedAt and updatedAt Dates);
+
+);
 
 // Create schema for Post
 const postSchema = new Schema<IPost>({
@@ -42,11 +71,15 @@ const postSchema = new Schema<IPost>({
     uploadURL:  {type: String, required: false} ,     
 
     status: {type: String, enum:["pending", "processing", "failed", "expired", "published"], required: true}, 
+    postApprovalStatus: {type: String, enum:["pending", "approved", "rejected"], required: false, default: "pending"},
+    rejectionReason: { type: String, required: false },
     uploadURLExpiration: {type: Date, required: false},  
 
     scheduledDate: {type: Date, required: false} ,         
     title: {type: String, required: false},
     description: {type: String, required: false},
+
+    comments: {type: [commentSchema], default: []},
 
     rawResponse: {type: Schema.Types.Mixed, required: false}     
 

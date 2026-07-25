@@ -874,3 +874,33 @@
 .shared-review-panel__add-comment button:active {
   transform: translateY(1px);
 }
+
+
+/* DEV ADDED for shared calendar */
+.shared-calendar-action-error{
+
+  padding: 20px;
+  color: darkred;
+  font-weight: bold;
+
+}
+
+.ap-share-btn{
+
+  background-color: #6d28d9;
+  padding: 8px;
+  font-weight: bold;
+  border-radius: 10px;
+  border: 0px;
+  box-shadow: 0 1px 3px rgba(109, 40, 217, 0.35);
+  transition: background-color 0.3s ease-in-out;
+
+}
+
+
+.ap-share-btn:hover{
+
+  background-color: #4e10b3;
+  cursor: pointer;
+  
+}

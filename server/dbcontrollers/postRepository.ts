@@ -1,6 +1,9 @@
 // Import User and interface
-import Post, { type IPost, type Platform, type PostMediaType, type PostMediaStatus } from "../models/post.ts"; 
+import Post, { type IPost, type Platform, type PostMediaType, type PostMediaStatus, type IComment } from "../models/post.ts"; 
 import mongoose, { Types } from "mongoose";
+
+// Import types
+import {type PostApprovalStatus} from "../types/post.ts";
 
 // Interface for PostInput
 interface PostInput{
@@ -33,6 +36,26 @@ interface PostScheduleUpdate{
     publishID: string,
     scheduleDate: Date,
     rawResponse?: Record<string, unknown>;
+
+}
+
+
+// Interface for Post Comments
+interface PostComments{
+
+    postID: string,
+    username?: string,
+    text: string,
+
+}
+
+
+// Interface for Post Approval Rejection
+interface PostApproval{
+
+    postID: string,
+    approvalStatus: PostApprovalStatus,
+    reason?: string,
 
 }
 
@@ -88,11 +111,20 @@ export async function updatePostSchedule(postUpdateDetails: PostScheduleUpdate):
 
 
 
-// Function Finds  Posts of the user in the database via the userID send to the parameter
+// Function finds posts of the user in the database via the accountID sent to the parameter
 // Returns array of Post document starting from the newest one
 export async function findPostsOfUser(userID: Types.ObjectId): Promise<IPost[]>{
 
     return await Post.find({userID: userID}).sort({ updatedAt: -1 });
+
+}
+
+
+// Function finds a specific post of the user in the database via the accountID and postID sent to the parameter
+// Returns either a Post document or null
+export async function findSpecificPostOfUser(postID: Types.ObjectId, accountID: Types.ObjectId): Promise<IPost | null>{
+
+    return await Post.findOne({_id: postID, userID: accountID, });
 
 }
 
@@ -108,5 +140,51 @@ export async function findScheduledPosts(userID: string, status: PostMediaStatus
         status: status,
 
     }).sort({ scheduledDate: 1});
+
+}
+
+
+// Function updates specific post with a comment by checking the commentDetails parameter
+// Returns updated post with comment
+export async function addComment(commentDetails: PostComments): Promise<IPost | null>{
+
+    return await Post.findByIdAndUpdate(
+
+        commentDetails.postID,
+        {$push: {comments: {username: commentDetails.username, text: commentDetails.text}}},
+        {new: true}
+
+    )
+
+}
+
+
+// Function updates specific post with a new approval status by checking the approvalDetails parameter
+// Returns updated post with new approval status
+export async function updatePostApproval(approvalDetails: PostApproval){
+
+    return await Post.findByIdAndUpdate(
+
+        approvalDetails.postID,
+        {postApprovalStatus: approvalDetails.approvalStatus, rejectionReason: approvalDetails.reason ?? null},
+        {new: true}
+
+    )
+
+
+}
+
+
+// Function updates all posts associated with account with a new approval status by checking the accoundID and approvalDetails parameter
+// Returns arraw of updated posts with new approval status
+export async function updateAllPostsForApproval(accountID: string, approvalDetails: PostApproval){
+
+    return await Post.updateMany(
+
+        {userID: accountID},
+        {postApprovalStatus: approvalDetails.approvalStatus, rejectionReason: approvalDetails.reason ?? null},
+
+    )
+
 
 }

@@ -36,7 +36,7 @@ function LoggedInWrapper({children}: {children: React.ReactNode}){
 
 
     if(isLoggedIn == null) // If still fetching, show loading screen
-        return <div style = { {margin: "50px", color: "#6d28d9", fontWeight: "bold", fontSize: "50px"}}>Loading...</div>;
+        return <div style = { {margin: "50px", color: "#6d28d9", fontWeight: "bold", fontSize: "35px"}}>Loading...</div>;
     else if(!isLoggedIn) // If isLoggedIn failed, move to SignIn page.
         return <Navigate to = "/signin" replace = {true} />;
 

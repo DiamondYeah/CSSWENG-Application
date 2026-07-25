@@ -343,9 +343,18 @@
 
 .q-post-card {
   background: #fff;
-  border: 1px solid #e4e1ec;
+  border: 2px solid;
+  border-left: 8px solid;
   border-radius: 14px;
   overflow: hidden;
+
+  border-top-color: #e4e1ec;
+  border-bottom-color: #e4e1ec;
+  border-right-color: #e4e1ec;
+  
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+
 }
 
 .q-post-header {
@@ -564,6 +573,64 @@
   background: #ece7fd;
 }
 
+
+/* DEV ADDITIONS */
+.status-approved{
+
+  border-left-color: #019b01;
+
+}
+
+.status-rejected{
+
+  border-left-color: darkred;
+  
+}
+
+.status-pending{
+
+  border-left-color: #ffbf00;
+  
+}
+
+
+
+.q-approval-badge{
+
+  display: inline-flex;
+  font-size: 15px;
+  font-weight: bold;
+  text-transform: capitalize;
+  padding: 4px 8px 4px 8px;
+  border: 2px solid;
+  border-radius: 8px;
+
+}
+
+.q-approval-badge.is-approved{
+
+  background-color: #dcfce7;
+  color: darkgreen;
+  border: darkgreen;
+
+}
+
+.q-approval-badge.is-rejected{
+
+  background-color: #ffb1a0;
+  color: darkred;
+  border: darkred;
+
+}
+
+.q-approval-badge.is-pending{
+
+  background-color: #fbdb8e;
+  color: #ffbf00;
+  border: #ffbf00;
+
+}
+
 /* ---------- Large post size ---------- */
 
 .q-feed.large .q-post-body {
@@ -649,14 +716,11 @@
 }
 
 .q-comment {
-  background: #eef2ff;
-  border-left: 3px solid #6d28d9;
-  border-radius: 6px;
-  padding: 8px 10px;
-  margin-bottom: 8px;
-  font-size: 13px;
+
+  font-weight: 500;
+  font-size: 16px;
   color: #1f2937;
-  line-height: 1.4;
+
 }
 
 .q-add-comment {
@@ -692,3 +756,44 @@
 .q-add-comment button:hover {
   filter: brightness(1.1);
 }
+
+
+/* DEV ADDED */
+.q-comment-container{
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #eef2ff;
+  border-left: 3px solid #6d28d9;
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  color: #1f2937;
+  line-height: 1.4;
+
+}
+
+.q-comment-date-time-container{
+
+  display: flex;
+  flex-direction: column;
+
+}
+
+.q-comment-time{
+
+
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e1b2e;
+
+}
+
+.q-comment-date{
+
+  font-size: 11px;
+  color: #a39cb3;
+
+}
+

@@ -1,7 +1,8 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 
-type platforms = "tiktok" | "facebook" | "instagram" | "linkedin";
+export type platforms = "tiktok" | "facebook" | "instagram" | "linkedin";
+
 
 // Create interface for User type-safety
 export interface ISocialMediaAccount extends Document{

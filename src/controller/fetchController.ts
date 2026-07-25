@@ -146,7 +146,7 @@ export async function fetchUserInfoViaToken(token: string){
     // Fetch router with credentials
     const res = await fetch(`${USER_TOKEN_DIRECT}/${token}`, 
     {
-
+        headers: { "ngrok-skip-browser-warning": "true" },
     })
 
     // Convert res to json and return
@@ -343,6 +343,107 @@ export async function fetchSharedCalenderToken(token: string, status: PostMediaS
     const sharedCalendarInfo = await res.json();
 
     return sharedCalendarInfo;
+
+
+}
+
+
+export async function fetchPostToApprove(token: string, postID: string){
+
+    // Fetch router with credentials
+    const res = await fetch(`${OPEN_SHARE_CALENDAR_DIRECT}/${token}/${postID}/approve`, 
+    {
+        method: "PATCH",
+    })
+
+    // Convert res to json and return
+    const approvePostInfo = await res.json();
+
+    return approvePostInfo;
+
+
+
+}
+
+
+
+export async function fetchPostToReject(token: string, postID: string, reason?: string){
+
+    // Fetch router with credentials
+    const res = await fetch(`${OPEN_SHARE_CALENDAR_DIRECT}/${token}/${postID}/reject`, 
+    {
+
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({reason}),
+
+    })
+
+    // Convert res to json and return
+    const rejectedPostInfo = await res.json();
+
+    return rejectedPostInfo;
+
+
+
+}
+
+
+export async function fetchAllPostsToApprove(token: string){
+
+    // Fetch router with credentials
+    const res = await fetch(`${OPEN_SHARE_CALENDAR_DIRECT}/${token}/approveallposts`, 
+    {
+
+        method: "PATCH",
+        
+    })
+
+    // Convert res to json and return
+    const approvedPostsInfo = await res.json();
+
+    return approvedPostsInfo;
+
+
+
+}
+
+
+export async function fetchAllPostsToReject(token: string, reason?: string){
+
+    // Fetch router with credentials
+    const res = await fetch(`${OPEN_SHARE_CALENDAR_DIRECT}/${token}/rejectallposts`, 
+    {
+
+        method: "PATCH",
+        body: JSON.stringify({reason}),
+        
+    })
+
+    // Convert res to json and return
+    const rejectPostsInfo = await res.json();
+
+    return rejectPostsInfo;
+
+}
+
+
+export async function fetchPostToComment(token: string, postID: string,  text: string, username?: string){
+
+    // Fetch router with credentials
+    const res = await fetch(`${OPEN_SHARE_CALENDAR_DIRECT}/${token}/${postID}/comment`, 
+    {
+
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({username, text}),
+        
+    })
+
+    // Convert res to json and return
+    const commentPostInfo = await res.json();
+
+    return commentPostInfo;
 
 
 }
