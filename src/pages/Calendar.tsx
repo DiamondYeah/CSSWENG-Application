@@ -81,52 +81,7 @@ export interface AgilaPostCalendarProps {
 // real posts so there's sample content on the demo accounts. Dates are
 // generated relative to "today" so they always land inside the currently
 // visible month instead of going stale.
-function buildDemoPosts(): Post[] {
-  const today = new Date();
-  const dateStr = (offsetDays: number) => {
-    const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + offsetDays);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  };
 
-  return [
-    {
-      id: "demo-post-1",
-      accountId: "acc-1",
-      platform: "instagram",
-      date: dateStr(1),
-      time: "09:00 AM",
-      title: "Launch teaser",
-      snippet: "Sneak peek of the new feature drop.",
-    },
-    {
-      id: "demo-post-2",
-      accountId: "acc-2",
-      platform: "linkedin",
-      date: dateStr(3),
-      time: "11:30 AM",
-      title: "Case study",
-      snippet: "How a client doubled engagement in a month.",
-    },
-    {
-      id: "demo-post-3",
-      accountId: "acc-3",
-      platform: "tiktok",
-      date: dateStr(5),
-      time: "02:00 PM",
-      title: "Behind the scenes",
-      snippet: "Quick clip from the studio shoot.",
-    },
-    {
-      id: "demo-post-4",
-      accountId: "acc-4",
-      platform: "facebook",
-      date: dateStr(5),
-      time: "04:15 PM",
-      title: "Community shoutout",
-      snippet: "Celebrating a great week with our members.",
-    },
-  ];
-}
 
 
 // ---------------------------------------------------------------
@@ -182,7 +137,7 @@ export default function AgilaPostCalendar({
   // empty-state fallback) so the demo accounts/categories always have
   // sample content to show in the grid.
   const posts = useMemo(
-    () => [...(fetchedPosts || []), ...buildDemoPosts()],
+    () => [...(fetchedPosts || [])],
     [fetchedPosts]
   );
 
