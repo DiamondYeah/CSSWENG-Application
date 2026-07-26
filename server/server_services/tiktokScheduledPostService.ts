@@ -20,6 +20,9 @@ export async function processScheduledDuePosts(){
     // Loop through each posts in duePosts to see if it should be ready for submission
     for(const duePost of duePosts){
 
+        if(duePost.platform !== "tiktok")
+            continue;
+
         try{
 
             // Set each posts to a processing status

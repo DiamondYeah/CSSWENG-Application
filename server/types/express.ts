@@ -13,5 +13,5 @@ export interface AuthUserRequest extends Request{
 
     account?: IAccount;
     tiktokAccount?: ISocialMediaAccount;
-
+    file?: Express.Multer.File;
 }

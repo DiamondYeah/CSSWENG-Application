@@ -1,8 +1,8 @@
 // fetchController.ts
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
-const REGISTER_DIRECT =`${API_BASE}/account/register`;
 const LOGIN_DIRECT = `${API_BASE}/account/login`;
+const REGISTER_DIRECT = `${API_BASE}/account/register`;
 const LOGOUT_DIRECT = `${API_BASE}/account/logout`;
 const DISCONNECT_DIRECT = `${API_BASE}/logAuth/disconnect`;
 const ACCOUNTINFO_DIRECT = `${API_BASE}/account/accountinfo`;
@@ -17,6 +17,11 @@ const SCHEDULED_POSTS_DIRECT = `${API_BASE}/postInfo/getscheduledposts`;
 const GENERATE_SHARE_CALENDAR_DIRECT = `${API_BASE}/userInfo/createsharetoken`
 const OPEN_SHARE_CALENDAR_DIRECT = `${API_BASE}/userInfo/sharecalendar`
 const UPDATE_POST_FILEPATH_DIRECT = `${API_BASE}/postInfo/updatepostfilepath`
+
+// for linkedin
+const LINKEDIN_UPLOAD_DIRECT = `${API_BASE}/linkedinPost/upload`;
+const LINKEDIN_USERINFO_API = `${API_BASE}/userInfo/getconnectedaccounts`;
+const LINKEDIN_DISCONNECT_DIRECT = `${API_BASE}/account/disconnect/linkedin`;
 
 // Import type
 import {type PostMediaStatus} from "../types/tiktok.ts"
@@ -123,6 +128,22 @@ export async function disconnectTikTokUser(){
 
 }
 
+export async function disconnectLinkedInUser(accountId: string){
+
+    const res = await fetch(
+        `${LINKEDIN_DISCONNECT_DIRECT}/${accountId}`,
+        {
+            method: "DELETE",
+            credentials: "include",
+        }
+    );
+
+    const disconnectInfo = await res.json();
+
+    return disconnectInfo;
+}
+
+
 // Function calls router user info from API to obtain user information
 export async function fetchUserInfo(){
 
@@ -134,6 +155,21 @@ export async function fetchUserInfo(){
     })
 
     // Convert res to json and return
+    const userInfo = await res.json();
+
+    return userInfo;
+
+}
+
+// for linkedin
+export async function fetchLinkedInUserInfo(){
+
+    const res = await fetch(LINKEDIN_USERINFO_API, {
+
+        credentials: "include",
+
+    });
+
     const userInfo = await res.json();
 
     return userInfo;
@@ -475,4 +511,38 @@ export async function performPostUpdateToFilePath(publishID: string, localFilePa
     const postWithPathInfo = await res.json();
 
     return postWithPathInfo;
+}
+
+export async function uploadToLinkedIn(
+    title: string,
+    connectionId: string,
+    mediaFile?: File,
+    scheduleMode?: string,
+    scheduledDate?: string
+) {
+
+    const formData = new FormData();
+
+    formData.append("title", title);
+    formData.append("connectionId", connectionId);
+
+    if (mediaFile)
+        formData.append("media", mediaFile);
+
+    if (scheduleMode)
+        formData.append("scheduleMode", scheduleMode);
+
+    if (scheduledDate)
+        formData.append("scheduledDate", scheduledDate);
+
+    const res = await fetch(LINKEDIN_UPLOAD_DIRECT, {
+
+        method: "POST",
+        credentials: "include",
+        body: formData
+
+    });
+
+    return await res.json();
+
 }

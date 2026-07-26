@@ -253,3 +253,22 @@ export async function updatePostFilePathInDisk(publishID: string, localFilePath:
     )
 
 }
+
+export async function updateLinkedInPostPublished(
+    postID: string,
+    publishID: string
+): Promise<IPost | null>{
+
+    return await Post.findByIdAndUpdate(
+        postID,
+        {
+            publishID,
+            status: "published",
+            publishMediaStatus: "published_to_platform"
+        },
+        {
+            returnDocument: "after"
+        }
+    );
+
+}
