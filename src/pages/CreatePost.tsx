@@ -64,12 +64,6 @@ interface DemoAccount {
   platform: string;
 }
 
-const DEMO_ACCOUNTS: DemoAccount[] = [
-  { id: "demo-tiktok", name: "Demo TikTok", handle: "@demo.tiktok", platform: "tiktok" },
-  { id: "demo-linkedin", name: "Demo LinkedIn", handle: "@demo.linkedin", platform: "linkedin" },
-  { id: "demo-facebook", name: "Demo Facebook", handle: "@demo.facebook", platform: "facebook" },
-  { id: "demo-instagram", name: "Demo Instagram", handle: "@demo.instagram", platform: "instagram" },
-];
 
 // ---------- Demo accounts matching the shared categoryStore's demo category IDs ---------- //
 // The categoryStore's default categories (Product Launches, Behind the Scenes, Client Work)
@@ -509,16 +503,14 @@ function CreatePost() {
 
   const navigate = useNavigate();
   const {accounts: realAccounts, isLoading: accountsLoading, error: accountsError} = useConnectAccounts();
-  const [showDemoAccounts, setShowDemoAccounts] = useState<boolean>(false);
+  
   // "Show demo categories" pulls in the acc-1..acc-4 demo accounts that match the
   // shared categoryStore's default categories, kept separate from showDemoAccounts
   // since these two demo sets exist for different reasons (settings preview vs.
   // previewing the category quick-select).
-  const [showDemoCategories, setShowDemoCategories] = useState<boolean>(false);
+
   const accounts = [
-    ...realAccounts,
-    ...(showDemoAccounts ? DEMO_ACCOUNTS : []),
-    ...(showDemoCategories ? DEMO_CATEGORY_ACCOUNTS : []),
+    ...realAccounts
   ];
   const {queryInfo} = useUserQueryInfo();
   const {isUploading, uploadStatus, uploadPost} = usePostUpload();
@@ -779,23 +771,9 @@ function CreatePost() {
               <div className="cp-section-title">Post to</div>
               <div className="cp-section-sub">Select one or more accounts</div>
 
-              <label className="cp-demo-toggle">
-                <input
-                  type="checkbox"
-                  checked={showDemoAccounts}
-                  onChange={(e) => setShowDemoAccounts(e.target.checked)}
-                />
-                Show demo accounts (for previewing settings only)
-              </label>
+          
 
-              <label className="cp-demo-toggle">
-                <input
-                  type="checkbox"
-                  checked={showDemoCategories}
-                  onChange={(e) => setShowDemoCategories(e.target.checked)}
-                />
-                Show demo categories (for previewing category select only)
-              </label>
+            
 
               {categoriesWithAccounts.length > 0 && (
                 <div className="cp-category-quickselect">
