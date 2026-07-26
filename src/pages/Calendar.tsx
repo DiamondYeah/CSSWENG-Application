@@ -76,12 +76,6 @@ export interface AgilaPostCalendarProps {
 // Safe to remove once category filtering is tested against real data only.
 // ---------------------------------------------------------------
 
-const DEMO_ACCOUNTS: Account[] = [
-  { id: "acc-1", name: "AgilaPost Official", platform: "instagram" },
-  { id: "acc-2", name: "AgilaPost Biz", platform: "linkedin" },
-  { id: "acc-3", name: "Creator Hub", platform: "tiktok" },
-  { id: "acc-4", name: "Community Page", platform: "facebook" },
-];
 
 // Demo posts to go with DEMO_ACCOUNTS above — always merged in alongside
 // real posts so there's sample content on the demo accounts. Dates are
@@ -209,7 +203,7 @@ export default function AgilaPostCalendar({
       name: account.name,
       platform: account.platform.toLowerCase().trim() as Platform
     }));
-    return [...mappedReal, ...DEMO_ACCOUNTS];
+    return [...mappedReal];
   }, [unmappedAccounts]);
 
   const [checkedAccounts, setCheckedAccounts] = useState<Record<string, boolean>>(
