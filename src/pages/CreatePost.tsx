@@ -748,19 +748,24 @@ function CreatePost() {
   // Function returns TikTok User Consent depending on which are selected for Commercial Content and Promotion
   function getTikTokUserConsent() {
 
-    if (isCommercialContent && isBrandedContent)
+    if(!isCommercialContent)
+      return null;
+    else if (isBrandedContent)
       return (
         <p>By posting, you agree to TikTok's{" "}
-          <a href="https://www.tiktok.com/legal/page/global/bc-policy/en">Branded Content Policy</a> and{" "}
-          <a href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en">Music Usage Confirmation.</a>
+          <a href="https://www.tiktok.com/legal/page/global/bc-policy/en" target="_blank" rel="noreferrer">Branded Content Policy</a> and{" "}
+          <a href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en" target="_blank" rel="noreferrer">Music Usage Confirmation.</a>
+        </p>
+      );
+    else if(isYourOwnBrand)
+      return (
+        <p>By posting, you agree to TikTok's{" "}
+          <a href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en" target="_blank" rel="noreferrer">Music Usage Confirmation.</a>
         </p>
       );
 
-    return (
-      <p>By posting, you agree to TikTok's{" "}
-        <a href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en">Music Usage Confirmation.</a>
-      </p>
-    );
+
+    return null; // If all fails, return null
 
   }
 
