@@ -65,6 +65,12 @@ interface DemoAccount {
   platform: string;
 }
 
+const DEMO_ACCOUNTS: DemoAccount[] = [
+  { id: "demo-tiktok", name: "Demo TikTok", handle: "@demo.tiktok", platform: "tiktok" },
+  { id: "demo-linkedin", name: "Demo LinkedIn", handle: "@demo.linkedin", platform: "linkedin" },
+  { id: "demo-facebook", name: "Demo Facebook", handle: "@demo.facebook", platform: "facebook" },
+  { id: "demo-instagram", name: "Demo Instagram", handle: "@demo.instagram", platform: "instagram" },
+];
 
 // ---------- Demo accounts matching the shared categoryStore's demo category IDs ---------- //
 // The categoryStore's default categories (Product Launches, Behind the Scenes, Client Work)
@@ -504,14 +510,16 @@ function CreatePost() {
 
   const navigate = useNavigate();
   const {accounts: realAccounts, isLoading: accountsLoading, error: accountsError} = useConnectAccounts();
-  
+  const [showDemoAccounts, setShowDemoAccounts] = useState<boolean>(false);
   // "Show demo categories" pulls in the acc-1..acc-4 demo accounts that match the
   // shared categoryStore's default categories, kept separate from showDemoAccounts
   // since these two demo sets exist for different reasons (settings preview vs.
   // previewing the category quick-select).
-
+  const [showDemoCategories, setShowDemoCategories] = useState<boolean>(false);
   const accounts = [
-    ...realAccounts
+    ...realAccounts,
+    ...(showDemoAccounts ? DEMO_ACCOUNTS : []),
+    ...(showDemoCategories ? DEMO_CATEGORY_ACCOUNTS : []),
   ];
   const {queryInfo} = useUserQueryInfo();
   const {isUploading, uploadStatus, uploadPost} = usePostUpload();
@@ -585,11 +593,13 @@ function CreatePost() {
     }))
     .filter((cat) => cat.memberAccounts.length > 0);
 
+
   // A category reads as "checked" only when every one of its member accounts
   // currently present here is selected.
   function isCategoryChecked(memberIds: string[]): boolean {
     return memberIds.length > 0 && memberIds.every((id) => selectedAccounts.includes(id));
   }
+
 
   // Toggling a category selects/deselects all of its member accounts together.
   function toggleCategory(memberIds: string[]) {
@@ -602,6 +612,7 @@ function CreatePost() {
       return prev.filter((id) => !memberIds.includes(id));
     });
   }
+
 
   // Function handles any file uploads in HTML input file and stores it in mediaFile const
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
@@ -753,6 +764,8 @@ function CreatePost() {
       scheduleDate: scheduleMode === "schedule" && scheduleDate
         ? new Date(`${scheduleDate}T${scheduleTime || "00:00"}`)
         : undefined,
+      socialMediaAccountsIDs: selectedAccounts,
+
     });
 
   }
@@ -826,9 +839,23 @@ function CreatePost() {
               <div className="cp-section-title">Post to</div>
               <div className="cp-section-sub">Select one or more accounts</div>
 
-          
+              <label className="cp-demo-toggle">
+                <input
+                  type="checkbox"
+                  checked={showDemoAccounts}
+                  onChange={(e) => setShowDemoAccounts(e.target.checked)}
+                />
+                Show demo accounts (for previewing settings only)
+              </label>
 
-            
+              <label className="cp-demo-toggle">
+                <input
+                  type="checkbox"
+                  checked={showDemoCategories}
+                  onChange={(e) => setShowDemoCategories(e.target.checked)}
+                />
+                Show demo categories (for previewing category select only)
+              </label>
 
               {categoriesWithAccounts.length > 0 && (
                 <div className="cp-category-quickselect">
@@ -994,9 +1021,9 @@ function CreatePost() {
 
                         <div className="cp-media-preview-title">Video Preview</div>
 
-                        <video className = "cp-media-preview" height = "320" width = "500" controls>
+                        <video className = "cp-media-preview" height = "320" width = "500" key = {mediaFilePreview} controls>
 
-                          <source src = {mediaFilePreview} type = "video/mp4" ></source>
+                          <source src = {mediaFilePreview} type = {mediaFile.type} ></source>
                           Browser does not support video format for preview.
 
                         </video>
