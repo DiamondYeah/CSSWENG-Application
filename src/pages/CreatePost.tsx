@@ -764,7 +764,6 @@ function CreatePost() {
       scheduleDate: scheduleMode === "schedule" && scheduleDate
         ? new Date(`${scheduleDate}T${scheduleTime || "00:00"}`)
         : undefined,
-      socialMediaAccountsIDs: selectedAccounts,
 
     });
 
