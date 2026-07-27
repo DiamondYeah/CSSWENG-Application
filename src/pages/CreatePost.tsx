@@ -611,6 +611,7 @@ function CreatePost() {
     if (!file)
       return;
 
+
     // Checks if file size exceeds the given MAX_MEDIA_FILE constant. If so, show error and return
     if(file.size > MAX_MEDIA_FILE_SIZE){
 
@@ -622,21 +623,32 @@ function CreatePost() {
 
 
     // Clean up previous preview URL if data is stored in media preview to prevent memory leaks
-    if(mediaFilePreview)
-      URL.revokeObjectURL(mediaFilePreview);
+    if(mediaFilePreview){
 
-    
+      URL.revokeObjectURL(mediaFilePreview);
+      setMediaFilePreview(null);
+
+    }
+
+
     // Create a preview URL object for the uploaded video file and update mediaFilePreview
     const previewURL = URL.createObjectURL(file);
     setMediaFilePreview(previewURL);
+
+    setMediaFile(file);
+    setValidationMessage("");
+    setMediaError(false);
 
 
     if (queryInfo && file.type.startsWith("video/")) {
 
       // Create new video document and assign its source to the url of a file
       const video = document.createElement("video");
-      video.src = URL.createObjectURL(file);
+      const checkURL = URL.createObjectURL(file);
+      video.src = checkURL;
       video.onloadedmetadata = () => {
+
+        URL.revokeObjectURL(checkURL);
 
         // Check if video duration exceeds the maximum allowed limit for the user's TikTok Account
         if (video.duration > queryInfo.max_video_post_duration_sec) {
@@ -644,15 +656,15 @@ function CreatePost() {
           setMediaError(true);
           setValidationMessage(`Video exceeds maximum duration of TikTok's allowed post duration of ${queryInfo.max_video_post_duration_sec} seconds.`);
           URL.revokeObjectURL(video.src);
+          setMediaFile(null);
+
+          if(previewURL)
+            URL.revokeObjectURL(previewURL); 
+            
           setMediaFilePreview(null);
           return;
 
         }
-
-        setMediaFile(file);
-        setValidationMessage("");
-        setMediaError(false);
-        URL.revokeObjectURL(video.src);
 
       };
 
