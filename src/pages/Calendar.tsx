@@ -158,20 +158,11 @@ export default function AgilaPostCalendar({
 
   // NEW: Create a mock post that always shows up "today" so you can test the UI
   const todayString = new Date().toISOString().split("T")[0];
-  const mockTestPost: Post = {
-    id: "mock-ui-test-post",
-    accountId: "demo-account", 
-    platform: "facebook",
-    date: todayString,
-    time: "12:00 PM",
-    title: "UI Test Post",
-    snippet: "Check out the X button in the corner!",
-    approvalStatus: "approved"
-  };
+  
 
   // Filter real posts, then append the mock post at the end so it's always visible
   const filteredPosts = posts.filter(p => checkedAccounts[p.accountId] !== false);
-  const postsToRender = [...filteredPosts, mockTestPost];
+  const postsToRender = [...filteredPosts];
 
   return (
     <div className="ap-calendar">
