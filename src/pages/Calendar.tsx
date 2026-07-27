@@ -156,8 +156,6 @@ export default function AgilaPostCalendar({
     }
   };
 
-  // NEW: Create a mock post that always shows up "today" so you can test the UI
-  const todayString = new Date().toISOString().split("T")[0];
   
 
   // Filter real posts, then append the mock post at the end so it's always visible
