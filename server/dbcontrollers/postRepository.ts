@@ -131,7 +131,6 @@ export async function updatePostSchedule(postUpdateDetails: PostScheduleUpdate):
 
 
 
-
 // Function finds posts of the user in the database via the accountID sent to the parameter
 // Returns array of Post document starting from the newest one
 export async function findPostsOfUser(userID: Types.ObjectId): Promise<IPost[]>{
@@ -191,8 +190,6 @@ export async function updatePostApproval(approvalDetails: PostApproval){
         {returnDocument: "after"}
 
     )
-
-
 }
 
 
@@ -206,7 +203,6 @@ export async function updateAllPostsForApproval(accountID: string, approvalDetai
         {postApprovalStatus: approvalDetails.approvalStatus, rejectionReason: approvalDetails.reason ?? null},
 
     )
-
 
 }
 
@@ -254,6 +250,7 @@ export async function updatePostFilePathInDisk(publishID: string, localFilePath:
 
 }
 
+// Updates a LinkedIn post after it has been successfully published
 export async function updateLinkedInPostPublished(
     postID: string,
     publishID: string
