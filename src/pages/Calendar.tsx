@@ -208,6 +208,32 @@ export default function AgilaPostCalendar({
     });
   };
 
+  // NEW: Handle canceling a post
+  const handleCancelPost = async (postId: string) => {
+    if (postId === "mock-ui-test-post") {
+      alert("This is just a mock post! It looks great though.");
+      return;
+    }
+
+    const confirmCancel = window.confirm("Are you sure you want to cancel this scheduled post?");
+    if (!confirmCancel) return;
+
+    try {
+      // Add your actual backend deletion logic here
+      console.log(`Cancelled post: ${postId}`);
+      alert("Post cancelled! (Add your refetch logic to make it disappear)");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to cancel post! Please try again.");
+    }
+  };
+
+  
+
+  // Filter real posts, then append the mock post at the end so it's always visible
+  const filteredPosts = posts.filter(p => checkedAccounts[p.accountId] !== false);
+  const postsToRender = [...filteredPosts];
+
   return (
     <div className="ap-calendar">
 
