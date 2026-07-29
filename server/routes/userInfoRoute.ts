@@ -21,7 +21,7 @@ import {findScheduledPosts, findSpecificPostOfUser, updatePostApproval, updateAl
 import {findAllSocialMediaAccounts} from "../dbcontrollers/socialMediaAccountRepository.ts";
 import {validateAccountToken} from "../server_services/accountService.ts";
 import mongoose, { ObjectId, Types } from "mongoose";
-
+import { getLinkedInUserInfo } from "../server_services/linkedinAuthService.ts";
 
 // Constants for expiraition of share token calendar
 const DAYS_UNTIL_SHARE_TOKEN_EXPIRY: number = 14;
@@ -147,6 +147,21 @@ router.get("/getconnectedaccounts", findAccountAuth, async (req: AuthUserRequest
                 handle: `@${tiktokInfo.data.user.username ?? "unknown"}`,
 
 
+            });
+
+        }
+
+        else if(socialAccount.platform == "linkedin"){
+
+            const linkedinInfo = await getLinkedInUserInfo(
+                socialAccount.accessToken
+            );
+
+            accounts.push({
+                platform: "linkedin",
+                id: linkedinInfo.sub,
+                name: linkedinInfo.name ?? "LinkedIn User",
+                handle: linkedinInfo.email ?? "LinkedIn"
             });
 
         }

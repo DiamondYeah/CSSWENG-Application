@@ -20,8 +20,13 @@ import photoRoute from "./routes/photoRoute.ts";
 import postRoute from "./routes/postRoute.ts";
 import accountRoute from "./routes/accountRoute.ts";
 
+// for linkedin
+import linkedinAuthRoute from "./routes/linkedinAuthRoute.ts";
+import linkedinPostRoute from "./routes/linkedinPostRoute.ts";
+
 // Import function to check for any awaiting scheduled posts that require to be posted
 import {processScheduledDuePosts} from "./server_services/tiktokScheduledPostService.ts";
+import {processLinkedInScheduledPosts} from "./server_services/linkedinScheduledPostService.ts";
 
 // Import database
 import connectDB from "./database/db.ts"
@@ -51,6 +56,9 @@ app.use("/photoUpload", photoRoute);
 app.use("/postInfo", postRoute);
 app.use("/account", accountRoute);
 
+app.use("/auth", linkedinAuthRoute);
+app.use("/linkedinPost", linkedinPostRoute);
+
 // Access files stored in /publicfiles in browser
 app.use("/publicfiles", express.static(path.join(process.cwd(), "publicfiles")));
 
@@ -77,6 +85,8 @@ cron.schedule(String(process.env.CRON_SCHEDULE_CHECK), async () => {
         // Call function to find and process any awiting scheduled posts
         await processScheduledDuePosts();
 
+        await processLinkedInScheduledPosts();
+        
     }catch(err){
 
         console.error("Error occured when processing awaiting scheduled posts: ", err);

@@ -11,10 +11,10 @@ export interface ISocialMediaAccount extends Document{
     platform: platforms;
     platformAccountID: string;
     accessToken: string;
-    refreshToken: string;
+    refreshToken?: string;
     scope: string;
     tokenExpiresIn: Date;
-    refreshExpiresIn: Date;
+    refreshExpiresIn?: Date;
 
     
 }
@@ -26,10 +26,10 @@ const socialMediaAccountSchema = new Schema<ISocialMediaAccount>({
     platform: { type: String, required: true},
     platformAccountID: { type: String, required: true, unique: true },
     accessToken: { type: String, required: true},
-    refreshToken: { type: String, required: true},
+    refreshToken: { type: String, default: "" },
     scope: { type: String, required: true},
     tokenExpiresIn: { type: Date, required: true},
-    refreshExpiresIn: { type: Date, required: true}, 
+    refreshExpiresIn: { type: Date, default: null }, 
 
 },
 

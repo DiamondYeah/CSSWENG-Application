@@ -3,7 +3,7 @@ import SchedulingTabs from "../components/SchedulingTabs"; // NEW: replaces hard
 import "./Accounts.css";
 
 // Import functions from controller
-import { disconnectTikTokUser, fetchUserInfo } from "../controller/fetchController.ts";
+import { disconnectTikTokUser, disconnectLinkedInUser, fetchUserInfo, fetchLinkedInUserInfo } from "../controller/fetchController.ts";
 
 /* ---------- API Logic ---------- */
 
@@ -12,6 +12,8 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL;
 // Constants for TikTok API
 const LOGINREDIRECT = `${API_BASE}/logAuth/tiktoklogin`;
 
+// Constants for LinkedIn API
+const LINKEDIN_LOGINREDIRECT = `${API_BASE}/auth/linkedin/connect-link`;
 
 /* ---------- Types ---------- */
 
@@ -205,8 +207,40 @@ export default function AgilaPostConnectAccounts() {
 
     }
 
+      async function loadLinkedInAccount() {
+      
+        try {
+        
+          const userInfo = await fetchLinkedInUserInfo();
+
+          if (!userInfo?.success || !Array.isArray(userInfo.data))
+            return;
+
+          setAccounts((prev) => ({
+
+            ...prev,
+
+            linkedin: userInfo.data
+                .filter((conn: any) => conn.platform === "linkedin")
+                .map((conn: any) => ({
+
+                    id: conn.id,
+                    handle: conn.handle ?? "unknown",
+                    label: conn.name ?? "unknown",
+
+                })),
+
+          }));
+
+        }
+        catch {
+          setAccountError("Failed to load LinkedIn account.");
+        }
+      }
+
     // Call function
     loadTikTokAccount();
+    loadLinkedInAccount();
 
   }, [])
 
@@ -221,6 +255,27 @@ export default function AgilaPostConnectAccounts() {
       case "tiktok":
         window.location.href = LOGINREDIRECT;
         return
+
+      case "linkedin": {
+
+        fetch(LINKEDIN_LOGINREDIRECT, {
+          credentials: "include"
+        })
+        .then(async (res) => {
+
+          const data = await res.json();
+
+          if (data.success) {
+            window.location.href = data.url;
+          } else {
+            console.error(data.message);
+          }
+
+        })
+        .catch(console.error);
+
+        return;
+      }
 
     }
 
@@ -258,6 +313,11 @@ export default function AgilaPostConnectAccounts() {
 
       case "tiktok":
         await disconnectTikTokUser();
+        break;
+
+      case "linkedin":
+        await disconnectLinkedInUser(accountId);
+        break;
 
     }
 
