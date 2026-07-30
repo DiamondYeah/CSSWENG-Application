@@ -386,27 +386,6 @@ export default function AgilaPostConnectAccounts() {
 
 
 
-    setConnectingPlatform(platformId);
-    // Simulated OAuth round trip — swap for your real redirect/popup flow.
-    // Each successful connect appends a new account rather than replacing one,
-    // so the platform can hold as many connected accounts as needed.
-    setTimeout(() => {
-      const id = `acct-${nextAccountId++}`;
-      const platform = PLATFORM_DEFS.find((p) => p.id === platformId)!;
-      const countSoFar = accounts[platformId].length + 1;
-      setAccounts((prev) => ({
-        ...prev,
-        [platformId]: [
-          ...prev[platformId],
-          {
-            id,
-            handle: `@new-${platform.id}-${countSoFar}`,
-            label: `${platform.name} account ${countSoFar}`,
-          },
-        ],
-      }));
-      setConnectingPlatform(null);
-    }, 1000);
   };
 
 
