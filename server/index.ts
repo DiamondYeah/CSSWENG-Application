@@ -1,6 +1,6 @@
 // Import express libraries needed for server
 import express from "express";
-import type { Application, Request, Response } from "express";
+import type { Application} from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import path from "path";
