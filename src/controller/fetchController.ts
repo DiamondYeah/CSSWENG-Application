@@ -65,7 +65,7 @@ export async function loginAccount(username: string, password: string){
 
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true"},
         body: JSON.stringify({username, password}),
 
     })

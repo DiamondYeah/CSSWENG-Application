@@ -24,6 +24,7 @@ import mongoose, { ObjectId, Types } from "mongoose";
 import { getLinkedInUserInfo } from "../server_services/linkedinAuthService.ts";
 import { getFacebookPageInfo } from "../server_services/facebookAuthService.ts";
 import { getInstagramProfile } from "../server_services/instagramAuthService.ts";
+import { checkTokenIfExpired } from "../server_services/tiktokAuthService.ts";
 
 // Constants for expiraition of share token calendar
 const DAYS_UNTIL_SHARE_TOKEN_EXPIRY: number = 14;
@@ -136,63 +137,83 @@ router.get("/getconnectedaccounts", findAccountAuth, async (req: AuthUserRequest
 
     for(const socialAccount of socialMediaAccounts){
 
+        // Try catch to catch errors for social account array
+        try{
+
         // Currently has TikTok but other APIs can be added here
-        if(socialAccount.platform == "tiktok"){ // TikTok API check
+            if(socialAccount.platform == "tiktok"){ // TikTok API check
 
-            const tiktokInfo = await obtainUserInfo(socialAccount);
+                // Check if token is expired or not
+                const refreshedTikTokAccount = await checkTokenIfExpired(String(socialAccount._id));
+                
+                if(!refreshedTikTokAccount){
 
-            accounts.push({
-
-                platform: "tiktok",
-                id: tiktokInfo.data.user.open_id,
-                name: tiktokInfo.data.user.display_name ?? "unkonwn",
-                handle: `@${tiktokInfo.data.user.username ?? "unknown"}`,
+                    console.error(`TikTok account ${socialAccount._id} token expired/invalid. Skipping to next one`);
+                    continue;
+                    
+                }
 
 
-            });
+                const tiktokInfo = await obtainUserInfo(refreshedTikTokAccount);
+
+                accounts.push({
+
+                    platform: "tiktok",
+                    id: tiktokInfo.data.user.open_id,
+                    name: tiktokInfo.data.user.display_name ?? "unkonwn",
+                    handle: `@${tiktokInfo.data.user.username ?? "unknown"}`,
+
+
+                });
+
+            }
+            else if(socialAccount.platform == "linkedin"){
+
+                const linkedinInfo = await getLinkedInUserInfo(
+                    socialAccount.accessToken
+                );
+
+                accounts.push({
+                    platform: "linkedin",
+                    id: linkedinInfo.sub,
+                    name: linkedinInfo.name ?? "LinkedIn User",
+                    handle: linkedinInfo.email ?? "LinkedIn"
+                });
+            }
+            else if (socialAccount.platform == "facebook") {
+
+                const pageInfo = await getFacebookPageInfo(socialAccount.accessToken);
+
+                accounts.push({
+
+                    platform: "facebook",
+                    id: pageInfo.id,
+                    name: pageInfo.name,
+                    handle: `@${pageInfo.name}`,
+
+                });
+            }
+            else if (socialAccount.platform == "instagram") {
+
+                const instagramInfo = await getInstagramProfile(socialAccount.accessToken);
+
+                accounts.push({
+
+                    platform: "instagram",
+                    id: instagramInfo.user_id,
+                    name: instagramInfo.username,
+                    handle: `@${instagramInfo.username}`,
+                });
+
+            }
+
+
+        }catch(err){
+
+            console.error(`Error! Social media account ${socialAccount._id} info fetch failed: `, err);
 
         }
-
-        else if(socialAccount.platform == "linkedin"){
-
-            const linkedinInfo = await getLinkedInUserInfo(
-                socialAccount.accessToken
-            );
-
-            accounts.push({
-                platform: "linkedin",
-                id: linkedinInfo.sub,
-                name: linkedinInfo.name ?? "LinkedIn User",
-                handle: linkedinInfo.email ?? "LinkedIn"
-            });
-        }
-
-        else if (socialAccount.platform == "facebook") {
-
-            const pageInfo = await getFacebookPageInfo(socialAccount.accessToken);
-
-            accounts.push({
-
-                platform: "facebook",
-                id: pageInfo.id,
-                name: pageInfo.name,
-                handle: `@${pageInfo.name}`,
-
-            });
-        }
-
-        else if (socialAccount.platform == "instagram") {
-
-            const instagramInfo = await getInstagramProfile(socialAccount.accessToken);
-
-            accounts.push({
-
-                platform: "instagram",
-                id: instagramInfo.user_id,
-                name: instagramInfo.username,
-                handle: `@${instagramInfo.username}`,
-            });
-        }
+ 
 
     }
 
