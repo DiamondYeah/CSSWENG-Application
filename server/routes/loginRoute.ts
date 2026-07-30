@@ -28,7 +28,7 @@ router.get("/tiktoklogin", findAccountAuth, (req: AuthUserRequest, res: Response
     const csrfState = Math.random().toString(36).substring(2);
     res.cookie('csrfState', csrfState, { maxAge: 60000 ,secure: true, sameSite: "none", path: "/"});
     console.log("Generated CSRF:", csrfState);
-    res.cookie('savedLinkedAccountID', account._id.toString(), { maxAge: 60000 ,secure: true, sameSite: "none", path: "/"});
+    res.cookie('savedLinkedAccountID', account._id.toString(), { maxAge: 60000, httpOnly: true,secure: true, sameSite: "none", path: "/"});
     
     // Call createTikTokAuth function to redirect user to login and authentication page via the crsfState
     res.redirect(createTikTokAuth(csrfState)); 
@@ -48,7 +48,7 @@ router.get("/oauth2/callback", async (req: Request, res: Response) => {
     console.log("Cookies:", req.cookies);
     // Check if state query is the same as csrfState, if so, return with refusal request.
     // Helps check if its from your actual request, and not an attack.
-    if(state !== savedState)
+    if(state && savedState && state !== savedState)
         return res.status(403).json({ success: false, message: "Invalid or missing CSRF State!" });
 
     // Remove csrfState from cookies once checked
