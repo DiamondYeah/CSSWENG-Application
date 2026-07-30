@@ -24,9 +24,6 @@ import {usePostUpload} from "../hooks/postUpload.ts"
 import { TikTokSettings } from "../components/TikTokSettings.tsx";
 
 
-// for linkedin
-import { uploadToLinkedIn } from "../controller/fetchController.ts";
-
 // Shared frontend-only category store (same data Category.tsx and
 // Calendar.tsx read/write). Purely in-memory for now — no backend calls
 // here, this is just for quick-selecting accounts by category.
