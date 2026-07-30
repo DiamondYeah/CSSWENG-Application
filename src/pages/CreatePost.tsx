@@ -775,6 +775,20 @@ function CreatePost() {
         )
       ),
 
+      // Facebook selected accounts
+      facebookConnectionIds: selectedAccounts.filter((id) =>
+        accounts.some(
+          (acc) => acc.id === id && acc.platform === "facebook"
+        )
+      ),
+
+      // Instagram selected accounts
+      instagramConnectionIds: selectedAccounts.filter(id =>
+        accounts.some(
+          (acc) => acc.id === id && acc.platform === "instagram"
+        )
+      ),
+
       scheduleMode: scheduleMode,
 
       scheduledDate:

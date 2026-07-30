@@ -22,6 +22,8 @@ import {findAllSocialMediaAccounts} from "../dbcontrollers/socialMediaAccountRep
 import {validateAccountToken} from "../server_services/accountService.ts";
 import mongoose, { ObjectId, Types } from "mongoose";
 import { getLinkedInUserInfo } from "../server_services/linkedinAuthService.ts";
+import { getFacebookPageInfo } from "../server_services/facebookAuthService.ts";
+import { getInstagramProfile } from "../server_services/instagramAuthService.ts";
 
 // Constants for expiraition of share token calendar
 const DAYS_UNTIL_SHARE_TOKEN_EXPIRY: number = 14;
@@ -163,7 +165,33 @@ router.get("/getconnectedaccounts", findAccountAuth, async (req: AuthUserRequest
                 name: linkedinInfo.name ?? "LinkedIn User",
                 handle: linkedinInfo.email ?? "LinkedIn"
             });
+        }
 
+        else if (socialAccount.platform == "facebook") {
+
+            const pageInfo = await getFacebookPageInfo(socialAccount.accessToken);
+
+            accounts.push({
+
+                platform: "facebook",
+                id: pageInfo.id,
+                name: pageInfo.name,
+                handle: `@${pageInfo.name}`,
+
+            });
+        }
+
+        else if (socialAccount.platform == "instagram") {
+
+            const instagramInfo = await getInstagramProfile(socialAccount.accessToken);
+
+            accounts.push({
+
+                platform: "instagram",
+                id: instagramInfo.user_id,
+                name: instagramInfo.username,
+                handle: `@${instagramInfo.username}`,
+            });
         }
 
     }

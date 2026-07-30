@@ -104,6 +104,7 @@ export async function createUserPost(postDetails: PostInput): Promise<IPost>{
 
 // Function updates the status of the post via the publishID sent to the parameter. Also updates the rawResponse
 // Returns modified document
+
 export async function updatePostStatus(postUpdateDetails: PostStatusUpdate): Promise<IPost | null>{
 // Create new document if ID not found
     return await Post.findOneAndUpdate(
@@ -113,6 +114,49 @@ export async function updatePostStatus(postUpdateDetails: PostStatusUpdate): Pro
         {returnDocument: "after"} // Return modified document
     
     );
+}
+
+
+export async function updateFacebookPostPublished(postID: string, facebookPublishID: string): Promise<IPost | null> {
+
+    return await Post.findByIdAndUpdate(
+
+        postID,
+
+        {
+            status: "published",
+            publishID: facebookPublishID,
+            publishMediaStatus: "published"
+        },
+
+        { returnDocument: "after" }
+
+    );
+
+}
+
+
+export async function updateInstagramPostPublished(
+    postID: string,
+    instagramPublishID: string
+): Promise<IPost | null> {
+
+    return await Post.findByIdAndUpdate(
+
+        postID,
+
+        {
+            status: "published",
+            publishID: instagramPublishID,
+            publishMediaStatus: "published"
+        },
+
+        {
+            returnDocument: "after"
+        }
+
+    );
+
 }
 
 
@@ -212,7 +256,7 @@ export async function updateAllPostsForApproval(accountID: string, approvalDetai
 export async function findAwaitingSchedulePosts(): Promise<IPost[]>{
 
     return await Post.find({
-
+        status: "pending",
         publishMediaStatus: "awaiting_schedule",
         scheduledDate: {$lte: new Date()},
 

@@ -5,7 +5,9 @@ import {
     uploadToTikTok, 
     checkUploadStatus, 
     performPostUpdateToFilePath, 
-    uploadToLinkedIn 
+    uploadToLinkedIn,
+    uploadToFacebook,
+    uploadToInstagram 
 } from "../controller/fetchController.ts";
 
 import {timer} from "../frontend_utilities//genericUtilities.ts";
@@ -36,6 +38,8 @@ interface PostUpload{
 
     platforms: string[];
     linkedinConnectionIds?: string[];
+    facebookConnectionIds?: string[];
+    instagramConnectionIds?: string[];
 
     scheduleMode?: "now" | "schedule" | "queue";
     scheduledDate?: string;
@@ -83,8 +87,75 @@ export function usePostUpload(){
                     setUploadStatus("LinkedIn post successful!");
                 }
 
+                // return;
+            }
+
+            if (postDetails.platforms.includes("facebook")) {
+
+                setUploadStatus("Posting to Facebook...");
+
+                if (!postDetails.facebookConnectionIds || postDetails.facebookConnectionIds.length === 0) {
+                    throw new Error("No Facebook account selected.");
+                }
+
+                for (const connectionId of postDetails.facebookConnectionIds) {
+
+                    await uploadToFacebook(
+                        postDetails.title,
+                        connectionId,
+                        postDetails.mediaFile,
+                        postDetails.scheduleMode,
+                        postDetails.scheduledDate
+                    );
+
+                }
+
+                if (postDetails.scheduleMode === "schedule") {
+
+                    setUploadStatus("Facebook post scheduled successfully!");
+
+                } else {
+
+                    setUploadStatus("Facebook post successful!");
+
+                }
+
+                // return;
+            }
+
+            if (postDetails.platforms.includes("instagram")) {
+
+                setUploadStatus("Posting to Instagram...");
+
+                if (!postDetails.instagramConnectionIds || postDetails.instagramConnectionIds.length === 0) {
+                    throw new Error("No Instagram account selected.");
+                }
+
+                for (const connectionId of postDetails.instagramConnectionIds) {
+
+                    await uploadToInstagram(
+                        postDetails.title,
+                        connectionId,
+                        postDetails.mediaFile!,
+                        postDetails.scheduleMode,
+                        postDetails.scheduledDate
+                    );
+                }
+
+                if (postDetails.scheduleMode === "schedule") {
+                    setUploadStatus("Instagram post scheduled successfully!");
+                } else {
+                    setUploadStatus("Instagram post successful!");
+                }
+
+            }
+
+            if (!postDetails.platforms.includes("tiktok")) {
+
+                setIsUploading(false);
                 return;
             }
+
 
             const initUploadResult = await initializeUploadPost(
                 postDetails.title,

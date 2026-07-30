@@ -157,4 +157,85 @@ router.delete("/disconnect/linkedin/:accountId", findAccountAuth, async (req: Au
 
 });
 
+router.delete("/disconnect/facebook/:accountId", findAccountAuth, async (req: AuthUserRequest, res: Response) => {
+
+    try {
+
+        const account = req.account as IAccount;
+        const { accountId } = req.params;
+
+        const deletedAccount = await SocialMediaAccount.findOneAndDelete({
+            accountID: account._id,
+            platform: "facebook",
+            platformAccountID: accountId
+        });
+
+        if (!deletedAccount) {
+
+            return res.status(404).json({
+                success: false,
+                message: "Facebook account not found."
+            });
+
+        }
+
+        return res.json({
+            success: true,
+            message: "Facebook account disconnected."
+        });
+
+    } catch (err) {
+
+        console.error("Facebook disconnect error:", err);
+
+        return res.status(500).json({
+            success: false,
+            message: "Failed to disconnect Facebook account."
+        });
+
+    }
+
+});
+
+
+router.delete("/disconnect/instagram/:accountId", findAccountAuth, async (req: AuthUserRequest, res: Response) => {
+
+    try {
+
+        const account = req.account as IAccount;
+        const { accountId } = req.params;
+
+        const deletedAccount = await SocialMediaAccount.findOneAndDelete({
+            accountID: account._id,
+            platform: "instagram",
+            platformAccountID: accountId
+        });
+
+        if (!deletedAccount) {
+
+            return res.status(404).json({
+                success: false,
+                message: "Instagram account not found."
+            });
+
+        }
+
+        return res.json({
+            success: true,
+            message: "Instagram account disconnected."
+        });
+
+    } catch (err) {
+
+        console.error("Instagram disconnect error:", err);
+
+        return res.status(500).json({
+            success: false,
+            message: "Failed to disconnect Instagram account."
+        });
+
+    }
+
+});
+
 export default router;

@@ -23,6 +23,14 @@ const LINKEDIN_UPLOAD_DIRECT = `${API_BASE}/linkedinPost/upload`;
 const LINKEDIN_USERINFO_API = `${API_BASE}/userInfo/getconnectedaccounts`;
 const LINKEDIN_DISCONNECT_DIRECT = `${API_BASE}/account/disconnect/linkedin`;
 
+// for facebook
+const FACEBOOK_UPLOAD_DIRECT = `${API_BASE}/facebookPost/upload`;
+const FACEBOOK_DISCONNECT_DIRECT = `${API_BASE}/account/disconnect/facebook`;
+
+// for instagram
+const INSTAGRAM_UPLOAD_DIRECT = `${API_BASE}/instagramPost/upload`;
+const INSTAGRAM_DISCONNECT_DIRECT = `${API_BASE}/account/disconnect/instagram`;
+
 // Import type
 import {type PostMediaStatus} from "../types/tiktok.ts"
 
@@ -144,6 +152,34 @@ export async function disconnectLinkedInUser(accountId: string){
 }
 
 
+export async function disconnectFacebookUser(accountId: string){
+
+    const res = await fetch(
+        `${FACEBOOK_DISCONNECT_DIRECT}/${accountId}`,
+        {
+            method: "DELETE",
+            credentials: "include",
+        }
+    );
+
+    return await res.json();
+
+}
+
+export async function disconnectInstagramUser(accountId: string){
+
+    const res = await fetch(
+        `${INSTAGRAM_DISCONNECT_DIRECT}/${accountId}`,
+        {
+            method: "DELETE",
+            credentials: "include",
+        }
+    );
+
+    return await res.json();
+
+}
+
 // Function calls router user info from API to obtain user information
 export async function fetchUserInfo(){
 
@@ -176,6 +212,18 @@ export async function fetchLinkedInUserInfo(){
 
 }
 
+// for facebook
+export async function fetchFacebookUserInfo(){
+
+    const res = await fetch(LINKEDIN_USERINFO_API, {
+
+        credentials: "include",
+
+    });
+
+    return await res.json();
+
+}
 
 // Function calls router user info from API via the shared token to obtain user information
 export async function fetchUserInfoViaToken(token: string){
@@ -536,6 +584,63 @@ export async function uploadToLinkedIn(
         formData.append("scheduledDate", scheduledDate);
 
     const res = await fetch(LINKEDIN_UPLOAD_DIRECT, {
+
+        method: "POST",
+        credentials: "include",
+        body: formData
+
+    });
+
+    return await res.json();
+
+}
+
+export async function uploadToFacebook(title: string, connectionId: string, mediaFile?: File, scheduleMode?: string, scheduledDate?: string) {
+
+    const formData = new FormData();
+
+    formData.append("title", title);
+    formData.append("connectionId", connectionId);
+
+    if (mediaFile)
+        formData.append("media", mediaFile);
+
+    if (scheduleMode)
+        formData.append("scheduleMode", scheduleMode);
+
+    if (scheduledDate)
+        formData.append("scheduledDate", scheduledDate);
+
+    const res = await fetch(FACEBOOK_UPLOAD_DIRECT, {
+
+        method: "POST",
+        credentials: "include",
+        body: formData
+
+    });
+
+    return await res.json();
+
+}
+
+
+export async function uploadToInstagram(title: string, connectionId: string, mediaFile?: File, scheduleMode?: string, scheduledDate?: string) {
+
+    const formData = new FormData();
+
+    formData.append("title", title);
+    formData.append("connectionId", connectionId);
+
+    if (mediaFile)
+        formData.append("media", mediaFile);
+
+    if (scheduleMode)
+        formData.append("scheduleMode", scheduleMode);
+
+    if (scheduledDate)
+        formData.append("scheduledDate", scheduledDate);
+
+    const res = await fetch(INSTAGRAM_UPLOAD_DIRECT, {
 
         method: "POST",
         credentials: "include",
