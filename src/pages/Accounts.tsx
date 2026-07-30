@@ -135,13 +135,11 @@ const INITIAL_ACCOUNTS: AccountsByPlatform = {
   tiktok: [],
 };
 
-let nextAccountId = 100;
-
 /* ---------- Component ---------- */
 
 export default function AgilaPostConnectAccounts() {
   const [accounts, setAccounts] = useState<AccountsByPlatform>(INITIAL_ACCOUNTS);
-  const [connectingPlatform, setConnectingPlatform] = useState<PlatformId | null>(null);
+  const [connectingPlatform] = useState<PlatformId | null>(null);
   const [addToCategories, setAddToCategories] = useState<boolean>(true);
   const [advancedOpen, setAdvancedOpen] = useState<boolean>(false);
   const [accountError, setAccountError] = useState<string>(""); // Added for error checking
