@@ -27,6 +27,7 @@ router.get("/tiktoklogin", findAccountAuth, (req: AuthUserRequest, res: Response
     // Create security token to avoid CSRF attacks when authenticating and the account linked accountID through the OAuth
     const csrfState = Math.random().toString(36).substring(2);
     res.cookie('csrfState', csrfState, { maxAge: 60000 ,secure: true, sameSite: "none", path: "/"});
+    console.log("Generated CSRF:", csrfState);
     res.cookie('savedLinkedAccountID', account._id.toString(), { maxAge: 60000 ,secure: true, sameSite: "none", path: "/"});
     
     // Call createTikTokAuth function to redirect user to login and authentication page via the crsfState
@@ -42,6 +43,9 @@ router.get("/oauth2/callback", async (req: Request, res: Response) => {
     const savedState = req.cookies.csrfState;
     const savedLinkedAccountID = req.cookies.savedLinkedAccountID;
 
+    console.log("Returned state:", state);
+    console.log("Saved state:", savedState);
+    console.log("Cookies:", req.cookies);
     // Check if state query is the same as csrfState, if so, return with refusal request.
     // Helps check if its from your actual request, and not an attack.
     if(state !== savedState)
@@ -87,7 +91,7 @@ router.get("/oauth2/callback", async (req: Request, res: Response) => {
 
 
         // Redirect user back
-        res.redirect(process.env.ACCOUNTS_REIDRECT_URL as string);
+        res.redirect(process.env.ACCOUNTS_REDIRECT_URL as string);
 
 
     }catch(err){

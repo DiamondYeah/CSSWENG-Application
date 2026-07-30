@@ -20,8 +20,23 @@ import photoRoute from "./routes/photoRoute.ts";
 import postRoute from "./routes/postRoute.ts";
 import accountRoute from "./routes/accountRoute.ts";
 
+// for linkedin
+import linkedinAuthRoute from "./routes/linkedinAuthRoute.ts";
+import linkedinPostRoute from "./routes/linkedinPostRoute.ts";
+
+// for facebook
+import facebookAuthRoute from "./routes/facebookAuthRoutes.ts";
+import facebookPostRoute from "./routes/facebookPostRoute.ts";
+
+// for instagram
+import instagramAuthRoute from "./routes/instagramAuthRoutes.ts";
+import instagramPostRoute from "./routes/instagramPostRoute.ts";
+
 // Import function to check for any awaiting scheduled posts that require to be posted
 import {processScheduledDuePosts} from "./server_services/tiktokScheduledPostService.ts";
+import {processLinkedInScheduledPosts} from "./server_services/linkedinScheduledPostService.ts";
+import { processFacebookScheduledPosts } from "./server_services/facebookScheduledPostService.ts";
+import { processInstagramScheduledPosts } from "./server_services/instagramScheduledPostService.ts";
 
 // Import database
 import connectDB from "./database/db.ts"
@@ -51,6 +66,15 @@ app.use("/photoUpload", photoRoute);
 app.use("/postInfo", postRoute);
 app.use("/account", accountRoute);
 
+app.use("/auth", linkedinAuthRoute);
+app.use("/linkedinPost", linkedinPostRoute);
+
+app.use("/facebookAuth", facebookAuthRoute);
+app.use("/facebookPost", facebookPostRoute);
+
+app.use("/instagramAuth", instagramAuthRoute);
+app.use("/instagramPost", instagramPostRoute);
+
 // Access files stored in /publicfiles in browser
 app.use("/publicfiles", express.static(path.join(process.cwd(), "publicfiles")));
 
@@ -77,6 +101,12 @@ cron.schedule(String(process.env.CRON_SCHEDULE_CHECK), async () => {
         // Call function to find and process any awiting scheduled posts
         await processScheduledDuePosts();
 
+        await processLinkedInScheduledPosts();
+
+        await processFacebookScheduledPosts();
+
+        await processInstagramScheduledPosts();
+        
     }catch(err){
 
         console.error("Error occured when processing awaiting scheduled posts: ", err);
