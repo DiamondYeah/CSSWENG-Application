@@ -138,7 +138,8 @@ export function usePostUpload(){
                     await uploadToInstagram(
                         postDetails.title,
                         connectionId,
-                        postDetails.mediaFile!,
+                        postDetails.mediaFiles ??
+                            (postDetails.mediaFile ? [postDetails.mediaFile] : []),
                         postDetails.scheduleMode,
                         postDetails.scheduledDate
                     );
@@ -240,7 +241,7 @@ export function usePostUpload(){
             await timer(POLL_INTERVALS);
 
             console.log("TikTok publish ID:", initUploadResult.data.publish_id);
-            
+
             const videoStatusFetch = await checkUploadStatus(
                 initUploadResult.data.publish_id
             );
