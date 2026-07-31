@@ -20,7 +20,14 @@ export function createInstagramAuth(state: string): string {
         force_reauth: "true",
     });
 
-    return `${IG_AUTH_URL}?${params.toString()}`;
+    
+    //return `${IG_AUTH_URL}?${params.toString()}`;
+    const authUrl = `${IG_AUTH_URL}?${params.toString()}`;
+
+    console.log("Instagram Auth URL:");
+    console.log(authUrl);
+
+    return authUrl;
 }
 
 // Short-lived token — valid ~1 hour, only usable once to get a long-lived token.
