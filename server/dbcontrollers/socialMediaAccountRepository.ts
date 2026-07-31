@@ -60,6 +60,7 @@ export async function createSocialMediaAccount(
         scope: string;
         tokenExpiresIn: number;
         refreshExpiresIn?: number;
+
     }
 ): Promise<ISocialMediaAccount> {
 
@@ -78,7 +79,8 @@ export async function createSocialMediaAccount(
             tokenExpiresIn: new Date(Date.now() + data.tokenExpiresIn * 1000),
             refreshExpiresIn: new Date(
                 Date.now() + (data.refreshExpiresIn ?? data.tokenExpiresIn) * 1000
-            )
+            ),
+
         },
 
         {

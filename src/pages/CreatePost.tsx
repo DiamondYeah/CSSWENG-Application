@@ -570,10 +570,19 @@ function CreatePost() {
     .map(acc => acc.platform.toLowerCase());
 
   const allowMultipleFiles =
-    selectedPlatforms.includes("facebook") ||
-    selectedPlatforms.includes("instagram") &&
+    (selectedPlatforms.includes("facebook") ||
+    selectedPlatforms.includes("instagram")) &&
     !selectedPlatforms.includes("linkedin") &&
     !selectedPlatforms.includes("tiktok");
+
+  const allowPDF =
+    selectedPlatforms.length === 1 &&
+    selectedPlatforms.includes("linkedin");
+
+
+  const acceptedMediaTypes = allowPDF
+    ? "video/mp4, image/png, image/jpg, application/pdf"
+    : "video/mp4, image/png, image/jpg";
 
   // Every unique platform in the current selection gets its own settings block,
   // shown together — matches Buffer's "Customize for each network" pattern, where
@@ -826,22 +835,56 @@ function CreatePost() {
   // fix filtering of file previews across platforms
   useEffect(() => {
 
-    const hasSingleOnlyPlatform = selectedPlatforms.includes("linkedin") || selectedPlatforms.includes("tiktok");
+    const onlyLinkedIn =
+        selectedPlatforms.length === 1 &&
+        selectedPlatforms.includes("linkedin");
 
-    if (hasSingleOnlyPlatform && mediaFiles.length > 1) {
 
-      mediaFilePreviews.forEach(url =>
-        URL.revokeObjectURL(url)
-      );
+    const hasSingleFilePlatform =
+        selectedPlatforms.includes("linkedin") ||
+        selectedPlatforms.includes("tiktok");
 
-      const firstFile = mediaFiles[0];
 
-      setMediaFiles([firstFile]);
+    let updatedFiles = [...mediaFiles];
 
-      setMediaFilePreviews([
-        URL.createObjectURL(firstFile)
-      ]);
+    // Remove PDF if LinkedIn is not the only selected platform
+    if (!onlyLinkedIn) {
+
+        updatedFiles = updatedFiles.filter(
+            file => file.type !== "application/pdf"
+        );
+
     }
+
+
+    // Limit to one file if LinkedIn/TikTok is selected
+    if (hasSingleFilePlatform && updatedFiles.length > 1) {
+
+        updatedFiles = [updatedFiles[0]];
+
+    }
+
+
+    // Only update if something changed
+    if (updatedFiles.length !== mediaFiles.length) {
+
+        mediaFilePreviews.forEach(url =>
+            URL.revokeObjectURL(url)
+        );
+
+
+        setMediaFiles(updatedFiles);
+
+
+        setMediaFilePreviews(
+            updatedFiles.map(file =>
+                URL.createObjectURL(file)
+            )
+        );
+
+    }
+
+  
   }, [selectedPlatforms]);
 
   // Removes URL object from mediaFilePreview on unmount/leaving the page to prevent memory leaks
@@ -1122,7 +1165,7 @@ function CreatePost() {
                   </>
                 )}
 
-                <input id="media-upload" type="file" {...(allowMultipleFiles ? { multiple: true } : {})} accept="video/mp4, image/png, image/jpg, application/pdf"
+                <input id="media-upload" type="file" {...(allowMultipleFiles ? { multiple: true } : {})} accept={acceptedMediaTypes}
                   onChange={(e) => handleFileSelect(e)} />
 
               </div>
