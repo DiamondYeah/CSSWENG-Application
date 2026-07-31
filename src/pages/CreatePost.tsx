@@ -569,6 +569,12 @@ function CreatePost() {
     .filter(acc => selectedAccounts.includes(acc.id))
     .map(acc => acc.platform.toLowerCase());
 
+  const allowMultipleFiles =
+    selectedPlatforms.includes("facebook") ||
+    selectedPlatforms.includes("instagram") &&
+    !selectedPlatforms.includes("linkedin") &&
+    !selectedPlatforms.includes("tiktok");
+
   // Every unique platform in the current selection gets its own settings block,
   // shown together — matches Buffer's "Customize for each network" pattern, where
   // multiple Facebook accounts still only produce one Facebook settings box.
@@ -622,11 +628,21 @@ function CreatePost() {
     const files = Array.from(e.target.files || []);
 
     if (files.length === 0)
+        return;
+
+    const filteredFiles =
+      !selectedPlatforms.includes("facebook") &&
+      !selectedPlatforms.includes("instagram")
+        ? [files[0]]
+        : files;
+
+
+    if (filteredFiles.length === 0)
       return;
 
 
     // Check every file size
-    for (const file of files) {
+    for (const file of filteredFiles) {
 
       if (file.size > MAX_MEDIA_FILE_SIZE) {
 
@@ -644,12 +660,12 @@ function CreatePost() {
     mediaFilePreviews.forEach(url => URL.revokeObjectURL(url));
 
 
-    const previews = files.map(file =>
+    const previews = filteredFiles.map(file =>
       URL.createObjectURL(file)
     );
 
 
-    setMediaFiles(files);
+    setMediaFiles(filteredFiles);
     setMediaFilePreviews(previews);
 
     setValidationMessage("");
@@ -807,6 +823,26 @@ function CreatePost() {
 
   }, [isBrandedContent, privacyLevel]);
 
+  // fix filtering of file previews across platforms
+  useEffect(() => {
+
+    const hasSingleOnlyPlatform = selectedPlatforms.includes("linkedin") || selectedPlatforms.includes("tiktok");
+
+    if (hasSingleOnlyPlatform && mediaFiles.length > 1) {
+
+      mediaFilePreviews.forEach(url =>
+        URL.revokeObjectURL(url)
+      );
+
+      const firstFile = mediaFiles[0];
+
+      setMediaFiles([firstFile]);
+
+      setMediaFilePreviews([
+        URL.createObjectURL(firstFile)
+      ]);
+    }
+  }, [selectedPlatforms]);
 
   // Removes URL object from mediaFilePreview on unmount/leaving the page to prevent memory leaks
   useEffect(() => {
@@ -1086,7 +1122,7 @@ function CreatePost() {
                   </>
                 )}
 
-                <input id="media-upload" type="file" multiple accept="video/mp4, image/png, image/jpg, application/pdf"
+                <input id="media-upload" type="file" {...(allowMultipleFiles ? { multiple: true } : {})} accept="video/mp4, image/png, image/jpg, application/pdf"
                   onChange={(e) => handleFileSelect(e)} />
 
               </div>
