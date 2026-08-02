@@ -21,6 +21,7 @@ interface PostUpload{
     isYourOwnBrand: boolean,
     isBrandedContent: boolean,
     scheduleDate?: Date;
+    socialMediaAccountsIDs: string[];
 
 }
 
@@ -34,44 +35,96 @@ export function usePostUpload(){
 
     async function uploadPost(postDetails: PostUpload){
 
+
         setIsUploading(true);
-        setUploadStatus("Preparing Upload - it may take a few minutes for the content to appear on your profile")
+        setUploadStatus("Preparing Upload - it may take a few minutes for the content to appear on your profile");
 
 
         try{
     
           // Get initial upload info from initializeUploadPost and store info result
-          const initUploadResult = await initializeUploadPost(postDetails.title, postDetails.privacyLevel, postDetails.mediaFile.size, 
+          const initUploadResults = await initializeUploadPost(postDetails.title, postDetails.privacyLevel, postDetails.mediaFile.size, 
                                                                 postDetails.allowComments, postDetails.allowDuet, postDetails.allowStitch,
-                                                                postDetails.isYourOwnBrand, postDetails.isBrandedContent, postDetails.scheduleDate);
-
-          if(initUploadResult?.code == "POSTING_CAP_REACHED")  
-            return setUploadStatus(initUploadResult.message ?? "Error! You have reached your posting limit. Please try again later.");                                                        
-          else if(initUploadResult?.code == "BANNED_FROM_POSTING")  
-            return setUploadStatus(initUploadResult.message ?? "Error! Your account is banned from posting. Please use a different account.");  
+                                                                postDetails.isYourOwnBrand, postDetails.isBrandedContent, postDetails.scheduleDate, 
+                                                                postDetails.socialMediaAccountsIDs);
 
 
-          if(!initUploadResult?.data?.upload_url && !postDetails.scheduleDate)
-            throw new Error("Error! No upload url found from initial upload!");
+          if(initUploadResults?.code == "POSTING_CAP_REACHED")  
+            return setUploadStatus(initUploadResults.message ?? "Error! You have reached your posting limit. Please try again later.");                                                        
+          else if(initUploadResults?.code == "BANNED_FROM_POSTING")  
+            return setUploadStatus(initUploadResults.message ?? "Error! Your account is banned from posting. Please use a different account.");  
 
-    
+          if(!initUploadResults?.data || initUploadResults.data.length <= 0)
+            throw new Error("Error! No data returned!");            
+
+
           // Upload video to the TikTok API given upload url found from initUploadResult
           setUploadStatus("Uploading...")
-          const uploadToTikTokResult = await uploadToTikTok(postDetails.mediaFile, initUploadResult.data.upload_url, !!postDetails.scheduleDate);
 
-          
-          // If scheduled, dont poll and just return insteaed
-          if(!!postDetails.scheduleDate && uploadToTikTokResult.data.localFilePath){
 
-            await performPostUpdateToFilePath(initUploadResult.data.publish_id, uploadToTikTokResult.data.localFilePath );
-            setUploadStatus("Post has been scheduled successfully! Please check the calendar to view the schedule.")
-            return;
+            // Check if postDetails has a scheduled date, if so don't immediately post them and save them for now
+            if(postDetails.scheduleDate){
 
-          }
-    
-          // Call loopCheckMediaStatus to continously check for final status until it either stops processing or timeout occurs in loop
-          await loopCheckMediaStatus(initUploadResult);
-    
+              // Upload to route the details of the scheduled post
+              const scheduleUploadResult = await uploadToTikTok(postDetails.mediaFile, initUploadResults.data[0].upload_url, true);
+
+              if(scheduleUploadResult.data?.localFilePath){
+
+                // Add all posts to the same local file path
+                for(const result of initUploadResults.data)
+                  await performPostUpdateToFilePath(result.publish_id, scheduleUploadResult.data?.localFilePath);
+
+              }else{ // Show error if no file path was found
+
+                console.error("Error! No local file path found with given upload. Scheduled Posts wont have a file path.");
+                setUploadStatus("Error! Scheduled uplaod not saved due to not finding file path. Please try again!");
+                return;
+
+              }
+
+              setUploadStatus("Post has been scheduled successfully! Please check the calendar to view the schedule.");
+
+            }
+            else{
+
+                // Counter that checks if a post was successful or not
+                let successCount = 0;
+
+              for(const result of initUploadResults.data){
+
+                if(!result.upload_url)
+                  throw new Error("Error! No Upload URL found for post!");
+            
+                setUploadStatus(`Uploading to Social Media Account ${initUploadResults.data.indexOf(result) + 1} out of ${initUploadResults.data.length}...`)
+
+                // Inner try-catch to check for individual errors in posts
+                try{
+
+                  // Upload to TikTok each immediate post
+                  await uploadToTikTok(postDetails.mediaFile, result.upload_url, false);
+
+                  // Call loopCheckMediaStatus to continously check for final status until it either stops processing or timeout occurs in loop
+                  await loopCheckMediaStatus({data: result}, result.platformAccountID); 
+
+                  successCount++; // Increment counter
+
+                }catch(err){
+
+                  setUploadStatus(`Error! Uploading Failed of Post to Account ${result.platformAccountID}! Please check if other accounts have succeded.`);
+
+                }
+
+              }
+
+              // Check if count and data length are equal, meaning every post has been posted and display results
+              if(successCount == initUploadResults.data.length)
+                setUploadStatus("Post has been successfully published to all accounts! Please check accounts to check if it has been reflected.");
+              else if(successCount > 0)
+                setUploadStatus(`Post has been successfully published to ${successCount} out of ${initUploadResults.data.length} accounts! Please check accounts to check if it has been reflected.`);
+              else
+                setUploadStatus("Error! Post was not able to be published to any accounts! Please try again.");
+
+            }
     
         }
         catch(e){
@@ -85,13 +138,11 @@ export function usePostUpload(){
           
         }
 
-
-
     }
 
 
     // Function continously checks upload status until either it reaches the max loop limit, or upload was complete
-    async function loopCheckMediaStatus(initUploadResult: any): Promise<string>{
+    async function loopCheckMediaStatus(initUploadResult: any, platformAccountID?: string): Promise<string>{
 
         // Initial sstatus
         setUploadStatus("Processing...")
@@ -104,7 +155,7 @@ export function usePostUpload(){
           await timer(POLL_INTERVALS);
 
           // fetch videoStatus result and obtain the status result
-          const videoStatusFetch = await checkUploadStatus(initUploadResult.data.publish_id);
+          const videoStatusFetch = await checkUploadStatus(initUploadResult.data.publish_id, platformAccountID);
           const status = videoStatusFetch.data.status;
           setUploadStatus(status);
 

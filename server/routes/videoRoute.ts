@@ -57,108 +57,120 @@ const upload = multer({storage: videoDiskStorage, limits: { fileSize: MAX_MEDIA_
 router.post("/initupload", findAccountAuth, findTikTokAccount, async (req: AuthUserRequest, res: Response) => {
 
     // Get tiktok account from req
-    const tiktokAccount: ISocialMediaAccount = req.tiktokAccount as ISocialMediaAccount;
+    const tiktokAccounts: ISocialMediaAccount[] = req.tiktokAccounts as ISocialMediaAccount[];
 
     // Get info from request
     const {title, privacyLevel, videoSize, allowComments, allowDuet, allowStitch, isYourOwnBrand, 
             isBrandedContent, scheduleDate} = req.body;
+    const isScheduledForLaterDate = !!scheduleDate && new Date(scheduleDate) > new Date(); // Check if post is scheduled
 
+    
+    // Store array of tiktokAccount info
+    const results = [];
 
-    const isScheduledForLaterDate = !!scheduleDate && new Date(scheduleDate) > new Date();
-
-
-    // Try-catch getting user information basic and profile from Tiktok API
     try{
 
-        // Checks if the post is scheduled to be posted at a later date. If so, create a document and return it
-        // Will not call TikTok API
-        if(isScheduledForLaterDate){
+        // Loop through tiktokAccounts
+        for(const tiktokAccount of tiktokAccounts){
 
-            // Create a random encryped placeholder ID for later
-            const encryptedPlaceholderID = `scheduled_${crypto.randomUUID()}`;
+            // Checks if the post is scheduled to be posted at a later date. If so, create a document and return it
+            // Will not call TikTok API
+            if(isScheduledForLaterDate){
+
+                // Create a random encryped placeholder ID for later
+                const encryptedPlaceholderID = `scheduled_${crypto.randomUUID()}`;
 
 
-            // Create document of initial scheduled post status by calling createUserPost from db controller repo 
-            await createUserPost({
+                // Create document of initial scheduled post status by calling createUserPost from db controller repo 
+                await createUserPost({
 
-                userID: tiktokAccount.accountID,
-                platformAccountID: tiktokAccount.platformAccountID,
-                platform: "tiktok",
-                postType: "video",
-                publishID: encryptedPlaceholderID,
-                status: "pending",
-                title: title,
-                scheduledDate: new Date(scheduleDate) ?? undefined,
-                publishMediaStatus: "awaiting_schedule",
-                privacyLevel: privacyLevel,
+                    userID: tiktokAccount.accountID,
+                    platformAccountID: tiktokAccount.platformAccountID,
+                    platform: "tiktok",
+                    postType: "video",
+                    publishID: encryptedPlaceholderID,
+                    status: "pending",
+                    title: title,
+                    scheduledDate: new Date(scheduleDate) ?? undefined,
+                    publishMediaStatus: "awaiting_schedule",
+                    privacyLevel: privacyLevel,
+                    allowComments: allowComments,
+                    allowDuet: allowDuet,
+                    allowStitch: allowStitch,
+                    isYourOwnBrand: isYourOwnBrand,
+                    isBrandedContent: isBrandedContent                
+
+                });
+
+
+                // Push successful scheduled document. 
+                results.push({platformAccountID: tiktokAccount.platformAccountID, publish_id: encryptedPlaceholderID, upload_url: "scheduled"})
+
+                continue;
+
+            }
+
+
+            // If not scheduled, then perform steps for TikTok upload via the API
+            // Get user TikTok initial upload info results by calling obtainInitialUpload and passing arguments below and return result
+            const userInitUpload = await obtainInitialUpload({ 
+
+                tiktokUser: tiktokAccount, 
+                title: title, 
+                privacyLevel: privacyLevel, 
+                videoSize: videoSize,
                 allowComments: allowComments,
                 allowDuet: allowDuet,
                 allowStitch: allowStitch,
                 isYourOwnBrand: isYourOwnBrand,
-                isBrandedContent: isBrandedContent                
+                isBrandedContent: isBrandedContent,
 
-            });
-
-
-            // Send successful JSON of scheduled document. Return encryptedPlaceholderID
-            return res.json({ success: true, data: {publish_id: encryptedPlaceholderID, upload_url: "scheduled" }})
-
-        }
+            })
 
 
-        // If not scheduled, then perform steps for TikTok upload via the API
-        // Get user TikTok initial upload info results by calling obtainInitialUpload and passing arguments below and return result
-        const userInitUpload = await obtainInitialUpload({ 
+            // If info is returned from initial upload, create a user document
+            if(userInitUpload){
 
-            tiktokUser: tiktokAccount, 
-            title: title, 
-            privacyLevel: privacyLevel, 
-            videoSize: videoSize,
-            allowComments: allowComments,
-            allowDuet: allowDuet,
-            allowStitch: allowStitch,
-            isYourOwnBrand: isYourOwnBrand,
-            isBrandedContent: isBrandedContent,
+                // Create document of initial post status by calling createUserPost from db controller repo
+                await createUserPost({
 
-        })
+                    userID: tiktokAccount.accountID,
+                    platformAccountID: tiktokAccount.platformAccountID,
+                    platform: "tiktok",
+                    postType: "video",
+                    publishID: userInitUpload.data.publish_id,
+                    status: "pending",
+                    title: title,
+                    scheduledDate: scheduleDate ? new Date(scheduleDate) : undefined,
+                    publishMediaStatus: !!scheduleDate ? "awaiting_schedule" : "published_to_platform",
+                    localFilePath: !!scheduleDate ? req.file?.path : undefined,
+                    privacyLevel: privacyLevel,
+                    allowComments: allowComments,
+                    allowDuet: allowDuet,
+                    allowStitch: allowStitch,
+                    isYourOwnBrand: isYourOwnBrand,
+                    isBrandedContent: isBrandedContent                
 
-
-        // If info is returned from initial upload, create a user document
-        if(userInitUpload){
-
-            // Create document of initial post status by calling createUserPost from db controller repo
-            await createUserPost({
-
-                userID: tiktokAccount.accountID,
-                platformAccountID: tiktokAccount.platformAccountID,
-                platform: "tiktok",
-                postType: "video",
-                publishID: userInitUpload.data.publish_id,
-                status: "pending",
-                title: title,
-                scheduledDate: scheduleDate ? new Date(scheduleDate) : undefined,
-                publishMediaStatus: !!scheduleDate ? "awaiting_schedule" : "published_to_platform",
-                localFilePath: !!scheduleDate ? req.file?.path : undefined,
-                privacyLevel: privacyLevel,
-                allowComments: allowComments,
-                allowDuet: allowDuet,
-                allowStitch: allowStitch,
-                isYourOwnBrand: isYourOwnBrand,
-                isBrandedContent: isBrandedContent                
-
-            });
+                });
 
 
-            // Send successful JSON 
-            return res.json({ success: true, data: userInitUpload.data})
+                // Push successful document. 
+                results.push({platformAccountID: tiktokAccount.platformAccountID, ...userInitUpload.data})
+
+            }
 
         }
-  
 
+
+        // Return the results
+        if(results.length > 0)
+            return res.json({success: true, data: results})
+
+        
         // Fallback in case nothing was returned
         return res.json({ success: false, message: "userInitUpload returned with no data from service call!"});
 
-  }catch(err){
+    }catch(err){
 
         console.error("Full error object:", err);
         console.error("Cause:", (err as Error).cause);
@@ -175,10 +187,11 @@ router.post("/initupload", findAccountAuth, findTikTokAccount, async (req: AuthU
     }
 
 
+
 });
 
 
-router.post("/upload", findAccountAuth, findTikTokAccount, upload.single('videoFile'), async (req: AuthUserRequest, res: Response) => {
+router.post("/upload", findAccountAuth, upload.single('videoFile'), async (req: AuthUserRequest, res: Response) => {
 
     // Get upload url from request and videoFile
     const {uploadURL, isScheduled} = req.body;
@@ -244,6 +257,7 @@ router.post("/poststatus", findAccountAuth, findTikTokAccount, async (req: AuthU
     const tiktokAccount: ISocialMediaAccount = req.tiktokAccount as ISocialMediaAccount;
 
 
+
     // Get publish id from req body
     const {publishID} = req.body;
 
@@ -272,7 +286,7 @@ router.post("/poststatus", findAccountAuth, findTikTokAccount, async (req: AuthU
 
             }catch(dbErr){
 
-                console.log("Failed to update DB error: ", dbErr);
+                console.error("Failed to update DB error: ", dbErr);
 
             }
 

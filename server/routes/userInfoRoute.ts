@@ -21,6 +21,7 @@ import {findScheduledPosts, findSpecificPostOfUser, updatePostApproval, updateAl
 import {findAllSocialMediaAccounts} from "../dbcontrollers/socialMediaAccountRepository.ts";
 import {validateAccountToken} from "../server_services/accountService.ts";
 import mongoose, { ObjectId, Types } from "mongoose";
+import { checkTokenIfExpired } from "../server_services/tiktokAuthService.ts";
 
 
 // Constants for expiraition of share token calendar
@@ -93,19 +94,37 @@ router.get("/getuser/:token", async (req: Request, res: Response) => {
 
 
 
-router.get("/queryinfo", findAccountAuth, findTikTokAccount, async (req: AuthUserRequest, res: Response) => {
+router.post("/queryinfo", findAccountAuth, findTikTokAccount, async (req: AuthUserRequest, res: Response) => {
 
     // Get tiktok account from req
-    const tiktokAccount: ISocialMediaAccount = req.tiktokAccount as ISocialMediaAccount;
+    const tiktokAccounts: ISocialMediaAccount[] = req.tiktokAccounts as ISocialMediaAccount[];
 
     try{
 
-         // Get user TikTok query by calling obtainQueryInfo and passing user as argument
-        const userQuery = await obtainQueryInfo(tiktokAccount);
+        const results = [];
 
-        // Send successful JSON 
-        if(userQuery)
-            return res.json({ success: true, data: userQuery.data})
+        for(const tiktokAccount of tiktokAccounts){
+
+
+            // Get user TikTok query by calling obtainQueryInfo and passing user as argument
+            const userQuery = await obtainQueryInfo(tiktokAccount);
+
+            // Send successful JSON 
+            if(userQuery)
+                results.push({
+            
+                    platformAccountID: tiktokAccount.platformAccountID,
+                    ...userQuery.data,
+
+                })
+
+        }
+
+
+        // Return any data found in results
+        if(results.length > 0)
+            return res.json({success: true, data: results});
+
 
         // Fallback in case nothing was returned
         return res.json({ success: false, message: "userQuery returned with no data from service call!"});
@@ -113,7 +132,7 @@ router.get("/queryinfo", findAccountAuth, findTikTokAccount, async (req: AuthUse
     }catch(err){
 
         console.error("Error: " + err);
-        return res.status(500).json({ success: false, message: "Unexpected error when fetching information!" });
+        return res.status(500).json({ success: false, message: "Unexpected error when fetching query information!" });
 
     }
 
@@ -137,17 +156,42 @@ router.get("/getconnectedaccounts", findAccountAuth, async (req: AuthUserRequest
         // Currently has TikTok but other APIs can be added here
         if(socialAccount.platform == "tiktok"){ // TikTok API check
 
-            const tiktokInfo = await obtainUserInfo(socialAccount);
+            // Skip any accounts without an accessToken
+            if(!socialAccount.accessToken) 
+                continue;
 
-            accounts.push({
+            try{
 
-                platform: "tiktok",
-                id: tiktokInfo.data.user.open_id,
-                name: tiktokInfo.data.user.display_name ?? "unkonwn",
-                handle: `@${tiktokInfo.data.user.username ?? "unknown"}`,
+                const refreshedTikTokAccount = await checkTokenIfExpired(String(socialAccount._id))
+
+                if(!refreshedTikTokAccount){
+
+                    console.error(`TikTok account ${socialAccount._id} token expired/invalid. Skipping to next one`);
+                    continue;
+                    
+                }
+
+                const tiktokInfo = await obtainUserInfo(refreshedTikTokAccount);
+
+                accounts.push({
+
+                    platform: "tiktok",
+                    id: tiktokInfo.data.user.open_id,
+                    name: tiktokInfo.data.user.display_name ?? "unkonwn",
+                    handle: `@${tiktokInfo.data.user.username ?? "unknown"}`,
 
 
-            });
+                });
+
+
+
+            }catch(err){
+
+
+
+
+            }
+
 
         }
 

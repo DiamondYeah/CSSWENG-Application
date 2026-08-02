@@ -2,6 +2,7 @@
 import SocialMediaAccount, { type ISocialMediaAccount, type platforms } from "../models/socialMediaAccount.ts"; 
 
 // Function returns Specific Social Media Account Info by checking Account ID and the platform to find a similar one in the database
+// Returns found document
 export async function findSpecificSocialMediaAccount(accountID: string, platform: platforms, platformAccountID?: string): Promise<ISocialMediaAccount | null>{
 
   if(platformAccountID)
@@ -13,8 +14,12 @@ export async function findSpecificSocialMediaAccount(accountID: string, platform
 
 
 // Function finds all social media accounts connected to the accountID and returns array of social media accounts connected to account
+// Returns array of found documents
 export async function findAllSocialMediaAccounts(accountID: string): Promise<ISocialMediaAccount[]>{
 
     return await SocialMediaAccount.find({accountID});
 
 }
+
+
+

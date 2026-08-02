@@ -12,6 +12,7 @@ import {type ISocialMediaAccount} from "../models/socialMediaAccount.ts";
 export interface AuthUserRequest extends Request{
 
     account?: IAccount;
-    tiktokAccount?: ISocialMediaAccount;
+    tiktokAccount?: ISocialMediaAccount; // Single TikTok Account
+    tiktokAccounts?: ISocialMediaAccount[]; // Array of TikTok Accounts
 
 }

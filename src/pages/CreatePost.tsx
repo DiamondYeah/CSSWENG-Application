@@ -1,15 +1,7 @@
 import "./CreatePost.css";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  IoArrowBack,
-  IoCloudUploadOutline,
-  IoCheckmark,
-  IoCalendarOutline,
-  IoChevronBack,
-  IoChevronForward,
-  IoTimeOutline,
-} from "react-icons/io5";
+import { IoArrowBack, IoCloudUploadOutline, IoCheckmark,} from "react-icons/io5";
 import { MdOutlineEmojiEmotions, MdOutlineAlternateEmail } from "react-icons/md";
 import { BsHash } from "react-icons/bs";
 import SchedulingTabs from "../components/SchedulingTabs";
@@ -19,9 +11,13 @@ import emptyPfp from "../assets/emptyPfp.jpg";
 import {useConnectAccounts} from "../hooks/connectAccounts.ts";
 import {useUserQueryInfo} from "../hooks/userQueryInfo.ts"
 import {usePostUpload} from "../hooks/postUpload.ts"
+import {getMergedTikTokQueryInfo} from "../frontend_utilities/tiktokUtilities.ts";
 
-// Import TikTok Settings Component
-import { TikTokSettings } from "../components/TikTokSettings.tsx";
+// Import Components for the CreatePost
+import TikTokSettings from "../components/TikTokSettings.tsx";
+import DatePicker from "../components/DatePicker.tsx";
+import TimePicker from "../components/TimePicker.tsx";
+import TikTokConsent from "../components/TikTokConsent.tsx";
 
 // Shared frontend-only category store (same data Category.tsx and
 // Calendar.tsx read/write). Purely in-memory for now — no backend calls
@@ -54,474 +50,17 @@ function PlatformSettingsPlaceholder({ platformLabel }: { platformLabel: string 
 }
 
 
-// ---------- Sample demo accounts for testing the platform-settings switching ---------- //
-// Not real connected accounts — clearly labeled as demo so there's no confusion with
-// accounts actually fetched from useConnectAccounts(). Toggled on/off, never mixed in silently.
 
-interface DemoAccount {
-  id: string;
-  name: string;
-  handle: string;
-  platform: string;
-}
-
-const DEMO_ACCOUNTS: DemoAccount[] = [
-  { id: "demo-tiktok", name: "Demo TikTok", handle: "@demo.tiktok", platform: "tiktok" },
-  { id: "demo-linkedin", name: "Demo LinkedIn", handle: "@demo.linkedin", platform: "linkedin" },
-  { id: "demo-facebook", name: "Demo Facebook", handle: "@demo.facebook", platform: "facebook" },
-  { id: "demo-instagram", name: "Demo Instagram", handle: "@demo.instagram", platform: "instagram" },
-];
-
-// ---------- Demo accounts matching the shared categoryStore's demo category IDs ---------- //
-// The categoryStore's default categories (Product Launches, Behind the Scenes, Client Work)
-// reference account IDs acc-1..acc-4 — same IDs Category.tsx and Calendar.tsx use for their
-// own demo fallback accounts. These are ONLY pulled in when "Show demo categories" is on, so
-// the category quick-select has something real to filter, and are never mixed into a real
-// submission (same demo-id guard pattern as DEMO_ACCOUNTS above).
-
-const DEMO_CATEGORY_ACCOUNTS: DemoAccount[] = [
-  { id: "acc-1", name: "AgilaPost Official", handle: "@agilapost", platform: "instagram" },
-  { id: "acc-2", name: "AgilaPost Biz", handle: "@agilapostbiz", platform: "linkedin" },
-  { id: "acc-3", name: "Creator Hub", handle: "@creatorhub", platform: "tiktok" },
-  { id: "acc-4", name: "Community Page", handle: "@communitypage", platform: "facebook" },
-];
-
-
-// ---------- Date picker (visual calendar for scheduling) ---------- //
-
-const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
-function toDateInputValue(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
-// Accepts YYYY-MM-DD, MM/DD/YYYY, or M/D/YYYY typed by hand.
-// Returns a valid "YYYY-MM-DD" string, or null if the text doesn't
-// resolve to a real calendar date (so callers never commit garbage).
-function parseTypedDate(text: string): string | null {
-  const trimmed = text.trim();
-  if (!trimmed) return null;
-
-  let y: number, m: number, d: number;
-
-  const isoMatch = trimmed.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-  const slashMatch = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-
-  if (isoMatch) {
-    y = parseInt(isoMatch[1], 10);
-    m = parseInt(isoMatch[2], 10);
-    d = parseInt(isoMatch[3], 10);
-  } else if (slashMatch) {
-    m = parseInt(slashMatch[1], 10);
-    d = parseInt(slashMatch[2], 10);
-    y = parseInt(slashMatch[3], 10);
-  } else {
-    return null;
-  }
-
-  if (m < 1 || m > 12 || d < 1 || d > 31) return null;
-
-  const candidate = new Date(y, m - 1, d);
-  // Reject dates that overflowed (e.g. Feb 30 rolling into March)
-  if (candidate.getFullYear() !== y || candidate.getMonth() !== m - 1 || candidate.getDate() !== d) {
-    return null;
-  }
-
-  return toDateInputValue(candidate);
-}
-
-function isSameDate(a: Date, b: Date): boolean {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
-}
-
-const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-type DatePickerView = "days" | "months" | "years";
-
-interface DatePickerProps {
-  value: string; // "YYYY-MM-DD" or ""
-  onChange: (value: string) => void;
-}
-
-function DatePicker({ value, onChange }: DatePickerProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [view, setView] = useState<DatePickerView>("days");
-  const [draftText, setDraftText] = useState(value);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const selectedDate = value ? new Date(value + "T00:00:00") : null;
-  const [cursorMonth, setCursorMonth] = useState(() => {
-    const base = selectedDate ?? today;
-    return new Date(base.getFullYear(), base.getMonth(), 1);
-  });
-  // Anchors the 12-year block shown in the years view, independent of cursorMonth
-  // so paging through years doesn't jump the visible day-grid month.
-  const [yearBlockStart, setYearBlockStart] = useState(() => Math.floor(cursorMonth.getFullYear() / 12) * 12);
-
-  const year = cursorMonth.getFullYear();
-  const month = cursorMonth.getMonth();
-  const monthLabel = cursorMonth.toLocaleString("en-US", { month: "long", year: "numeric" });
-
-  const weeks: { date: Date; inMonth: boolean }[][] = (() => {
-    const firstOfMonth = new Date(year, month, 1);
-    const jsDay = firstOfMonth.getDay(); // 0=Sun..6=Sat
-    const mondayOffset = (jsDay + 6) % 7;
-    const gridStart = new Date(year, month, 1 - mondayOffset);
-
-    const result: { date: Date; inMonth: boolean }[][] = [];
-    const cursor = new Date(gridStart);
-    for (let w = 0; w < 6; w++) {
-      const week: { date: Date; inMonth: boolean }[] = [];
-      for (let d = 0; d < 7; d++) {
-        week.push({ date: new Date(cursor), inMonth: cursor.getMonth() === month });
-        cursor.setDate(cursor.getDate() + 1);
-      }
-      result.push(week);
-    }
-    return result;
-  })();
-
-  const goPrevMonth = () => setCursorMonth(new Date(year, month - 1, 1));
-  const goNextMonth = () => setCursorMonth(new Date(year, month + 1, 1));
-  const goPrevYearBlock = () => setYearBlockStart((y) => y - 12);
-  const goNextYearBlock = () => setYearBlockStart((y) => y + 12);
-
-  const handlePick = (d: Date) => {
-    const formatted = toDateInputValue(d);
-    onChange(formatted);
-    setDraftText(formatted);
-    setIsOpen(false);
-    setView("days");
-  };
-
-  const commitTypedText = () => {
-    const parsed = parseTypedDate(draftText);
-    if (parsed) {
-      onChange(parsed);
-      setDraftText(parsed);
-      setCursorMonth(new Date(parseInt(parsed.slice(0, 4), 10), parseInt(parsed.slice(5, 7), 10) - 1, 1));
-    } else {
-      // Invalid text — revert the field to whatever the last valid value was
-      // rather than silently accepting something that can't feed the backend.
-      setDraftText(value);
-    }
-  };
-
-  const handlePickMonth = (m: number) => {
-    setCursorMonth(new Date(year, m, 1));
-    setView("days");
-  };
-
-  const handlePickYear = (y: number) => {
-    setCursorMonth(new Date(y, month, 1));
-    setYearBlockStart(Math.floor(y / 12) * 12);
-    setView("months");
-  };
-
-  const displayLabel = selectedDate
-    ? selectedDate.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })
-    : "";
-
-  return (
-    <div className="cp-datepicker">
-      <div className="cp-datepicker__trigger">
-        <button
-          type="button"
-          className="cp-datepicker__icon-btn"
-          onClick={() => { setIsOpen((v) => !v); setView("days"); }}
-          aria-label="Open calendar"
-        >
-          <IoCalendarOutline size={16} />
-        </button>
-        <input
-          type="text"
-          className="cp-datepicker__input"
-          placeholder="MM/DD/YYYY"
-          value={isOpen ? draftText : (value ? displayLabel : draftText)}
-          onFocus={() => { setIsOpen(true); setDraftText(value); }}
-          onChange={(e) => setDraftText(e.target.value)}
-          onBlur={commitTypedText}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") { commitTypedText(); (e.target as HTMLInputElement).blur(); }
-            if (e.key === "Escape") { setDraftText(value); setIsOpen(false); (e.target as HTMLInputElement).blur(); }
-          }}
-        />
-      </div>
-
-      {isOpen && (
-        <>
-          <div className="cp-datepicker__backdrop" onClick={() => { setIsOpen(false); setView("days"); }} />
-          <div className="cp-datepicker__popover">
-            {view === "days" && (
-              <>
-                <div className="cp-datepicker__nav">
-                  <button type="button" onClick={goPrevMonth} aria-label="Previous month">
-                    <IoChevronBack size={16} />
-                  </button>
-                  <button
-                    type="button"
-                    className="cp-datepicker__nav-label"
-                    onClick={() => setView("months")}
-                  >
-                    {monthLabel}
-                  </button>
-                  <button type="button" onClick={goNextMonth} aria-label="Next month">
-                    <IoChevronForward size={16} />
-                  </button>
-                </div>
-
-                <div className="cp-datepicker__weekdays">
-                  {WEEKDAY_LABELS.map((d) => (
-                    <span key={d}>{d}</span>
-                  ))}
-                </div>
-
-                {weeks.map((week, wi) => (
-                  <div key={wi} className="cp-datepicker__week">
-                    {week.map(({ date, inMonth }, di) => {
-                      const isPast = date < today;
-                      const isSelected = selectedDate ? isSameDate(date, selectedDate) : false;
-                      const isToday = isSameDate(date, today);
-                      return (
-                        <button
-                          type="button"
-                          key={di}
-                          disabled={isPast}
-                          onClick={() => handlePick(date)}
-                          className={[
-                            "cp-datepicker__day",
-                            !inMonth ? "is-outside" : "",
-                            isSelected ? "is-selected" : "",
-                            isToday && !isSelected ? "is-today" : "",
-                            isPast ? "is-past" : "",
-                          ].filter(Boolean).join(" ")}
-                        >
-                          {date.getDate()}
-                        </button>
-                      );
-                    })}
-                  </div>
-                ))}
-              </>
-            )}
-
-            {view === "months" && (
-              <>
-                <div className="cp-datepicker__nav">
-                  <span />
-                  <button
-                    type="button"
-                    className="cp-datepicker__nav-label"
-                    onClick={() => setView("years")}
-                  >
-                    {year}
-                  </button>
-                  <span />
-                </div>
-                <div className="cp-datepicker__grid3">
-                  {MONTH_LABELS.map((label, m) => (
-                    <button
-                      type="button"
-                      key={label}
-                      className={`cp-datepicker__cell${m === month ? " is-selected" : ""}`}
-                      onClick={() => handlePickMonth(m)}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-
-            {view === "years" && (
-              <>
-                <div className="cp-datepicker__nav">
-                  <button type="button" onClick={goPrevYearBlock} aria-label="Previous years">
-                    <IoChevronBack size={16} />
-                  </button>
-                  <span>{yearBlockStart} – {yearBlockStart + 11}</span>
-                  <button type="button" onClick={goNextYearBlock} aria-label="Next years">
-                    <IoChevronForward size={16} />
-                  </button>
-                </div>
-                <div className="cp-datepicker__grid3">
-                  {Array.from({ length: 12 }, (_, i) => yearBlockStart + i).map((y) => (
-                    <button
-                      type="button"
-                      key={y}
-                      className={`cp-datepicker__cell${y === year ? " is-selected" : ""}`}
-                      onClick={() => handlePickYear(y)}
-                    >
-                      {y}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-
-// ---------- Time picker (visual clock/list for scheduling) ---------- //
-
-function formatTimeLabel(time24: string): string {
-  const [hStr, m] = time24.split(":");
-  const h = parseInt(hStr, 10);
-  const period = h >= 12 ? "PM" : "AM";
-  const h12 = h % 12 === 0 ? 12 : h % 12;
-  return `${h12}:${m} ${period}`;
-}
-
-function buildTimeSlots(): string[] {
-  const slots: string[] = [];
-  for (let h = 0; h < 24; h++) {
-    for (const m of [0, 15, 30, 45]) {
-      slots.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
-    }
-  }
-  return slots;
-}
-
-const TIME_SLOTS = buildTimeSlots();
-
-// Accepts "2:30 PM", "2:30pm", "14:30", or "1430" typed by hand.
-// Returns a valid "HH:MM" 24hr string, or null if it doesn't resolve
-// to a real time (so callers never commit garbage to the payload).
-function parseTypedTime(text: string): string | null {
-  const trimmed = text.trim().toLowerCase();
-  if (!trimmed) return null;
-
-  const ampmMatch = trimmed.match(/^(\d{1,2}):?(\d{2})?\s*(am|pm)$/);
-  const h24Match = trimmed.match(/^(\d{1,2}):(\d{2})$/);
-  const digitsMatch = trimmed.match(/^(\d{1,2})(\d{2})$/);
-
-  let h: number, m: number;
-
-  if (ampmMatch) {
-    h = parseInt(ampmMatch[1], 10);
-    m = ampmMatch[2] ? parseInt(ampmMatch[2], 10) : 0;
-    const period = ampmMatch[3];
-    if (h < 1 || h > 12) return null;
-    if (period === "pm" && h !== 12) h += 12;
-    if (period === "am" && h === 12) h = 0;
-  } else if (h24Match) {
-    h = parseInt(h24Match[1], 10);
-    m = parseInt(h24Match[2], 10);
-  } else if (digitsMatch) {
-    h = parseInt(digitsMatch[1], 10);
-    m = parseInt(digitsMatch[2], 10);
-  } else {
-    return null;
-  }
-
-  if (h < 0 || h > 23 || m < 0 || m > 59) return null;
-
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-}
-
-interface TimePickerProps {
-  value: string; // "HH:MM" 24hr, or ""
-  onChange: (value: string) => void; // always emits "HH:MM" 24hr, same as native <input type="time">
-}
-
-function TimePicker({ value, onChange }: TimePickerProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [draftText, setDraftText] = useState(value ? formatTimeLabel(value) : "");
-
-  const handlePick = (slot: string) => {
-    onChange(slot);
-    setDraftText(formatTimeLabel(slot));
-    setIsOpen(false);
-  };
-
-  const commitTypedText = () => {
-    const parsed = parseTypedTime(draftText);
-    if (parsed) {
-      onChange(parsed);
-      setDraftText(formatTimeLabel(parsed));
-    } else {
-      // Invalid text — revert to the last valid value rather than
-      // silently accepting something that can't feed the backend.
-      setDraftText(value ? formatTimeLabel(value) : "");
-    }
-  };
-
-  return (
-    <div className="cp-timepicker">
-      <div className="cp-timepicker__trigger">
-        <button
-          type="button"
-          className="cp-timepicker__icon-btn"
-          onClick={() => setIsOpen((v) => !v)}
-          aria-label="Open time list"
-        >
-          <IoTimeOutline size={16} />
-        </button>
-        <input
-          type="text"
-          className="cp-timepicker__input"
-          placeholder="e.g. 2:30 PM"
-          value={draftText}
-          onFocus={() => setIsOpen(true)}
-          onChange={(e) => setDraftText(e.target.value)}
-          onBlur={commitTypedText}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") { commitTypedText(); (e.target as HTMLInputElement).blur(); }
-            if (e.key === "Escape") { setDraftText(value ? formatTimeLabel(value) : ""); setIsOpen(false); (e.target as HTMLInputElement).blur(); }
-          }}
-        />
-      </div>
-
-      {isOpen && (
-        <>
-          <div className="cp-timepicker__backdrop" onClick={() => setIsOpen(false)} />
-          <div className="cp-timepicker__popover">
-            {TIME_SLOTS.map((slot) => (
-              <button
-                type="button"
-                key={slot}
-                onClick={() => handlePick(slot)}
-                className={`cp-timepicker__slot${slot === value ? " is-selected" : ""}`}
-              >
-                {formatTimeLabel(slot)}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-
+// Main function for the create post page
 function CreatePost() {
 
   const navigate = useNavigate();
-  const {accounts: realAccounts, isLoading: accountsLoading, error: accountsError} = useConnectAccounts();
-  const [showDemoAccounts, setShowDemoAccounts] = useState<boolean>(false);
-  // "Show demo categories" pulls in the acc-1..acc-4 demo accounts that match the
-  // shared categoryStore's default categories, kept separate from showDemoAccounts
-  // since these two demo sets exist for different reasons (settings preview vs.
-  // previewing the category quick-select).
-  const [showDemoCategories, setShowDemoCategories] = useState<boolean>(false);
-  const accounts = [
-    ...realAccounts,
-    ...(showDemoAccounts ? DEMO_ACCOUNTS : []),
-    ...(showDemoCategories ? DEMO_CATEGORY_ACCOUNTS : []),
-  ];
-  const {queryInfo} = useUserQueryInfo();
+  const {accounts: accounts, isLoading: accountsLoading, error: accountsError} = useConnectAccounts();
+
+  // Find tiktok IDs from social media accounts and get specific query info if needed
+  const tiktokIDs = accounts.filter(acc => acc.platform == "tiktok").map(acc => acc.id);
+  const {queryInfo, getSpecificQueryInfo} = useUserQueryInfo(tiktokIDs);
+
   const {isUploading, uploadStatus, uploadPost} = usePostUpload();
 
   // Categories come from the same shared store Category.tsx and Calendar.tsx use.
@@ -577,6 +116,32 @@ function CreatePost() {
   const isPhotoPost = !!mediaFile && mediaFile.type.startsWith("image/");
 
 
+  // useEffect for adjusting privacy options depending on commercial content
+  useEffect(() => {
+
+    // If branded content is activated and privacy level is set to SELF_ONLY, remove it and show error.
+    if (isBrandedContent && privacyLevel === "SELF_ONLY") {
+      setPrivacyLevel("");
+      setValidationMessage("Error! Branded content visibility cannot be set to private. Please choose a different privacy setting.");
+    }
+
+  }, [isBrandedContent, privacyLevel]);
+
+
+  // Removes URL object from mediaFilePreview on unmount/leaving the page to prevent memory leaks
+  useEffect(() => {
+
+    return () => {
+
+      if(mediaFilePreview)
+        URL.revokeObjectURL(mediaFilePreview);
+
+    }
+
+
+  }, [mediaFilePreview]);
+
+
   function toggleAccount(id: string) {
     setSelectedAccounts((prev) =>
       prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id]
@@ -593,11 +158,13 @@ function CreatePost() {
     }))
     .filter((cat) => cat.memberAccounts.length > 0);
 
+
   // A category reads as "checked" only when every one of its member accounts
   // currently present here is selected.
   function isCategoryChecked(memberIds: string[]): boolean {
     return memberIds.length > 0 && memberIds.every((id) => selectedAccounts.includes(id));
   }
+
 
   // Toggling a category selects/deselects all of its member accounts together.
   function toggleCategory(memberIds: string[]) {
@@ -611,6 +178,7 @@ function CreatePost() {
     });
   }
 
+
   // Function handles any file uploads in HTML input file and stores it in mediaFile const
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
 
@@ -618,6 +186,7 @@ function CreatePost() {
 
     if (!file)
       return;
+
 
     // Checks if file size exceeds the given MAX_MEDIA_FILE constant. If so, show error and return
     if(file.size > MAX_MEDIA_FILE_SIZE){
@@ -630,37 +199,57 @@ function CreatePost() {
 
 
     // Clean up previous preview URL if data is stored in media preview to prevent memory leaks
-    if(mediaFilePreview)
-      URL.revokeObjectURL(mediaFilePreview);
+    if(mediaFilePreview){
 
-    
+      URL.revokeObjectURL(mediaFilePreview);
+      setMediaFilePreview(null);
+
+    }
+
+
     // Create a preview URL object for the uploaded video file and update mediaFilePreview
     const previewURL = URL.createObjectURL(file);
     setMediaFilePreview(previewURL);
 
+    setMediaFile(file);
+    setValidationMessage("");
+    setMediaError(false);
 
-    if (queryInfo && file.type.startsWith("video/")) {
+
+    const firstQueryInfo = queryInfo?.[0] ?? null;
+
+
+    if (firstQueryInfo && file.type.startsWith("video/")) {
+
+      // Get max duration of all of the selecegted accounts for TikTok
+      const maxVideoLength = getMergedTikTokQueryInfo(selectedAccounts, accounts, getSpecificQueryInfo)?.max_video_post_duration_sec ?? Infinity;
+
 
       // Create new video document and assign its source to the url of a file
       const video = document.createElement("video");
-      video.src = URL.createObjectURL(file);
+      const checkURL = URL.createObjectURL(file);
+      video.src = checkURL;
+
       video.onloadedmetadata = () => {
 
+        URL.revokeObjectURL(checkURL);
+
+        
         // Check if video duration exceeds the maximum allowed limit for the user's TikTok Account
-        if (video.duration > queryInfo.max_video_post_duration_sec) {
+        if (video.duration > maxVideoLength) {
 
           setMediaError(true);
-          setValidationMessage(`Video exceeds maximum duration of TikTok's allowed post duration of ${queryInfo.max_video_post_duration_sec} seconds.`);
+          setValidationMessage(`Video exceeds maximum duration of TikTok's allowed post duration of ${firstQueryInfo.max_video_post_duration_sec} seconds.`);
           URL.revokeObjectURL(video.src);
+          setMediaFile(null);
+
+          if(previewURL)
+            URL.revokeObjectURL(previewURL); 
+            
           setMediaFilePreview(null);
           return;
 
         }
-
-        setMediaFile(file);
-        setValidationMessage("");
-        setMediaError(false);
-        URL.revokeObjectURL(video.src);
 
       };
 
@@ -716,14 +305,6 @@ function CreatePost() {
     if (missingCommercialContent)
       return setValidationMessage("Error! You need to indicate if your content promotes yourself, a third party, or both.");
 
-    // Guard: demo accounts are for previewing the settings/category UI only, never for real
-    // submission. Covers both the "demo-*" settings-preview accounts and the acc-1..acc-4
-    // category-preview accounts.
-    const demoCategoryIds = new Set(DEMO_CATEGORY_ACCOUNTS.map(a => a.id));
-    const selectedDemoAccounts = selectedAccounts.filter(id => id.startsWith("demo-") || demoCategoryIds.has(id));
-    if (selectedDemoAccounts.length > 0)
-      return setValidationMessage("Demo accounts are for previewing settings/categories only — deselect them and choose a real connected account before posting.");
-
     // Validation checking if selected accounts is 0
     if (selectedAccounts.length === 0)
       return setValidationMessage("Please select an account to upload to!");
@@ -749,54 +330,11 @@ function CreatePost() {
       scheduleDate: scheduleMode === "schedule" && scheduleDate
         ? new Date(`${scheduleDate}T${scheduleTime || "00:00"}`)
         : undefined,
+      socialMediaAccountsIDs: selectedAccounts,
+
     });
 
   }
-
-  // Function returns TikTok User Consent depending on which are selected for Commercial Content and Promotion
-  function getTikTokUserConsent() {
-
-    if (isCommercialContent && isBrandedContent)
-      return (
-        <p>By posting, you agree to TikTok's{" "}
-          <a href="https://www.tiktok.com/legal/page/global/bc-policy/en">Branded Content Policy</a> and{" "}
-          <a href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en">Music Usage Confirmation.</a>
-        </p>
-      );
-
-    return (
-      <p>By posting, you agree to TikTok's{" "}
-        <a href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en">Music Usage Confirmation.</a>
-      </p>
-    );
-
-  }
-
-  // useEffect for adjusting privacy options depending on commercial content
-  useEffect(() => {
-
-    // If branded content is activated and privacy level is set to SELF_ONLY, remove it and show error.
-    if (isBrandedContent && privacyLevel === "SELF_ONLY") {
-      setPrivacyLevel("");
-      setValidationMessage("Branded content visibility cannot be set to private. Please choose a different privacy setting.");
-    }
-
-  }, [isBrandedContent, privacyLevel]);
-
-
-  // Removes URL object from mediaFilePreview on unmount/leaving the page to prevent memory leaks
-  useEffect(() => {
-
-    return () => {
-
-      if(mediaFilePreview)
-        URL.revokeObjectURL(mediaFilePreview);
-
-    }
-
-
-  }, [mediaFilePreview]);
-
 
 
   return (
@@ -816,24 +354,6 @@ function CreatePost() {
             <div className="cp-card cp-accounts-card">
               <div className="cp-section-title">Post to</div>
               <div className="cp-section-sub">Select one or more accounts</div>
-
-              <label className="cp-demo-toggle">
-                <input
-                  type="checkbox"
-                  checked={showDemoAccounts}
-                  onChange={(e) => setShowDemoAccounts(e.target.checked)}
-                />
-                Show demo accounts (for previewing settings only)
-              </label>
-
-              <label className="cp-demo-toggle">
-                <input
-                  type="checkbox"
-                  checked={showDemoCategories}
-                  onChange={(e) => setShowDemoCategories(e.target.checked)}
-                />
-                Show demo categories (for previewing category select only)
-              </label>
 
               {categoriesWithAccounts.length > 0 && (
                 <div className="cp-category-quickselect">
@@ -876,17 +396,21 @@ function CreatePost() {
 
                 {accounts.map((acc) => {
                   const selected = selectedAccounts.includes(acc.id);
-                  const isDemo = acc.id.startsWith("demo-") || DEMO_CATEGORY_ACCOUNTS.some(d => d.id === acc.id);
+
+
+                  let accQueryInfo = null;
+
+                  if(acc.platform == "tiktok")
+                    accQueryInfo = getSpecificQueryInfo(acc.id);
+
 
                   // Show TikTok avatar from queryInfo if available
-                  const avatarSrc = (queryInfo && acc.platform === "tiktok")
-                    ? queryInfo.creator_avatar_url
-                    : emptyPfp;
+                  const avatarSrc = accQueryInfo?.creator_avatar_url ?? emptyPfp;
 
                   return (
                     <div
                       key={acc.id}
-                      className={`cp-account-row${selected ? " selected" : ""}${isDemo ? " is-demo" : ""}`}
+                      className={`cp-account-row${selected ? " selected" : ""}`}
                       onClick={() => toggleAccount(acc.id)}
                     >
                       <div className="cp-account-checkbox">
@@ -895,7 +419,7 @@ function CreatePost() {
                       <img src={avatarSrc} alt="" />
                       <div className="cp-account-info">
                         <span className="cp-account-name">
-                          {acc.name}{isDemo && <span className="cp-demo-badge">DEMO</span>}
+                          {acc.name}
                         </span>
                         <span className="cp-account-handle">{acc.handle}</span>
                         <span className="cp-account-platform">{acc.platform}</span>
@@ -999,9 +523,9 @@ function CreatePost() {
 
                         <div className="cp-media-preview-title">Video Preview</div>
 
-                        <video className = "cp-media-preview" height = "320" width = "500" controls>
+                        <video className = "cp-media-preview" height = "320" width = "500" key = {mediaFilePreview} controls>
 
-                          <source src = {mediaFilePreview} type = "video/mp4" ></source>
+                          <source src = {mediaFilePreview} type = {mediaFile.type} ></source>
                           Browser does not support video format for preview.
 
                         </video>
@@ -1029,11 +553,11 @@ function CreatePost() {
                 ) : (
                   <>
                     <div className="cp-dropzone-title">Click or drag files to upload</div>
-                    <div className="cp-dropzone-sub">PNG, JPG, MP4 up to 750MB</div>
+                    <div className="cp-dropzone-sub">PNG, JPG, MP4, and PDF up to 750MB</div>
                   </>
                 )}
 
-                <input id="media-upload" type="file" accept="video/mp4, image/png, image/jpg"
+                <input id="media-upload" type="file" accept="video/mp4, image/png, image/jpeg, application/pdf"
                   onChange={(e) => handleFileSelect(e)} />
 
               </div>
@@ -1045,7 +569,7 @@ function CreatePost() {
                 <div className="cp-platform-settings-group">
                   {uniquePlatforms.includes("tiktok") && (
                     <TikTokSettings
-                      queryInfo={queryInfo}
+                      queryInfo={getMergedTikTokQueryInfo(selectedAccounts, accounts, getSpecificQueryInfo)}
                       privacyLevel={privacyLevel}
                       isPhotoPost={isPhotoPost}
                       setPrivacyLevel={(val) => { setPrivacyLevel(val); setPrivacyError(false); }}
@@ -1142,7 +666,7 @@ function CreatePost() {
               {/** TikTok consent notice — only relevant when TikTok is selected */}
               {uniquePlatforms.includes("tiktok") && (
                 <div className="cp-tiktok-consent-notice">
-                  {getTikTokUserConsent()}
+                  {TikTokConsent({isCommercialContent, isYourOwnBrand, isBrandedContent})}
                 </div>
               )}
 

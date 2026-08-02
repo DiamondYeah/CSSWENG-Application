@@ -27,7 +27,7 @@ interface TikTokSettingsDetails{
 
 
 // Function export components primarily for different settings/option when posting to TikTok API
-export function TikTokSettings({queryInfo, privacyLevel, isPhotoPost, setPrivacyLevel, privacyError, allowComments,
+function TikTokSettings({queryInfo, privacyLevel, isPhotoPost, setPrivacyLevel, privacyError, allowComments,
     setAllowComments, allowDuet, setAllowDuet, allowStitch, setAllowStitch, isCommercialContent, setIsCommercialContent,
     isYourOwnBrand, setIsYourOwnBrand, isBrandedContent, setIsBrandedContent, commercialContentError}: TikTokSettingsDetails): React.JSX.Element{
 
@@ -221,3 +221,6 @@ export function TikTokSettings({queryInfo, privacyLevel, isPhotoPost, setPrivacy
         </>
     );
 }
+
+
+export default TikTokSettings;

@@ -7,7 +7,7 @@ import {type ScheduledPost} from "../types/post.ts"
 
 // Import controller and frontend utilities functions
 import { fetchSharedCalenderToken, fetchUserInfoViaToken } from "../controller/fetchController.ts";
-import { mapPostToSchedulePost } from "../frontend_utilities/calendarUtilities.ts";
+import { mapPostToSchedulePost } from "../frontend_utilities/postMappingUtilities.ts";
 
 // Import calendar share actions from fetch controller
 import {fetchPostToApprove, fetchPostToReject, fetchAllPostsToApprove, fetchAllPostsToReject, fetchPostToComment} from "../controller/fetchController.ts";

@@ -33,6 +33,7 @@ interface TiktokAPIResponseSeconds{
 
 
 // Function creates a new user document if open id has not yet existed. Else, updates current one
+// Returns found or modified document
 export async function createOrSaveUserTokens(tiktokAPI: TiktokAPIResponse): Promise<ISocialMediaAccount | null>{
 
     return await SocialMediaAccount.findOneAndUpdate(
@@ -53,6 +54,7 @@ export async function createOrSaveUserTokens(tiktokAPI: TiktokAPIResponse): Prom
 
 // Function creates a new user document if open id has not yet existed. Else, updates current one
 // Version uses Date for tokenExpiresIn and refreshExpiresIn
+// Returns found or modified document
 export async function createOrSaveUserTokensFromSeconds(tiktokAPI: TiktokAPIResponseSeconds): Promise<ISocialMediaAccount | null>{
 
 
@@ -67,9 +69,8 @@ export async function createOrSaveUserTokensFromSeconds(tiktokAPI: TiktokAPIResp
 }
 
 
-
-
 // Function returns User Info by checking userID parameter
+// Returns found document
 export async function findUserByID(userID: string): Promise<ISocialMediaAccount | null>{
 
     return await SocialMediaAccount.findById(userID);
@@ -77,3 +78,13 @@ export async function findUserByID(userID: string): Promise<ISocialMediaAccount 
 }
 
 
+// Function finds specific tiktok Account by checking tiktok account id and removing the accesstoken and refreshtoken
+// Returns modified document
+export async function removeTikTokTokens(userID: string): Promise<ISocialMediaAccount | null>{
+
+    return await SocialMediaAccount.findByIdAndUpdate(userID, 
+        {accessToken: "", refreshToken: ""}, 
+        { returnDocument: "after" }
+    );
+
+}
