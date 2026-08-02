@@ -162,7 +162,7 @@ export function usePostUpload(){
 
     
         // Get initial upload info from initializeUploadPost and store info result
-        const initUploadResults = await initializeUploadPost(postDetails.title, postDetails.privacyLevel, postDetails.mediaFile.size, 
+        const initUploadResults = await initializeUploadPost(postDetails.title, postDetails.privacyLevel, postDetails.mediaFile!.size, 
                                                               postDetails.allowComments, postDetails.allowDuet, postDetails.allowStitch,
                                                               postDetails.isYourOwnBrand, postDetails.isBrandedContent, postDetails.scheduleDate, 
                                                               postDetails.socialMediaAccountsIDs);
@@ -185,7 +185,7 @@ export function usePostUpload(){
           if(postDetails.scheduleDate){
 
             // Upload to route the details of the scheduled post
-            const scheduleUploadResult = await uploadToTikTok(postDetails.mediaFile, initUploadResults.data[0].upload_url, true);
+            const scheduleUploadResult = await uploadToTikTok(postDetails.mediaFile!, initUploadResults.data[0].upload_url, true);
 
             if(scheduleUploadResult.data?.localFilePath){
 
@@ -220,7 +220,7 @@ export function usePostUpload(){
               try{
 
                 // Upload to TikTok each immediate post
-                await uploadToTikTok(postDetails.mediaFile, result.upload_url, false);
+                await uploadToTikTok(postDetails.mediaFile!, result.upload_url, false);
 
                 // Call loopCheckMediaStatus to continously check for final status until it either stops processing or timeout occurs in loop
                 await loopCheckMediaStatus({data: result}, result.platformAccountID); 
