@@ -7,6 +7,7 @@ const LOGOUT_DIRECT = `${API_BASE}/account/logout`;
 const DISCONNECT_DIRECT = `${API_BASE}/logAuth/disconnect`;
 const ACCOUNTINFO_DIRECT = `${API_BASE}/account/accountinfo`;
 const USERINFO_DIRECT = `${API_BASE}/userInfo/getuserinfo`;
+const CONNECTEDACCCOUNTS_DIRECT = `${API_BASE}/userInfo/getconnectedaccounts`;
 const USER_TOKEN_DIRECT = `${API_BASE}/userInfo/getuser`
 const QUERY_DIRECT = `${API_BASE}/userInfo/queryinfo`;
 const INITIAL_UPLOAD_DIRECT = `${API_BASE}/videoUpload/initupload`;
@@ -43,7 +44,7 @@ export async function registerAccount(username: string, email: string, password:
 
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" },
         body: JSON.stringify({username, email, password}),
 
     })
@@ -65,7 +66,7 @@ export async function loginAccount(username: string, password: string){
 
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true"},
+        headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" },
         body: JSON.stringify({username, password}),
 
     })
@@ -118,13 +119,15 @@ export async function fetchAccountInfo(){
 
 
 // Funcation calls router to disconnect TikTok user
-export async function disconnectTikTokUser(){
+export async function disconnectTikTokUser(platformAccountID: string){
 
     const res = await fetch(DISCONNECT_DIRECT,
     {
 
         method: "POST",
         credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({platformAccountID}),
 
 
     })
@@ -225,6 +228,24 @@ export async function fetchFacebookUserInfo(){
 
 }
 
+// Function calls router user info from API to obtain connnected social media acccounts of user
+export async function fetchConnectedAccounts(){
+
+    // Fetch router with credentials
+    const res = await fetch(CONNECTEDACCCOUNTS_DIRECT, 
+    {
+        credentials: "include",
+
+    })
+
+    // Convert res to json and return
+    const connectedAccountsInfo = await res.json();
+
+    return connectedAccountsInfo;
+
+}
+
+
 // Function calls router user info from API via the shared token to obtain user information
 export async function fetchUserInfoViaToken(token: string){
 
@@ -244,13 +265,16 @@ export async function fetchUserInfoViaToken(token: string){
 
 
 // Function calls router to fetch query info of user from API to determine publish and video settings
-export async function fetchQueryInfo(){
+export async function fetchQueryInfo(socialMediaAccountsIDs: string[]){
 
     // Fetch router with credentials
     const res = await fetch(QUERY_DIRECT, {
 
+        method: "POST",
         credentials: "include",
-
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({socialMediaAccountsIDs}),
+        
     })
 
     // Convert res to json and return
@@ -265,7 +289,7 @@ export async function fetchQueryInfo(){
 // Function calls router to prepare video for upload from API by giving parameter details to obtain publishID and uploadURL
 export async function initializeUploadPost(title: string, privacyLevel: string, videoSize: number, allowComments: boolean,
                                             allowDuet: boolean, allowStitch: boolean, isYourOwnBrand: boolean, isBrandedContent: boolean,
-                                             scheduleDate?: Date){
+                                             scheduleDate?: Date, socialMediaAccountsIDs?: string[]){
 
     // Fetch router with credentials
     const res = await fetch(INITIAL_UPLOAD_DIRECT, {
@@ -283,7 +307,8 @@ export async function initializeUploadPost(title: string, privacyLevel: string, 
             allowStitch: allowStitch,
             isYourOwnBrand: isYourOwnBrand,
             isBrandedContent: isBrandedContent,
-            scheduleDate: scheduleDate?.toISOString() ?? null
+            scheduleDate: scheduleDate?.toISOString() ?? null,
+            socialMediaAccountsIDs,
 
         })
 
@@ -326,7 +351,7 @@ export async function uploadToTikTok(videoFile: File, uploadURL: string, isSched
 
 
 // Function calls router to check the status of uploaded video from API to check if it was successful or not
-export async function checkUploadStatus(publishID: string){
+export async function checkUploadStatus(publishID: string, platformAccountID?: string){
 
     // Fetch router with credentials
     const res = await fetch(UPLOAD_STATUS_DIRECT, {
@@ -334,7 +359,7 @@ export async function checkUploadStatus(publishID: string){
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({publishID})
+        body: JSON.stringify({publishID, socialMediaAccountsIDs: platformAccountID ? [platformAccountID] : undefined}),
 
     })
 

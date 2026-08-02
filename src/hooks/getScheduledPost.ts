@@ -2,7 +2,7 @@ import {useState, useEffect} from "react";
 
 // Import controller and utilities functions needed 
 import {fetchScheduledPosts} from "../controller/fetchController";
-import { mapPostToSchedulePost } from "../frontend_utilities/calendarUtilities";
+import { mapPostToSchedulePost } from "../frontend_utilities/postMappingUtilities.ts";
 
 // Import types
 import {type ScheduledPost} from "../types/post.ts"

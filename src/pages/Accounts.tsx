@@ -3,7 +3,7 @@ import SchedulingTabs from "../components/SchedulingTabs"; // NEW: replaces hard
 import "./Accounts.css";
 
 // Import functions from controller
-import { disconnectTikTokUser, disconnectLinkedInUser, disconnectFacebookUser, disconnectInstagramUser, fetchUserInfo, fetchLinkedInUserInfo, fetchFacebookUserInfo } from "../controller/fetchController.ts";
+import { disconnectTikTokUser, disconnectLinkedInUser, disconnectFacebookUser, disconnectInstagramUser, fetchConnectedAccounts, fetchLinkedInUserInfo, fetchFacebookUserInfo } from "../controller/fetchController.ts";
 
 /* ---------- API Logic ---------- */
 
@@ -128,9 +128,7 @@ const PLATFORM_DEFS: PlatformDef[] = [
 // Seed data — each platform holds an array, so any number of accounts can stack up per platform.
 const INITIAL_ACCOUNTS: AccountsByPlatform = {
   facebook: [],
-  instagram: [
-    { id: "ig-1", handle: "@agilapost.demo", label: "Agila Demo Page" },
-  ],
+  instagram: [],
   linkedin: [],
   tiktok: [],
 };
@@ -158,26 +156,28 @@ export default function AgilaPostConnectAccounts() {
   useEffect(() => {
 
     // Function to load TikTok Information
-    async function loadTikTokAccount(){
+    async function loadConnectedAccounts(){
 
       try{
 
         // Call function to get user info
-        const userInfo = await fetchUserInfo();
+        const connectedAccountsInfo = await fetchConnectedAccounts();
 
-        // Silently return if open id not found
-        if(!userInfo?.data?.open_id)
+        // Silently return if account info not found
+        if(!connectedAccountsInfo?.data || connectedAccountsInfo.data.length <= 0)
           return;
 
 
         setAccounts((prev) => {
 
-          const user = userInfo.data;
+          // Filter to connected tiktok accounts
+          const newTikTokAccount = connectedAccountsInfo.data.filter((acc: any) => acc.platform == "tiktok");
 
-          // Check if user already exists within accounts variable. If they do, just return.
-          const userAlreadyAdded = prev.tiktok.some(a => a.id == user.open_id);
+          // Check if user is a new account within accounts variable. If they are, add them via return.
+          const newAccounts = newTikTokAccount.filter((acc: any) => !prev.tiktok.some(a => a.id == acc.id));
 
-          if(userAlreadyAdded)
+
+          if(newAccounts.length <= 0)
             return prev;
 
           // Create new account while keeping other accounts in the array with ...
@@ -186,13 +186,13 @@ export default function AgilaPostConnectAccounts() {
             ...prev,
             tiktok: [
               ...prev.tiktok,
-              {
+              ...newAccounts.map((acc: any) => ({
 
-                id: user.open_id,
-                handle: `@${user.username ?? "unknown"}`,
-                label: user.display_name ?? "unkonwn"
+                id: acc.id,
+                handle: acc.handle ?? "unknown",
+                label: acc.name ?? "unkonwn"
 
-              }
+              }))
 
             ]
 
@@ -203,7 +203,7 @@ export default function AgilaPostConnectAccounts() {
       }
       catch(err){
 
-        setAccountError("Failed to load account. Please refresh to try again!");
+        setAccountError("Failed to load accounts. Please refresh to try again!");
 
       }
 
@@ -299,11 +299,11 @@ export default function AgilaPostConnectAccounts() {
       }
 
     // Call function
-    loadTikTokAccount();
+    loadConnectedAccounts();
     loadLinkedInAccount();
     loadFacebookAccount();
     loadInstagramAccount();
-
+    
   }, [])
 
 
@@ -388,32 +388,32 @@ export default function AgilaPostConnectAccounts() {
 
 
   // Changed to function
-  async function handleDisconnect(platformId: PlatformId, accountId: string){
+  async function handleDisconnect(platformId: PlatformId, accountID: string){
 
     
     switch(platformId){
 
       case "tiktok":
-        await disconnectTikTokUser();
+        await disconnectTikTokUser(accountID);
         break;
 
       case "linkedin":
-        await disconnectLinkedInUser(accountId);
+        await disconnectLinkedInUser(accountID);
         break;
 
       case "facebook":
-        await disconnectFacebookUser(accountId);
+        await disconnectFacebookUser(accountID);
         break;
 
       case "instagram":
-        await disconnectInstagramUser(accountId);
+        await disconnectInstagramUser(accountID);
         break;
 
     }
 
     setAccounts((prev) => ({
       ...prev,
-      [platformId]: prev[platformId].filter((a) => a.id !== accountId),
+      [platformId]: prev[platformId].filter((a) => a.id !== accountID),
     }));
   };
 

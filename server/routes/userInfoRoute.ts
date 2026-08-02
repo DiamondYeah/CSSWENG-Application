@@ -96,19 +96,37 @@ router.get("/getuser/:token", async (req: Request, res: Response) => {
 
 
 
-router.get("/queryinfo", findAccountAuth, findTikTokAccount, async (req: AuthUserRequest, res: Response) => {
+router.post("/queryinfo", findAccountAuth, findTikTokAccount, async (req: AuthUserRequest, res: Response) => {
 
     // Get tiktok account from req
-    const tiktokAccount: ISocialMediaAccount = req.tiktokAccount as ISocialMediaAccount;
+    const tiktokAccounts: ISocialMediaAccount[] = req.tiktokAccounts as ISocialMediaAccount[];
 
     try{
 
-         // Get user TikTok query by calling obtainQueryInfo and passing user as argument
-        const userQuery = await obtainQueryInfo(tiktokAccount);
+        const results = [];
 
-        // Send successful JSON 
-        if(userQuery)
-            return res.json({ success: true, data: userQuery.data})
+        for(const tiktokAccount of tiktokAccounts){
+
+
+            // Get user TikTok query by calling obtainQueryInfo and passing user as argument
+            const userQuery = await obtainQueryInfo(tiktokAccount);
+
+            // Send successful JSON 
+            if(userQuery)
+                results.push({
+            
+                    platformAccountID: tiktokAccount.platformAccountID,
+                    ...userQuery.data,
+
+                })
+
+        }
+
+
+        // Return any data found in results
+        if(results.length > 0)
+            return res.json({success: true, data: results});
+
 
         // Fallback in case nothing was returned
         return res.json({ success: false, message: "userQuery returned with no data from service call!"});
@@ -116,7 +134,7 @@ router.get("/queryinfo", findAccountAuth, findTikTokAccount, async (req: AuthUse
     }catch(err){
 
         console.error("Error: " + err);
-        return res.status(500).json({ success: false, message: "Unexpected error when fetching information!" });
+        return res.status(500).json({ success: false, message: "Unexpected error when fetching query information!" });
 
     }
 

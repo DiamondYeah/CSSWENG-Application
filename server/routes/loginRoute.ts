@@ -10,7 +10,7 @@ import {type AuthUserRequest} from "../types/express.ts"
 dotenv.config();
 
 // Import Database Functions and Service Functions
-import {createOrSaveUserTokensFromSeconds} from "../dbcontrollers/tiktokRepository.ts";
+import {createOrSaveUserTokensFromSeconds, removeTikTokTokens} from "../dbcontrollers/tiktokRepository.ts";
 import {createTikTokAuth, disconnectTikTokAuth, obtainTikTokToken} from "../server_services/tiktokAuthService.ts";
 import { findAccountAuth } from "../middleware/accountAuthMiddleware.ts";
 import { findSpecificSocialMediaAccount } from "../dbcontrollers/socialMediaAccountRepository.ts";
@@ -107,17 +107,25 @@ router.get("/oauth2/callback", async (req: Request, res: Response) => {
 router.post("/disconnect", findAccountAuth, async (req: AuthUserRequest, res: Response) => {
 
     const account: IAccount = req.account as IAccount;
+    const {platformAccountID} = req.body;
 
     try{
 
-        // Find specific tiktok accounts with the given account id
-        const tiktokAccount = await findSpecificSocialMediaAccount(String(account._id), "tiktok");
+        // Find specific tiktok account with the given account id
+        const tiktokAccount = await findSpecificSocialMediaAccount(String(account._id), "tiktok", platformAccountID);
 
         // Checks if tiktokAccount exists
         if(!tiktokAccount)
             return res.status(404).json({ success: false, message: "No TikTok Account Found!"})
 
+
+        // Disconnect account from website
         const disconnectUser = await disconnectTikTokAuth(tiktokAccount);
+
+
+        // Remove tokens from disconnected accounts
+        await removeTikTokTokens(String(tiktokAccount._id));
+        
 
         return res.json({ success: true, message: "User was disconnected successfully!", data: disconnectUser})
 
