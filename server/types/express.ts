@@ -14,5 +14,6 @@ export interface AuthUserRequest extends Request{
     account?: IAccount;
     tiktokAccount?: ISocialMediaAccount; // Single TikTok Account
     tiktokAccounts?: ISocialMediaAccount[]; // Array of TikTok Accounts
-
+    file?: Express.Multer.File;
+  
 }

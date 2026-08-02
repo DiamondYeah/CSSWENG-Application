@@ -19,6 +19,7 @@ import DatePicker from "../components/DatePicker.tsx";
 import TimePicker from "../components/TimePicker.tsx";
 import TikTokConsent from "../components/TikTokConsent.tsx";
 
+
 // Shared frontend-only category store (same data Category.tsx and
 // Calendar.tsx read/write). Purely in-memory for now — no backend calls
 // here, this is just for quick-selecting accounts by category.
@@ -266,7 +267,7 @@ function CreatePost() {
     const missingTitle = !title.trim();
     // Media is only required for platforms that need it
     const missingMedia = (selectedPlatforms.includes("tiktok") || selectedPlatforms.includes("instagram")) && !mediaFile;
-    const missingPrivacy = !privacyLevel;
+    const missingPrivacy = selectedPlatforms.includes("tiktok") && !privacyLevel;
     const missingSchedule = scheduleMode === "schedule" && (!scheduleDate || !scheduleTime);
     const missingCommercialContent = isCommercialContent && !isYourOwnBrand && !isBrandedContent;
 
@@ -315,23 +316,49 @@ function CreatePost() {
     setMediaError(false);
     setPrivacyError(false);
 
-    // Perform media upload
-
+     // Perform media upload
     await uploadPost({
       title: title,
       mediaFile: mediaFile!,
+
+      // TikTok fields
       privacyLevel: privacyLevel,
       allowComments: allowComments,
       allowDuet: allowDuet,
       allowStitch: allowStitch,
       isYourOwnBrand: isYourOwnBrand,
       isBrandedContent: isBrandedContent,
-      // Send undefined when not in schedule mode (user chose Post Now / Queue)
-      scheduleDate: scheduleMode === "schedule" && scheduleDate
-        ? new Date(`${scheduleDate}T${scheduleTime || "00:00"}`)
-        : undefined,
-      socialMediaAccountsIDs: selectedAccounts,
 
+      platforms: selectedPlatforms,
+
+      // TikTok selected accounts (multi-account)
+      socialMediaAccountsIDs: selectedAccounts.filter((id) =>
+          accounts.some((acc) => acc.id === id && acc.platform === "tiktok")
+      ),
+
+      linkedinConnectionIds: selectedAccounts.filter((id) =>
+          accounts.some((acc) => acc.id === id && acc.platform === "linkedin")
+      ),
+
+      facebookConnectionIds: selectedAccounts.filter((id) =>
+          accounts.some((acc) => acc.id === id && acc.platform === "facebook")
+      ),
+
+      instagramConnectionIds: selectedAccounts.filter((id) =>
+          accounts.some((acc) => acc.id === id && acc.platform === "instagram")
+      ),
+
+      scheduleMode: scheduleMode,
+
+      scheduledDate:
+          scheduleMode === "schedule" && scheduleDate
+              ? `${scheduleDate}T${scheduleTime || "00:00"}`
+              : undefined,
+
+      scheduleDate:
+          scheduleMode === "schedule" && scheduleDate
+              ? new Date(`${scheduleDate}T${scheduleTime || "00:00"}`)
+              : undefined,
     });
 
   }
@@ -502,7 +529,7 @@ function CreatePost() {
               <div className={`cp-card ${mediaError ? "cp-card-error" : ""}`}>
 
                 <div className="cp-section-title">Media<span className="required">*</span></div>
-                <div className="cp-section-sub">Attach images or video to your post</div>
+                <div className="cp-section-sub">Attach images, videos, or documents to your post</div>
 
                 <label htmlFor="media-upload" className="cp-dropzone">
                   <div className="cp-dropzone-icon">
@@ -546,6 +573,22 @@ function CreatePost() {
 
                     )}
 
+                    {/** Show video preview if mediaFile is a PDF */}
+                    {mediaFile.type === "application/pdf" && (
+                      <>
+
+                        <div className="cp-media-preview-title">PDF Preview</div>
+
+                        <iframe
+                          src={mediaFilePreview}
+                          className="cp-media-preview"
+                          width="500"
+                          height="320"
+                          title="PDF Preview"
+                        />
+                      </>
+                    )}
+
                   </>
 
 
@@ -553,11 +596,11 @@ function CreatePost() {
                 ) : (
                   <>
                     <div className="cp-dropzone-title">Click or drag files to upload</div>
-                    <div className="cp-dropzone-sub">PNG, JPG, MP4, and PDF up to 750MB</div>
+                    <div className="cp-dropzone-sub">PNG, JPG, MP4, PDF up to 750MB</div>
                   </>
                 )}
 
-                <input id="media-upload" type="file" accept="video/mp4, image/png, image/jpeg, application/pdf"
+                <input id="media-upload" type="file" accept="video/mp4, image/png, image/jpg, application/pdf"
                   onChange={(e) => handleFileSelect(e)} />
 
               </div>

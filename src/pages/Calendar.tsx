@@ -6,7 +6,7 @@ import {
   Share2,
 } from "lucide-react";
 import "./Calendar.css";
-import SchedulingTabs from "../components/SchedulingTabs"; // NEW: replaces hardcoded tab divs
+import SchedulingTabs from "../components/SchedulingTabs"; 
 
 // Import functions from controller, hooks and utilities
 import {useConnectAccounts} from "../hooks/connectAccounts.ts";
@@ -19,30 +19,11 @@ import { PLATFORM_META} from "../frontend_utilities/platformIcons.tsx"
 // Import types
 import {type Platform, type Account} from "../types/account.ts"
 
-// Shared frontend-only category store (same data Category.tsx edits).
-// Purely local/in-memory for now — no backend calls here, devs will wire
-// real persistence up later behind the same useCategories() hook.
+// Shared frontend-only category store 
 import { useCategories } from "../store/categoryStore";
-
 
 // Import CalendarGrid from components
 import { CalendarGrid } from "../components/CalendarGrid.tsx";
-
-
-// ---------------------------------------------------------------
-// platform icons
-// lucide-react dropped brand/social icons a while back, so these
-// are small self-contained SVGs instead of an extra dependency.
-// Swap in your own brand assets if you need pixel-perfect logos.
-// ---------------------------------------------------------------
-
-
-
-// ---------------------------------------------------------------
-// types
-// ---------------------------------------------------------------
-
-
 
 export interface Post {
   id: string;
@@ -55,6 +36,7 @@ export interface Post {
   hasDocument?: boolean;
   hasImage?: boolean;
   hasComment?: boolean;
+  approvalStatus?: string;
 }
 
 export interface AgilaPostCalendarProps {
@@ -66,94 +48,17 @@ export interface AgilaPostCalendarProps {
   onShareCalendar?: () => void;
 }
 
-
-
-// ---------------------------------------------------------------
-// Demo accounts — always merged in alongside real connected accounts (not
-// just an empty-state fallback), so the Categories section in the sidebar
-// always has demo data to show regardless of how many real accounts exist.
-// IDs match the demo category accountIds in store/categoryStore.ts.
-// Safe to remove once category filtering is tested against real data only.
-// ---------------------------------------------------------------
-
-const DEMO_ACCOUNTS: Account[] = [
-  { id: "acc-1", name: "AgilaPost Official", platform: "instagram" },
-  { id: "acc-2", name: "AgilaPost Biz", platform: "linkedin" },
-  { id: "acc-3", name: "Creator Hub", platform: "tiktok" },
-  { id: "acc-4", name: "Community Page", platform: "facebook" },
-];
-
-// Demo posts to go with DEMO_ACCOUNTS above — always merged in alongside
-// real posts so there's sample content on the demo accounts. Dates are
-// generated relative to "today" so they always land inside the currently
-// visible month instead of going stale.
-function buildDemoPosts(): Post[] {
-  const today = new Date();
-  const dateStr = (offsetDays: number) => {
-    const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + offsetDays);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  };
-
-  return [
-    {
-      id: "demo-post-1",
-      accountId: "acc-1",
-      platform: "instagram",
-      date: dateStr(1),
-      time: "09:00 AM",
-      title: "Launch teaser",
-      snippet: "Sneak peek of the new feature drop.",
-    },
-    {
-      id: "demo-post-2",
-      accountId: "acc-2",
-      platform: "linkedin",
-      date: dateStr(3),
-      time: "11:30 AM",
-      title: "Case study",
-      snippet: "How a client doubled engagement in a month.",
-    },
-    {
-      id: "demo-post-3",
-      accountId: "acc-3",
-      platform: "tiktok",
-      date: dateStr(5),
-      time: "02:00 PM",
-      title: "Behind the scenes",
-      snippet: "Quick clip from the studio shoot.",
-    },
-    {
-      id: "demo-post-4",
-      accountId: "acc-4",
-      platform: "facebook",
-      date: dateStr(5),
-      time: "04:15 PM",
-      title: "Community shoutout",
-      snippet: "Celebrating a great week with our members.",
-    },
-  ];
-}
-
-
-// ---------------------------------------------------------------
-// Shared Calendar Posting Functions
-// ---------------------------------------------------------------
-
 // Function handles the generation of a link for sharing schedule of calendar to others
 async function generateCalendarShare(){
-
   try{
-
     const res = await generateShareCalenderToken();
 
     if(!res.success)
       throw new Error("Failed to generate link!");
 
-    // Create the link for the calendar view and add it to clipboard copy
     const calendarShareUrl = `${window.location.origin}/calendar/share/${res.data.cryptoToken}`
     await navigator.clipboard.writeText(calendarShareUrl);
 
-    // Create expiry
     const expiry = new Date(res.data.expireDate).toLocaleDateString("en-US", {
         month: "long", day: "numeric", year: "numeric"
     });
@@ -161,22 +66,12 @@ async function generateCalendarShare(){
     alert(`Share link generated and copied to clipboard! Link expires on ${expiry}`)
 
   }catch(err){
-
     throw new Error("Failed to generate share link! Please try again!")
-
   }
-
-
-
 }
 
-
-// ---------------------------------------------------------------
-// main component
-// ---------------------------------------------------------------
-
 export default function AgilaPostCalendar({
-  timezone = Intl.DateTimeFormat().resolvedOptions().timeZone, // Changed to this so it always show local timezone
+  timezone = Intl.DateTimeFormat().resolvedOptions().timeZone, 
   onConnectAccount,
 }: Omit<AgilaPostCalendarProps, "accounts" | "posts">) {
 
@@ -184,32 +79,20 @@ export default function AgilaPostCalendar({
   const [postsView, setPostsView] = useState<"pending" | "published">("published");
   const {posts: fetchedPosts, isLoading: _postsLoading, error: _postsError} = useScheduledPosts(postsView);
 
-  // Demo posts are always merged in alongside real ones (not just an
-  // empty-state fallback) so the demo accounts/categories always have
-  // sample content to show in the grid.
   const posts = useMemo(
-    () => [...(fetchedPosts || []), ...buildDemoPosts()],
+    () => [...(fetchedPosts || [])],
     [fetchedPosts]
   );
 
-  // Categories come from the same shared store Category.tsx writes to.
-  // Adding an account to a category there makes it show up grouped here
-  // automatically — no backend round-trip, it's the same in-memory store.
   const categories = useCategories();
 
-
-  // Use useMemo to avoid heavy recalculations so refernce only changes when accounts actually change data
-  // No useEffect as that causes an infinite loop with setCheckedAccounts
-  // Demo accounts are always merged in alongside real ones (not just as an
-  // empty-state fallback) so the Categories section always has something to
-  // show, regardless of how many real accounts are connected.
   const accounts: Account[] = useMemo(() => {
     const mappedReal: Account[] = (unmappedAccounts || []).map(account => ({
       id: account.id,
       name: account.name,
       platform: account.platform.toLowerCase().trim() as Platform
     }));
-    return [...mappedReal, ...DEMO_ACCOUNTS];
+    return [...mappedReal];
   }, [unmappedAccounts]);
 
   const [checkedAccounts, setCheckedAccounts] = useState<Record<string, boolean>>(
@@ -217,7 +100,6 @@ export default function AgilaPostCalendar({
   );
   const [expandAll, setExpandAll] = useState(true);
   const [categoriesExpanded, setCategoriesExpanded] = useState(true);
-
 
   const allChecked = accounts.length > 0 && accounts.every((a) => checkedAccounts[a.id] !== false);
 
@@ -229,8 +111,6 @@ export default function AgilaPostCalendar({
       accounts.reduce((acc, a) => ({ ...acc, [a.id]: !allChecked }), {} as Record<string, boolean>)
     );
 
-  // Only show categories that actually have at least one connected account,
-  // so the sidebar doesn't show empty categories with nothing to filter.
   const categoriesWithAccounts = useMemo(
     () =>
       categories
@@ -242,12 +122,9 @@ export default function AgilaPostCalendar({
     [categories, accounts]
   );
 
-  // A category reads as "checked" only when every one of its member
-  // accounts is currently checked.
   const isCategoryChecked = (accountIds: string[]) =>
     accountIds.length > 0 && accountIds.every((id) => checkedAccounts[id] !== false);
 
-  // Toggling a category toggles all of its member accounts together.
   const toggleCategory = (accountIds: string[]) => {
     const nextValue = !isCategoryChecked(accountIds);
     setCheckedAccounts((prev) => {
@@ -258,6 +135,33 @@ export default function AgilaPostCalendar({
       return next;
     });
   };
+
+  // NEW: Handle canceling a post
+  const handleCancelPost = async (postId: string) => {
+    if (postId === "mock-ui-test-post") {
+      alert("This is just a mock post! It looks great though.");
+      return;
+    }
+
+    const confirmCancel = window.confirm("Are you sure you want to cancel this scheduled post?");
+    if (!confirmCancel) return;
+
+    try {
+      // Add your actual backend deletion logic here
+      console.log(`Cancelled post: ${postId}`);
+      alert("Post cancelled! (Add your refetch logic to make it disappear)");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to cancel post! Please try again.");
+    }
+  };
+
+  
+  
+
+  // Filter real posts, then append the mock post at the end so it's always visible
+  const filteredPosts = posts.filter(p => checkedAccounts[p.accountId] !== false);
+  const postsToRender = [...filteredPosts];
 
   return (
     <div className="ap-calendar">
@@ -287,7 +191,6 @@ export default function AgilaPostCalendar({
 
           <h2 className="ap-sidebar__title">Social Accounts</h2>
 
-          {/* Categories — filter by group instead of picking accounts one by one */}
           {categoriesWithAccounts.length > 0 && (
             <>
               <div className="ap-accounts-header">
@@ -421,14 +324,17 @@ export default function AgilaPostCalendar({
               />
               Expand all posts
             </label>
-          
           </div>
         </aside>
 
         {/* main calendar */}
         <CalendarGrid 
-          posts={posts.filter(p => checkedAccounts[p.accountId] !== false)} 
-          readOnly = {false} postsView = {postsView} setPostsView = {setPostsView}></CalendarGrid>
+          posts={postsToRender as any} 
+          readOnly={false} 
+          postsView={postsView} 
+          setPostsView={setPostsView}
+          onCancelPost={handleCancelPost} 
+        />
 
       </div>
     </div>

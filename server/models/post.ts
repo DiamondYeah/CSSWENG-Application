@@ -3,7 +3,7 @@ import {type PostApprovalStatus} from "../types/post.ts"; // Import PostApproval
 
 export type Platform = "tiktok" | "linkedin" | "facebook" | "instagram"
 
-export type PostMediaType = "photo" | "video"
+export type PostMediaType = "photo" | "video" | "document"
 
 export type PostMediaStatus = "pending" | "processing" | "failed" | "expired" | "published"
 
@@ -76,7 +76,7 @@ const postSchema = new Schema<IPost>({
     userID: {type: Schema.Types.ObjectId, ref: "Account", required: true},
     platformAccountID: {type: String, required: true},
     platform: {type: String, enum:["tiktok", "linkedin", "facebook","instagram"], required: true},
-    postType: {type: String, enum:["photo","video"], required: true},
+    postType: {type: String, enum:["photo","video", "document"], required: true},
 
     publishID: {type: String, required: true},           
     uploadURL:  {type: String, required: false} ,     

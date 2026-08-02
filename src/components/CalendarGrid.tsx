@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Clock, MessageCircle, Check } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, MessageCircle, Check, X } from "lucide-react";
 
 // Import utility for platform icons
 import {PLATFORM_META} from "../frontend_utilities/platformIcons.tsx"
@@ -8,18 +8,16 @@ import {PLATFORM_META} from "../frontend_utilities/platformIcons.tsx"
 import {type Platform} from "../types/account.ts"
 import {type ScheduledPost} from "../types/post.ts"
 
-
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 // Interface for Calendar Grid Information
 interface CalendarGridDetails{
-
     posts: ScheduledPost[];
     readOnly?: boolean;
     postsView: "pending" | "published";
     setPostsView: (postView: "pending" | "published") => void;
     onSelectPost?: (post: ScheduledPost) => void;
-
+    onCancelPost?: (postId: string) => void; // NEW: Added cancel prop
 }
 
 // Interface for Grid Day
@@ -28,18 +26,9 @@ interface GridDay {
     inMonth: boolean;
 }
 
-
-// ---------------------------------------------------------------
-// Icon helpers
-// ---------------------------------------------------------------
-
-
-
-
 // ---------------------------------------------------------------
 // Date helpers
 // ---------------------------------------------------------------
-
 
 function buildMonthGrid(year: number, month: number): GridDay[][] {
     const firstOfMonth = new Date(year, month, 1);
@@ -76,12 +65,8 @@ function toDateKey(d: Date): string {
 }
 
 
-
-
-
-
 // readOnly to be used at later date
-export function CalendarGrid({posts, postsView, setPostsView, onSelectPost}: CalendarGridDetails){ 
+export function CalendarGrid({posts, readOnly, postsView, setPostsView, onSelectPost, onCancelPost}: CalendarGridDetails){ 
 
     const today = useMemo(() => new Date(), []);
     const [cursorDate, setCursorDate] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
@@ -102,11 +87,8 @@ export function CalendarGrid({posts, postsView, setPostsView, onSelectPost}: Cal
         return map;
     }, [posts]);
 
-
-
     return(
         <>
-        
             {/* main calendar */}
             <main className="ap-main">
             <div className="ap-toolbar">
@@ -130,13 +112,13 @@ export function CalendarGrid({posts, postsView, setPostsView, onSelectPost}: Cal
                     className={`ap-toggle-group__btn ${postsView === "pending" ? "is-active" : ""}`}
                     onClick={() => setPostsView("pending")}
                 >
-                    Scheduled Posts {postsView == "pending" && <Check size={13} />} {/** Show checkmark when enabled */}
+                    Scheduled Posts {postsView == "pending" && <Check size={13} />}
                 </button>
                 <button
                     className={`ap-toggle-group__btn ${postsView === "published" ? "is-active" : ""}`}
                     onClick={() => setPostsView("published")}
                 >
-                    Published Posts {postsView == "published" && <Check size={13} />} {/** Show checkmark when enabled */}
+                    Published Posts {postsView == "published" && <Check size={13} />}
                 </button>
                 </div>
 
@@ -185,29 +167,58 @@ export function CalendarGrid({posts, postsView, setPostsView, onSelectPost}: Cal
 
                             return (
                                 <div
-                                    key = {post.id}
+                                    key={post.id}
                                     className={`ap-post-card${post.approvalStatus ? ` is-${post.approvalStatus}` : ""}`}
                                     onClick={() => onSelectPost?.(post)}
                                     role={onSelectPost ? "button" : undefined}
                                     tabIndex={onSelectPost ? 0 : undefined}
+                                    style={{ position: "relative" }} // NEW: Required for absolute positioning of the X
                                 >
-                                    <div className="ap-post-card__header">
+                                    
+                                    {/* NEW: Render Cancel/X Button */}
+                                    {!readOnly && onCancelPost && (
+                                        <button 
+                                            onClick={(e) => {
+                                                e.stopPropagation(); // Prevents opening the post details
+                                                onCancelPost(post.id);
+                                            }}
+                                            className="ap-cancel-post-btn"
+                                            title="Cancel post"
+                                            style={{
+                                                position: "absolute",
+                                                top: "6px",
+                                                right: "6px",
+                                                background: "rgba(255, 255, 255, 0.9)",
+                                                border: "none",
+                                                cursor: "pointer",
+                                                padding: "2px",
+                                                borderRadius: "4px",
+                                                display: "flex",
+                                                alignItems: "center",
+                                                justifyContent: "center",
+                                                zIndex: 10,
+                                                boxShadow: "0 1px 2px rgba(0,0,0,0.1)"
+                                            }}
+                                        >
+                                            <X size={14} color="#ef4444" />
+                                        </button>
+                                    )}
+
+                                    <div className="ap-post-card__header" style={{ paddingRight: "24px" }}>
                                         <span className="ap-post-card__account">
                                             {post.title ?? "No Title"}
                                         </span>
-                                        {meta && // Display Platform Icon
+                                        {meta && 
                                         (<span className="ap-post-card__platform" style={{ backgroundColor: meta.color }}>
                                             <meta.Icon size={10} color="#ffffff" />
                                         </span>)}
                                     </div>
 
                                     <div className="ap-post-card__body">
-                                    
                                         <div className="ap-post-card__text">
                                         {post.title && <p className="ap-post-card__title">{post.title}</p>}
                                         {post.snippet && <p className="ap-post-card__snippet">{post.snippet}</p>}
                                         </div>
-
                                     </div>
 
                                     <div className="ap-post-card__footer">
@@ -224,7 +235,6 @@ export function CalendarGrid({posts, postsView, setPostsView, onSelectPost}: Cal
                                     {post.approvalStatus === "rejected" && <span className="ap-post-card__approval-badge is-rejected">Rejected</span>}
                                     </div>
                                 </div>
-
                             )
                         })}
                         </div>
@@ -234,9 +244,6 @@ export function CalendarGrid({posts, postsView, setPostsView, onSelectPost}: Cal
                 ))}
             </div>
             </main>
-
         </>
     );
-
-
 }

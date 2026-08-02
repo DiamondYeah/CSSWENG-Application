@@ -76,7 +76,7 @@ export async function refreshTikTokToken(tiktokUser: ISocialMediaAccount){
             client_key: process.env.TIKTOK_CLIENT_KEY as string, 
             client_secret: process.env.TIKTOK_CLIENT_SECRET as string,
             grant_type: "refresh_token", 
-            refresh_token: tiktokUser.refreshToken,
+            refresh_token: tiktokUser.refreshToken ?? "",
         }),
 
     });
@@ -134,14 +134,16 @@ export async function checkTokenIfExpired(tiktokAccountID: string): Promise<ISoc
 
     }
 
-      console.log("Token expires:", socialMediaAccount.tokenExpiresIn);
-    console.log("Token expired?", socialMediaAccount.tokenExpiresIn < new Date());
-    console.log("Refresh expires:", socialMediaAccount.refreshExpiresIn);
-    console.log("Refresh expired?", socialMediaAccount.refreshExpiresIn < new Date());
 
     if(socialMediaAccount.tokenExpiresIn < new Date()){
 
-        if (socialMediaAccount.refreshExpiresIn < new Date()) {
+        if(!socialMediaAccount.refreshExpiresIn) {
+
+            console.error("Refresh token also expired or missing");
+            return null;
+
+        }
+        else if(socialMediaAccount.refreshExpiresIn < new Date()) {
             
             console.error("Refresh token also expired — user must reconnect TikTok");
             return null;

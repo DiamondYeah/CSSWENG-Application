@@ -21,5 +21,43 @@ export async function findAllSocialMediaAccounts(accountID: string): Promise<ISo
 
 }
 
+export async function createSocialMediaAccount(
+    accountID: string,
+    data: {
+        platform: platforms;
+        platformAccountID: string;
+        accessToken: string;
+        refreshToken?: string;
+        scope: string;
+        tokenExpiresIn: number;
+        refreshExpiresIn?: number;
+    }
+): Promise<ISocialMediaAccount> {
 
+    return await SocialMediaAccount.findOneAndUpdate(
 
+        {
+            platform: data.platform,
+            platformAccountID: data.platformAccountID
+        },
+
+        {
+            accountID,
+            accessToken: data.accessToken,
+            refreshToken: data.refreshToken ?? "",
+            scope: data.scope,
+            tokenExpiresIn: new Date(Date.now() + data.tokenExpiresIn * 1000),
+            refreshExpiresIn: new Date(
+                Date.now() + (data.refreshExpiresIn ?? data.tokenExpiresIn) * 1000
+            )
+        },
+
+        {
+            returnDocument: "after",
+            upsert: true,
+            runValidators: true
+        }
+
+    );
+
+}

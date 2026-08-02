@@ -3,7 +3,7 @@ import SchedulingTabs from "../components/SchedulingTabs"; // NEW: replaces hard
 import "./Accounts.css";
 
 // Import functions from controller
-import {disconnectTikTokUser, fetchConnectedAccounts} from "../controller/fetchController.ts";
+import { disconnectTikTokUser, disconnectLinkedInUser, disconnectFacebookUser, disconnectInstagramUser, fetchConnectedAccounts, fetchLinkedInUserInfo, fetchFacebookUserInfo } from "../controller/fetchController.ts";
 
 /* ---------- API Logic ---------- */
 
@@ -12,6 +12,12 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL;
 // Constants for TikTok API
 const LOGINREDIRECT = `${API_BASE}/logAuth/tiktoklogin`;
 
+// Constants for LinkedIn API
+const LINKEDIN_LOGINREDIRECT = `${API_BASE}/auth/linkedin/connect-link`;
+
+// Constants for Meta API
+const FACEBOOK_LOGINREDIRECT = `${API_BASE}/facebookAuth/facebook/connect-link`;
+const INSTAGRAM_LOGINREDIRECT = `${API_BASE}/instagramAuth/instagram/connect-link`;
 
 /* ---------- Types ---------- */
 
@@ -127,13 +133,11 @@ const INITIAL_ACCOUNTS: AccountsByPlatform = {
   tiktok: [],
 };
 
-let nextAccountId = 100;
-
 /* ---------- Component ---------- */
 
 export default function AgilaPostConnectAccounts() {
   const [accounts, setAccounts] = useState<AccountsByPlatform>(INITIAL_ACCOUNTS);
-  const [connectingPlatform, setConnectingPlatform] = useState<PlatformId | null>(null);
+  const [connectingPlatform] = useState<PlatformId | null>(null);
   const [addToCategories, setAddToCategories] = useState<boolean>(true);
   const [advancedOpen, setAdvancedOpen] = useState<boolean>(false);
   const [accountError, setAccountError] = useState<string>(""); // Added for error checking
@@ -205,9 +209,101 @@ export default function AgilaPostConnectAccounts() {
 
     }
 
+      async function loadLinkedInAccount() {
+      
+        try {
+        
+          const userInfo = await fetchLinkedInUserInfo();
+
+          if (!userInfo?.success || !Array.isArray(userInfo.data))
+            return;
+
+          setAccounts((prev) => ({
+
+            ...prev,
+
+            linkedin: userInfo.data
+                .filter((conn: any) => conn.platform === "linkedin")
+                .map((conn: any) => ({
+
+                    id: conn.id,
+                    handle: conn.handle ?? "unknown",
+                    label: conn.name ?? "unknown",
+
+                })),
+
+          }));
+
+        }
+        catch {
+          setAccountError("Failed to load LinkedIn account.");
+        }
+      }
+
+      async function loadFacebookAccount() {
+        
+        try {
+
+          const userInfo = await fetchFacebookUserInfo();
+
+          if (!userInfo?.success || !Array.isArray(userInfo.data))
+            return;
+
+          setAccounts((prev) => ({
+
+            ...prev,
+
+            facebook: userInfo.data
+              .filter((conn: any) => conn.platform === "facebook")
+              .map((conn: any) => ({
+
+                id: conn.id,
+                handle: conn.handle ?? "uknown",
+                label: conn.name ?? "uknown",
+              })),
+
+          }));
+        }
+        catch {
+
+          setAccountError("Failed to load Facebook account.");
+        }
+      }
+
+      async function loadInstagramAccount() {
+        
+        try {
+          const userInfo = await fetchFacebookUserInfo();
+
+          if (!userInfo?.success || !Array.isArray(userInfo.data))
+            return;
+
+          setAccounts((prev) => ({
+
+            ...prev,
+
+            instagram: userInfo.data
+              .filter((conn: any) => conn.platform === "instagram")
+              .map((conn: any) => ({
+
+                id: conn.id,
+                handle: conn.handle ?? "unknown",
+                label: conn.name ?? "unknown",
+              })),
+          }));
+        }
+        catch {
+
+          setAccountError("Failed to load Instagram account.");
+        }
+      }
+
     // Call function
     loadConnectedAccounts();
-
+    loadLinkedInAccount();
+    loadFacebookAccount();
+    loadInstagramAccount();
+    
   }, [])
 
 
@@ -222,31 +318,72 @@ export default function AgilaPostConnectAccounts() {
         window.location.href = LOGINREDIRECT;
         return
 
+      case "facebook": {
+
+        fetch(FACEBOOK_LOGINREDIRECT, {
+          credentials: "include"
+        })
+        .then(async (res) => {
+
+          const data = await res.json();
+
+          if (data.success) {
+            window.location.href = data.url;
+          } else {
+            console.error(data.message);
+          }
+
+        })
+        .catch(console.error);
+
+        return;
+      }
+
+      case "instagram": {
+
+        fetch(INSTAGRAM_LOGINREDIRECT, {
+          credentials: "include"
+        })
+        .then(async (res) => {
+
+            const data = await res.json();
+
+            if (data.success) {
+              window.location.href = data.url;
+            } else {
+              console.error(data.message);
+            }
+        })
+        .catch(console.error);
+
+        return;
+      }
+
+      case "linkedin": {
+
+        fetch(LINKEDIN_LOGINREDIRECT, {
+          credentials: "include"
+        })
+        .then(async (res) => {
+
+          const data = await res.json();
+
+          if (data.success) {
+            window.location.href = data.url;
+          } else {
+            console.error(data.message);
+          }
+
+        })
+        .catch(console.error);
+
+        return;
+      }
+
     }
 
 
 
-    setConnectingPlatform(platformId);
-    // Simulated OAuth round trip — swap for your real redirect/popup flow.
-    // Each successful connect appends a new account rather than replacing one,
-    // so the platform can hold as many connected accounts as needed.
-    setTimeout(() => {
-      const id = `acct-${nextAccountId++}`;
-      const platform = PLATFORM_DEFS.find((p) => p.id === platformId)!;
-      const countSoFar = accounts[platformId].length + 1;
-      setAccounts((prev) => ({
-        ...prev,
-        [platformId]: [
-          ...prev[platformId],
-          {
-            id,
-            handle: `@new-${platform.id}-${countSoFar}`,
-            label: `${platform.name} account ${countSoFar}`,
-          },
-        ],
-      }));
-      setConnectingPlatform(null);
-    }, 1000);
   };
 
 
@@ -258,6 +395,19 @@ export default function AgilaPostConnectAccounts() {
 
       case "tiktok":
         await disconnectTikTokUser(accountID);
+        break;
+
+      case "linkedin":
+        await disconnectLinkedInUser(accountID);
+        break;
+
+      case "facebook":
+        await disconnectFacebookUser(accountID);
+        break;
+
+      case "instagram":
+        await disconnectInstagramUser(accountID);
+        break;
 
     }
 
