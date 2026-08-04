@@ -20,17 +20,52 @@ import TimePicker from "../components/TimePicker.tsx";
 import TikTokConsent from "../components/TikTokConsent.tsx";
 
 
-// Shared frontend-only category store (same data Category.tsx and
-// Calendar.tsx read/write). Purely in-memory for now — no backend calls
-// here, this is just for quick-selecting accounts by category.
-import { useCategories } from "../store/categoryStore";
-
-
 // ---------- Constants for media posting ---------- //
 
 const MAX_TITLE_LENGTH: number = 2200;
 const MAX_CAPTION_LENGTH: number = 2200;
 const MAX_MEDIA_FILE_SIZE: number = 750 * 1024 * 1024;
+
+
+// ---------- Preset categories for quick-select ---------- //
+// Hardcoded for now (no backend/store) — each category carries one sample
+// account so the quick-select row always has something to show, independent
+// of whichever real accounts are actually connected.
+
+interface PresetCategoryAccount {
+  id: string;
+  name: string;
+  handle: string;
+  platform: string;
+}
+
+interface PresetCategory {
+  id: string;
+  name: string;
+  color: string;
+  account: PresetCategoryAccount;
+}
+
+const PRESET_CATEGORIES: PresetCategory[] = [
+  {
+    id: "preset-product-launches",
+    name: "Product Launches",
+    color: "#7C5CFF",
+    account: { id: "preset-acc-1", name: "AgilaPost Official", handle: "@agilapost", platform: "instagram" },
+  },
+  {
+    id: "preset-behind-the-scenes",
+    name: "Behind the Scenes",
+    color: "#FF8A5C",
+    account: { id: "preset-acc-2", name: "Creator Hub", handle: "@creatorhub", platform: "tiktok" },
+  },
+  {
+    id: "preset-client-work",
+    name: "Client Work",
+    color: "#3CC8A0",
+    account: { id: "preset-acc-3", name: "AgilaPost Biz", handle: "@agilapostbiz", platform: "linkedin" },
+  },
+];
 
 
 // ---------- Placeholder settings for platforms without real fields yet ---------- //
@@ -56,17 +91,23 @@ function PlatformSettingsPlaceholder({ platformLabel }: { platformLabel: string 
 function CreatePost() {
 
   const navigate = useNavigate();
-  const {accounts: accounts, isLoading: accountsLoading, error: accountsError} = useConnectAccounts();
+  const {accounts: realAccounts, isLoading: accountsLoading, error: accountsError} = useConnectAccounts();
 
-  // Find tiktok IDs from social media accounts and get specific query info if needed
-  const tiktokIDs = accounts.filter(acc => acc.platform == "tiktok").map(acc => acc.id);
+  // Preset category sample accounts are appended for display/selection only —
+  // guarded out at submit time (see handleSubmitUpload) so they can never
+  // actually be posted to.
+  const accounts = [
+    ...realAccounts,
+    ...PRESET_CATEGORIES.map((cat) => cat.account),
+  ];
+
+  // Find tiktok IDs from social media accounts and get specific query info if needed.
+  // Preset/sample accounts are excluded here — they're display-only and have no
+  // real backend data to fetch.
+  const tiktokIDs = realAccounts.filter(acc => acc.platform == "tiktok").map(acc => acc.id);
   const {getSpecificQueryInfo} = useUserQueryInfo(tiktokIDs);
 
   const {isUploading, uploadStatus, uploadPost} = usePostUpload();
-
-  // Categories come from the same shared store Category.tsx and Calendar.tsx use.
-  // Purely for quick-selecting a group of accounts here — no backend involved.
-  const allCategories = useCategories();
 
   const [caption, setCaption] = useState<string>("");
   const [title, setTitle] = useState<string>("");
@@ -195,34 +236,17 @@ function CreatePost() {
     );
   }
 
-  // Only show categories that have at least one account present in this page's
-  // current account list (real + whichever demo sets are toggled on) — same
-  // "only show if it has members" rule used in Calendar's sidebar.
-  const categoriesWithAccounts = allCategories
-    .map((cat) => ({
-      ...cat,
-      memberAccounts: accounts.filter((a) => cat.accountIds.includes(a.id)),
-    }))
-    .filter((cat) => cat.memberAccounts.length > 0);
-
-
-  // A category reads as "checked" only when every one of its member accounts
-  // currently present here is selected.
-  function isCategoryChecked(memberIds: string[]): boolean {
-    return memberIds.length > 0 && memberIds.every((id) => selectedAccounts.includes(id));
+  // A category reads as "checked" only when its sample account is selected.
+  function isCategoryChecked(accountId: string): boolean {
+    return selectedAccounts.includes(accountId);
   }
 
 
-  // Toggling a category selects/deselects all of its member accounts together.
-  function toggleCategory(memberIds: string[]) {
-    const nextValue = !isCategoryChecked(memberIds);
-    setSelectedAccounts((prev) => {
-      if (nextValue) {
-        const toAdd = memberIds.filter((id) => !prev.includes(id));
-        return [...prev, ...toAdd];
-      }
-      return prev.filter((id) => !memberIds.includes(id));
-    });
+  // Toggling a category selects/deselects its sample account.
+  function toggleCategory(accountId: string) {
+    setSelectedAccounts((prev) =>
+      prev.includes(accountId) ? prev.filter((id) => id !== accountId) : [...prev, accountId]
+    );
   }
 
 
@@ -347,6 +371,13 @@ function CreatePost() {
     if (selectedAccounts.length === 0)
       return setValidationMessage("Please select an account to upload to!");
 
+    // Guard: preset category sample accounts are for previewing the category
+    // quick-select only, never for real submission.
+    const presetAccountIds = new Set(PRESET_CATEGORIES.map((cat) => cat.account.id));
+    const selectedPresetAccounts = selectedAccounts.filter((id) => presetAccountIds.has(id));
+    if (selectedPresetAccounts.length > 0)
+      return setValidationMessage("That's a sample account for previewing categories — deselect it and choose a real connected account before posting.");
+
     // Clear validation messages and remove errors
     setValidationMessage("");
     setTitleError(false);
@@ -432,35 +463,31 @@ function CreatePost() {
               <div className="cp-section-title">Post to</div>
               <div className="cp-section-sub">Select one or more accounts</div>
 
-              {categoriesWithAccounts.length > 0 && (
-                <div className="cp-category-quickselect">
-                  <span className="cp-section-sub" style={{ marginBottom: 6, display: "block" }}>
-                    Select by category
-                  </span>
-                  <div className="cp-category-chip-row">
-                    {categoriesWithAccounts.map((cat) => {
-                      const memberIds = cat.memberAccounts.map((a) => a.id);
-                      const checked = isCategoryChecked(memberIds);
-                      return (
-                        <button
-                          type="button"
-                          key={cat.id}
-                          className={`cp-category-chip${checked ? " selected" : ""}`}
-                          onClick={() => toggleCategory(memberIds)}
-                        >
-                          <span
-                            className="cp-category-chip__dot"
-                            style={{ background: cat.color }}
-                          />
-                          {cat.name}
-                          <span className="cp-category-chip__count">{memberIds.length}</span>
-                          {checked && <IoCheckmark size={12} />}
-                        </button>
-                      );
-                    })}
-                  </div>
+              <div className="cp-category-quickselect">
+                <span className="cp-section-sub" style={{ marginBottom: 6, display: "block" }}>
+                  Select by category
+                </span>
+                <div className="cp-category-chip-row">
+                  {PRESET_CATEGORIES.map((cat) => {
+                    const checked = isCategoryChecked(cat.account.id);
+                    return (
+                      <button
+                        type="button"
+                        key={cat.id}
+                        className={`cp-category-chip${checked ? " selected" : ""}`}
+                        onClick={() => toggleCategory(cat.account.id)}
+                      >
+                        <span
+                          className="cp-category-chip__dot"
+                          style={{ background: cat.color }}
+                        />
+                        {cat.name}
+                        {checked && <IoCheckmark size={12} />}
+                      </button>
+                    );
+                  })}
                 </div>
-              )}
+              </div>
 
               <div className="cp-account-list">
 
@@ -473,11 +500,12 @@ function CreatePost() {
 
                 {accounts.map((acc) => {
                   const selected = selectedAccounts.includes(acc.id);
+                  const isSample = acc.id.startsWith("preset-acc-");
 
 
                   let accQueryInfo = null;
 
-                  if(acc.platform == "tiktok")
+                  if(acc.platform == "tiktok" && !isSample)
                     accQueryInfo = getSpecificQueryInfo(acc.id);
 
 
@@ -487,7 +515,7 @@ function CreatePost() {
                   return (
                     <div
                       key={acc.id}
-                      className={`cp-account-row${selected ? " selected" : ""}`}
+                      className={`cp-account-row${selected ? " selected" : ""}${isSample ? " is-demo" : ""}`}
                       onClick={() => toggleAccount(acc.id)}
                     >
                       <div className="cp-account-checkbox">
@@ -496,7 +524,7 @@ function CreatePost() {
                       <img src={avatarSrc} alt="" />
                       <div className="cp-account-info">
                         <span className="cp-account-name">
-                          {acc.name}
+                          {acc.name}{isSample && <span className="cp-demo-badge">SAMPLE</span>}
                         </span>
                         <span className="cp-account-handle">{acc.handle}</span>
                         <span className="cp-account-platform">{acc.platform}</span>
