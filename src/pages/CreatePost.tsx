@@ -161,9 +161,8 @@ function CreatePost() {
 
 
   const acceptedMediaTypes = allowPDF
-    ? "video/mp4, image/png, image/jpg, application/pdf"
-    : "video/mp4, image/png, image/jpg";
-
+    ? "video/mp4, image/jpeg, application/pdf"
+    : "video/mp4, image/jpeg";
   // Every unique platform in the current selection gets its own settings block,
   // shown together — matches Buffer's "Customize for each network" pattern, where
   // multiple Facebook accounts still only produce one Facebook settings box.
