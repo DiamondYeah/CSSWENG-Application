@@ -197,5 +197,27 @@ router.post("/photoUpload", findAccountAuth, findTikTokAccount, upload.array("ph
 
 });
 
+router.post("/checkstatus", findAccountAuth, findTikTokAccount, async (req: AuthUserRequest, res: Response) => {
 
+    const tiktokAccounts: ISocialMediaAccount[] = req.tiktokAccounts as ISocialMediaAccount[];
+    const { publishID, platformAccountID } = req.body;
+
+    const account = tiktokAccounts.find(acc => acc.platformAccountID === platformAccountID);
+    if (!account)
+        return res.status(404).json({ success: false, message: "Account not found" });
+
+    const statusFetch = await fetch("https://open.tiktokapis.com/v2/post/publish/status/fetch/", {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${account.accessToken}`,
+            "Content-Type": "application/json; charset=UTF-8",
+        },
+        body: JSON.stringify({ publish_id: publishID }),
+    });
+
+    const statusData = await statusFetch.json();
+    console.log("STATUS CHECK RESULT:", JSON.stringify(statusData, null, 2));
+    return res.json(statusData);
+
+});
 export default router;
