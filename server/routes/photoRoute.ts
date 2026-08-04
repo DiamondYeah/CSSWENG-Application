@@ -17,6 +17,7 @@ import {type AuthUserRequest} from "../types/express.ts"
 import {uploadUserPhoto} from "../server_services/tiktokPhotoService.ts"
 import {findAccountAuth} from "../middleware/accountAuthMiddleware.ts";
 import {findTikTokAccount} from "../middleware/tiktokAccountConnectMiddleware.ts";
+import { createUserPost } from "../dbcontrollers/postRepository.ts";
 
 // Constant for the max media file size
 const MAX_MEDIA_FILE_SIZE: number = 750 * 1024 * 1024;
@@ -53,11 +54,27 @@ const upload = multer({ storage: photoStorage, limits: { fileSize: MAX_MEDIA_FIL
 
 router.post("/photoUpload", findAccountAuth, findTikTokAccount, upload.array("photos", 35), async (req: AuthUserRequest, res: Response) => {
 
-    // Get tiktok account from req
-    const tiktokAccount: ISocialMediaAccount = req.tiktokAccount as ISocialMediaAccount;
+    // Coerce a to bool expression 
+    const toBool = (v: unknown) => v === true || v === "true";
 
-    // Get title and description from req body
-    const {title, description} = req.body;
+
+    // Get tiktok account from req
+    const tiktokAccounts: ISocialMediaAccount[] = req.tiktokAccounts as ISocialMediaAccount[];
+
+    // Get info from request
+    const {title, description, privacyLevel, allowComments, isYourOwnBrand, isBrandedContent, scheduleDate} = req.body;
+    const socialMediaAccountsIDs: string[] = req.body.socialMediaAccountsIDs
+        ? JSON.parse(req.body.socialMediaAccountsIDs)
+        : tiktokAccounts.map(acc => acc.platformAccountID);
+
+
+    // Convert the expressions via toBool function
+    const allowCommentsBool = toBool(allowComments);
+    const isYourOwnBrandBool = toBool(isYourOwnBrand);
+    const isBrandedContentBool = toBool(isBrandedContent);
+
+
+    const isScheduledForLaterDate = !!scheduleDate && new Date(scheduleDate) > new Date(); // Check if post is scheduled
 
     // Get files from request and check if not empty
     const files = req.files as Express.Multer.File[];
@@ -68,14 +85,105 @@ router.post("/photoUpload", findAccountAuth, findTikTokAccount, upload.array("ph
     const photoURLs: string[] = files.map(file => `${process.env.PUBLIC_URL}/publicfiles/${file.filename}`);
 
 
+    // Only upload to tiktok accounts that were selected for photo upload
+    const selectedTikTokAccounts = tiktokAccounts.filter(acc => socialMediaAccountsIDs.includes(acc.platformAccountID));
+
+    // Store array of upload results
+    const results = [];
+
     try{
 
-        // Upload user photos to their account by calling uploadUserPhoto function in services and receive result of upload
-        const photoUploadResult = await uploadUserPhoto({tiktokUser: tiktokAccount, title, description, photoURLs});
+     // Loop through tiktokAccounts
+        for(const tiktokAccount of selectedTikTokAccounts){
 
-        // Send successful JSON 
-        if(photoUploadResult)
-            return res.json({ success: true, message: "Photo upload to TikTok successful!", data: photoUploadResult})
+            // Checks if the post is scheduled to be posted at a later date. If so, create a document and return it
+            // Will not call TikTok API
+            if(isScheduledForLaterDate){
+
+                // Create a random encryped placeholder ID for later
+                const encryptedPlaceholderID = `scheduled_${crypto.randomUUID()}`;
+
+                // Create document of initial scheduled post status by calling createUserPost from db controller repo 
+                await createUserPost({
+
+                    userID: tiktokAccount.accountID,
+                    platformAccountID: tiktokAccount.platformAccountID,
+                    platform: "tiktok",
+                    postType: "photo",
+                    publishID: encryptedPlaceholderID,
+                    status: "pending",
+                    title: title,
+                    scheduledDate: new Date(scheduleDate) ?? undefined,
+                    publishMediaStatus: "awaiting_schedule",
+                    privacyLevel: privacyLevel,
+                    allowComments: allowCommentsBool,
+                    allowDuet: false,
+                    allowStitch: false,
+                    isYourOwnBrand: isYourOwnBrandBool,
+                    isBrandedContent: isBrandedContentBool,     
+                    localFilePath: files.map(f => f.path).join(","), // Create file path for each file    
+
+                });
+
+                // Push successful scheduled document. 
+                results.push({platformAccountID: tiktokAccount.platformAccountID, publish_id: encryptedPlaceholderID, upload_url: "scheduled"})
+                continue;
+
+            }
+
+
+            // Inner try-catch block to check for any errors on photo upload
+            try{
+
+                // Upload user photos to their account by calling uploadUserPhoto function in services and receive result of upload
+                const photoUploadResult = await uploadUserPhoto({
+                    
+                    tiktokUser: tiktokAccount, 
+                    title: title, 
+                    description: description,
+                    photoURLs: photoURLs,
+                    privacyLevel: privacyLevel, 
+                    allowComments: allowCommentsBool,
+                    isYourOwnBrand: isYourOwnBrandBool,
+                    isBrandedContent: isBrandedContentBool,   
+
+                });
+
+                // Create document of initial upload post result by calling createUserPost from db controller repo 
+                if(photoUploadResult)       
+                    await createUserPost({
+
+                        userID: tiktokAccount.accountID,
+                        platformAccountID: tiktokAccount.platformAccountID,
+                        platform: "tiktok",
+                        postType: "photo",
+                        publishID: photoUploadResult.data.publish_id,
+                        status: "pending",
+                        title: title,
+                        scheduledDate: scheduleDate ? new Date(scheduleDate) : undefined,
+                        publishMediaStatus: "published_to_platform",
+                        privacyLevel: privacyLevel,
+                        allowComments: allowCommentsBool,
+                        isYourOwnBrand: isYourOwnBrandBool,
+                        isBrandedContent: isBrandedContentBool,    
+
+                    });
+
+                    // Push photo upload results into results
+                    results.push({platformAccountID: tiktokAccount.platformAccountID, ...photoUploadResult.data});
+
+            }catch(err){
+
+                console.error(`Photo upload failed for account ${tiktokAccount.platformAccountID}: `, err);
+
+            }
+
+
+        }
+
+        // Return data if there is content in results
+        if(results.length > 0)
+            return res.json({success: true, data: results});
 
         // Fallback in case nothing was returned
         return res.json({ success: false, message: "photoUploadResult returned with no data from service call!"});

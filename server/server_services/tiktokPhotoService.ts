@@ -13,7 +13,10 @@ interface TikTokPhotoUpload{
     title: string;
     description: string;
     photoURLs: string[];
-
+    privacyLevel: string;
+    allowComments: boolean;
+    isYourOwnBrand: boolean;
+    isBrandedContent: boolean;
 
 }
 
@@ -23,7 +26,7 @@ const TIKTOK_PUBLISHPHOTO_URL = "https://open.tiktokapis.com/v2/post/publish/con
 
 // Function uploads user photos to the user's TikTok account via API URL and photo interface parameter.
 // Returns results of the upload.
-export async function uploadUserPhoto(photos: TikTokPhotoUpload){
+export async function uploadUserPhoto(photosDetails: TikTokPhotoUpload){
 
     // Perform fetch to post photos from the photos parameter in the user's TikTok account
     const userPhotoUploadFetch = await fetch(TIKTOK_PUBLISHPHOTO_URL, 
@@ -32,7 +35,7 @@ export async function uploadUserPhoto(photos: TikTokPhotoUpload){
             method: "POST",
             headers:{
 
-                "Authorization": `Bearer ${photos.tiktokUser.accessToken}`,
+                "Authorization": `Bearer ${photosDetails.tiktokUser.accessToken}`,
                 "Content-Type": "application/json; charset=UTF-8",
 
             },
@@ -40,19 +43,18 @@ export async function uploadUserPhoto(photos: TikTokPhotoUpload){
 
                 post_info:{
 
-                    title: photos.title,
-                    description: photos.description,
-                    privacy_level: "SELF_ONLY",
-                    brand_content_toggle: false,
-                    brand_organic_toggle: false
-
-
+                    title: photosDetails.title,
+                    description: photosDetails.description,
+                    privacy_level: photosDetails.privacyLevel,
+                    disable_comment: !photosDetails.allowComments,
+                    brand_content_toggle: photosDetails.isBrandedContent,
+                    brand_organic_toggle: photosDetails.isYourOwnBrand,
 
                 },
                 source_info:{
 
                     source: "PULL_FROM_URL",
-                    photo_images: photos.photoURLs,
+                    photo_images: photosDetails.photoURLs,
                     photo_cover_index: 0,
 
                 },
