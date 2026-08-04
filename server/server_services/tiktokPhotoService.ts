@@ -60,7 +60,7 @@ export async function uploadUserPhoto(photosDetails: TikTokPhotoUpload){
                 },
 
                 media_type: "PHOTO",
-                post_mode: "MEDIA_UPLOAD"
+                post_mode: "DIRECT_POST"
 
 
             }),
