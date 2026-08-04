@@ -19,7 +19,8 @@ interface PostInput{
     description?: string;
 
     publishMediaStatus: PublishMediaStatus 
-    localFilePath?: string 
+    localFilePath?: string;
+    localFilePaths?: string[]
 
     // TikTok specific settings
     privacyLevel?: string
@@ -89,6 +90,7 @@ export async function createUserPost(postDetails: PostInput): Promise<IPost>{
 
         publishMediaStatus: postDetails.publishMediaStatus ?? "published_to_platform",
         localFilePath: postDetails.localFilePath,
+        localFilePaths: postDetails.localFilePaths,
 
         privacyLevel: postDetails.privacyLevel ?? "SELF_ONLY",
         allowComments: postDetails.allowComments ?? true,
@@ -291,6 +293,24 @@ export async function updatePostFilePathInDisk(publishID: string, localFilePath:
         {returnDocument: "after"},
 
     )
+
+}
+
+// for multiple files
+export async function updatePostFilePathsInDisk(
+    publishID: string,
+    localFilePaths: string[]
+): Promise<IPost | null>{
+
+    return await Post.findOneAndUpdate(
+
+        {publishID},
+
+        {localFilePaths},
+
+        {returnDocument: "after"}
+
+    );
 
 }
 

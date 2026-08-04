@@ -5,7 +5,7 @@ import SocialMediaAccount from "../models/socialMediaAccount.ts";
 
 import { updateInstagramPostPublished, updatePostStatus, findAwaitingSchedulePosts } from "../dbcontrollers/postRepository.ts";
 
-import { publishInstagramMedia } from "./instagramPostService.ts";
+import { publishInstagramMedia, publishInstagramCarousel } from "./instagramPostService.ts";
 
 import {  findSpecificSocialMediaAccount } from "../dbcontrollers/socialMediaAccountRepository.ts";
 
@@ -54,23 +54,34 @@ export async function processInstagramScheduledPosts() {
                 continue;
             }
 
-            let media:
-                | {
-                    buffer: Buffer;
-                    contentType: string;
-                    filename?: string;
-                  }
-                | undefined;
+            let mediaFiles: {
+                buffer: Buffer;
+                contentType: string;
+                filename?: string;
+            }[] = [];
             
-            if (duePost.localFilePath) {
+            if (duePost.localFilePaths && duePost.localFilePaths.length > 0) {
 
+                for (const filePath of duePost.localFilePaths) {
+
+                    const buffer = fs.readFileSync(filePath);
+
+                    mediaFiles.push({
+                        buffer,
+                        contentType: "image/jpeg",
+                        filename: path.basename(filePath)
+                    });
+                }
+            }
+            else if  (duePost.localFilePath) {
+                
                 const buffer = fs.readFileSync(duePost.localFilePath);
 
                 const ext = duePost.localFilePath.split(".").pop()?.toLowerCase();
-
+            
                 let contentType = "image/jpeg";
 
-                if (ext === "png")
+                if (ext === "png") 
                     contentType = "image/png";
                 else if (ext === "gif")
                     contentType = "image/gif";
@@ -79,19 +90,33 @@ export async function processInstagramScheduledPosts() {
                 else if (ext === "mov")
                     contentType = "video/quicktime";
 
-                media = {
+                mediaFiles.push({
                     buffer,
                     contentType,
                     filename: path.basename(duePost.localFilePath)
-                };
+                });
             }
 
-            const publishID = await publishInstagramMedia(
-                instagramAccount.platformAccountID,
-                instagramAccount.accessToken, 
-                duePost.title ?? "", 
-                media!
-            );
+            let publishID: string;
+
+            if (mediaFiles.length > 1) {
+
+                publishID = await publishInstagramCarousel(
+                    instagramAccount.platformAccountID,
+                    instagramAccount.accessToken,
+                    duePost.title ?? "",
+                    mediaFiles
+                );
+            } 
+            else {
+
+                publishID = await publishInstagramMedia(
+                    instagramAccount.platformAccountID,
+                    instagramAccount.accessToken,
+                    duePost.title ?? "",
+                    mediaFiles[0]
+                );
+            }
 
             console.log("Instagram scheduled post published:", publishID);
 
