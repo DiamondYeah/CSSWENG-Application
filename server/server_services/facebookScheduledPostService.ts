@@ -60,43 +60,49 @@ export async function processFacebookScheduledPosts() {
                 continue;
             }
 
-            let media:
-                | {
-                    buffer: Buffer;
-                    contentType: string;
-                    filename?: string;
-                  }
-                | undefined;
+            let mediaFiles: {
+                buffer: Buffer;
+                contentType: string;
+                filename?: string;
+            }[] = [];
             
-            if (duePost.localFilePath) {
+            if (duePost.localFilePaths && duePost.localFilePaths.length > 0) {
 
-                const buffer = fs.readFileSync(duePost.localFilePath);
+                for (const filePath of duePost.localFilePaths) {
+                    
+                    const buffer = fs.readFileSync(filePath);
 
-                const ext = duePost.localFilePath.split(".").pop()?.toLowerCase();
+                    const ext = filePath.split(".").pop()?.toLowerCase();
 
-                let contentType = "image/jpeg";
+                    let contentType = "image/jpeg";
 
-                if (ext === "png")
-                    contentType = "image/png";
-                else if (ext === "gif")
-                    contentType = "image/gif";
-                else if (ext === "mp4")
-                    contentType = "video/mp4";
-                else if (ext === "mov")
-                    contentType = "video/quicktime";
+                    if (ext === "png")
+                        contentType = "image/png";
+                    else if (ext === "gif")
+                        contentType = "image/gif";
+                    else if (ext === "mp4")
+                        contentType = "video/mp4";
+                    else if (ext === "mov")
+                        contentType = "video/quicktime";
 
-                media = {
-                    buffer,
-                    contentType,
-                    filename: path.basename(duePost.localFilePath)
-                };
+                    mediaFiles.push({
+                        buffer,
+                        contentType,
+                        filename: path.basename(filePath)
+                    });
+                }   
             }
 
             const publishID = await publishFacebookPost(
                 facebookAccount.platformAccountID,
                 facebookAccount.accessToken,
                 duePost.title ?? "",
-                media
+                mediaFiles.length === 1
+                    ? mediaFiles[0]
+                    : undefined,
+                mediaFiles.length > 1
+                    ? mediaFiles
+                    : undefined
             );
 
             console.log(

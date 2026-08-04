@@ -106,7 +106,8 @@ export function usePostUpload(){
                     await uploadToFacebook(
                         postDetails.title,
                         connectionId,
-                        postDetails.mediaFile,
+                        postDetails.mediaFiles ?? 
+                            (postDetails.mediaFile ? [postDetails.mediaFile] : []),
                         postDetails.scheduleMode,
                         postDetails.scheduledDate
                     );
@@ -139,7 +140,8 @@ export function usePostUpload(){
                     await uploadToInstagram(
                         postDetails.title,
                         connectionId,
-                        postDetails.mediaFile!,
+                        postDetails.mediaFiles ??
+                            (postDetails.mediaFile ? [postDetails.mediaFile] : []),
                         postDetails.scheduleMode,
                         postDetails.scheduledDate
                     );
@@ -159,6 +161,9 @@ export function usePostUpload(){
                 return;
             }
 
+            if (!postDetails.mediaFiles || postDetails.mediaFiles.length === 0) {
+                throw new Error("No media file selected for TikTok.");
+            }
 
         setUploadStatus("Posting to TikTok... It may take a few minutes for the content to appear on your profile");
 
@@ -235,6 +240,7 @@ export function usePostUpload(){
 
           // Check if postDetails has a scheduled date, if so don't immediately post them and save them for now
           if(postDetails.scheduleDate){
+
 
             // Upload to route the details of the scheduled post
             const scheduleUploadResult = await uploadToTikTok(postDetails.mediaFile!, initUploadResults.data[0].upload_url, true);
@@ -321,6 +327,8 @@ export function usePostUpload(){
         for(let i = 0; i < MAX_LOOP_CHECKS; i++){
 
             await timer(POLL_INTERVALS);
+
+            console.log("TikTok publish ID:", initUploadResult.data.publish_id);
 
             const videoStatusFetch = await checkUploadStatus(
                 initUploadResult.data.publish_id,

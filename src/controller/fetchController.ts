@@ -633,15 +633,18 @@ export async function uploadToLinkedIn(
 
 }
 
-export async function uploadToFacebook(title: string, connectionId: string, mediaFile?: File, scheduleMode?: string, scheduledDate?: string) {
+export async function uploadToFacebook(title: string, connectionId: string, mediaFiles?: File[], scheduleMode?: string, scheduledDate?: string) {
 
     const formData = new FormData();
 
     formData.append("title", title);
     formData.append("connectionId", connectionId);
 
-    if (mediaFile)
-        formData.append("media", mediaFile);
+    if (mediaFiles) {
+         mediaFiles.forEach(file => {
+            formData.append("media", file);
+        });
+    }
 
     if (scheduleMode)
         formData.append("scheduleMode", scheduleMode);
@@ -662,16 +665,19 @@ export async function uploadToFacebook(title: string, connectionId: string, medi
 }
 
 
-export async function uploadToInstagram(title: string, connectionId: string, mediaFile?: File, scheduleMode?: string, scheduledDate?: string) {
+export async function uploadToInstagram(title: string, connectionId: string, mediaFiles?: File[], scheduleMode?: string, scheduledDate?: string) {
 
     const formData = new FormData();
 
     formData.append("title", title);
     formData.append("connectionId", connectionId);
 
-    if (mediaFile)
-        formData.append("media", mediaFile);
-
+    if (mediaFiles) {
+        mediaFiles.forEach(file => {
+            formData.append("media", file);
+        });
+    }
+    
     if (scheduleMode)
         formData.append("scheduleMode", scheduleMode);
 

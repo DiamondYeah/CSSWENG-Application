@@ -16,10 +16,12 @@ const { Router } = pkg;
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
-router.post("/upload", findAccountAuth, upload.single("media"), async (req: AuthUserRequest, res: Response) => {
+router.post("/upload", findAccountAuth, upload.array("media", 10), async (req: AuthUserRequest, res: Response) => {
     const account: IAccount = req.account as IAccount;
     const { title, connectionId, scheduleMode, scheduledDate } = req.body;
-    const mediaFile = req.file;
+    const mediaFiles = req.files as Express.Multer.File[] || [];
+
+    const mediaFile = (mediaFiles.length === 1) ? mediaFiles[0] : undefined;
 
     if (!title || !title.trim())
         return res.status(400).json({ success: false, message: "Post text is required." });
@@ -46,9 +48,9 @@ router.post("/upload", findAccountAuth, upload.single("media"), async (req: Auth
     try {
         if (scheduleMode === "schedule") {
 
-            let localFilePath: string | undefined;
+            let localFilePaths: string[] = [];
 
-            if (mediaFile) {
+            if (mediaFiles.length > 0) {
 
                 const uploadDir = "./mediauploads/";
 
@@ -56,17 +58,17 @@ router.post("/upload", findAccountAuth, upload.single("media"), async (req: Auth
                     fs.mkdirSync(uploadDir, { recursive: true });
                 }
 
-                const filePath = path.join(
-                    uploadDir,
-                    `${Date.now()}-${mediaFile.originalname}`
-                );
+                for (const file of mediaFiles) {
 
-                fs.writeFileSync(
-                    filePath,
-                    mediaFile.buffer
-                );
-
-                localFilePath = filePath;
+                    const filePath = path.join(uploadDir, `${Date.now()}-${file.originalname}`);
+                    
+                    fs.writeFileSync(
+                        filePath,
+                        file.buffer
+                    );
+                    
+                    localFilePaths.push(filePath);
+                }
             }
 
             const post = await Post.create({
@@ -74,7 +76,7 @@ router.post("/upload", findAccountAuth, upload.single("media"), async (req: Auth
                 userID: account._id,
                 platformAccountID: connectionId,
                 platform: "facebook",
-                postType: mediaFile?.mimetype.startsWith("video/")
+                postType: mediaFiles[0]?.mimetype.startsWith("video/")
                     ? "video"
                     : "photo",
                 publishID: "pending",
@@ -83,7 +85,7 @@ router.post("/upload", findAccountAuth, upload.single("media"), async (req: Auth
                 scheduledDate: new Date(scheduledDate),
                 title,
                 description: title,
-                localFilePath: localFilePath,
+                localFilePaths: localFilePaths,
             
             });
 
@@ -95,11 +97,23 @@ router.post("/upload", findAccountAuth, upload.single("media"), async (req: Auth
             });
         }
 
-        const postID = await publishFacebookPost(pageID, pageAccessToken, title, mediaFile ? {
-            buffer: mediaFile.buffer,
-            contentType: mediaFile.mimetype,
-            filename: mediaFile.originalname,
-        } : undefined);
+        const formattedMediaFiles = mediaFiles.map(file => ({
+            buffer: file.buffer,
+            contentType: file.mimetype,
+            filename: file.originalname,
+        }));
+
+        const postID = await publishFacebookPost(
+            pageID,
+            pageAccessToken,
+            title,
+            formattedMediaFiles.length === 1 
+                ? formattedMediaFiles[0]
+                : undefined,
+            formattedMediaFiles.length > 1
+                ? formattedMediaFiles
+                : undefined
+        );
 
         return res.json({ success: true, data: { postID } });
 

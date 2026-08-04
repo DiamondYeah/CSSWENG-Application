@@ -73,7 +73,7 @@ function CreatePost() {
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
   const [scheduleMode, setScheduleMode] = useState<"now" | "schedule" | "queue">("schedule");
 
-  // Stateful const that media files and their previews for the uploads
+  // Stateful const that store info user and video info fetched from TikTokAPI
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
   const [mediaFilePreviews, setMediaFilePreviews] = useState<string[]>([]);
 
@@ -108,6 +108,21 @@ function CreatePost() {
     .filter(acc => selectedAccounts.includes(acc.id))
     .map(acc => acc.platform.toLowerCase());
 
+  const allowMultipleFiles =
+    (selectedPlatforms.includes("facebook") ||
+    selectedPlatforms.includes("instagram")) &&
+    !selectedPlatforms.includes("linkedin") &&
+    !selectedPlatforms.includes("tiktok");
+
+  const allowPDF =
+    selectedPlatforms.length === 1 &&
+    selectedPlatforms.includes("linkedin");
+
+
+  const acceptedMediaTypes = allowPDF
+    ? "video/mp4, image/png, image/jpg, application/pdf"
+    : "video/mp4, image/png, image/jpg";
+
   // Every unique platform in the current selection gets its own settings block,
   // shown together — matches Buffer's "Customize for each network" pattern, where
   // multiple Facebook accounts still only produce one Facebook settings box.
@@ -116,22 +131,7 @@ function CreatePost() {
   // isPhotoPost is derived from the uploaded files, not stored as separate state
   const isPhotoPost = mediaFiles.length > 0 && mediaFiles[0].type.startsWith("image/");
 
-
-
-    
-  const allowMultipleFiles = (selectedPlatforms.includes("facebook") || selectedPlatforms.includes("instagram")) &&
-  !selectedPlatforms.includes("linkedin") && !selectedPlatforms.includes("tiktok");
-
-
-  // Determines if the given platform allows PDF upload or not
-  const allowPDF = selectedPlatforms.length === 1 && selectedPlatforms.includes("linkedin");
-
-
-  // Determines what media file uploads are allowed for the given platform. Pased on PDF upload
-  const acceptedMediaTypes = allowPDF
-    ? "video/mp4, image/png, image/jpg, application/pdf"
-    : "video/mp4, image/png, image/jpg";
-
+  
 
   // useEffect for adjusting privacy options depending on commercial content
   useEffect(() => {
@@ -275,7 +275,6 @@ function CreatePost() {
       const maxVideoLength = getMergedTikTokQueryInfo(selectedAccounts, accounts, getSpecificQueryInfo)?.max_video_post_duration_sec ?? Infinity;
 
 
-      // Create new video document and assign its source to the url of a file
       const video = document.createElement("video");
       const checkURL = URL.createObjectURL(firstFile);
       video.src = checkURL;
@@ -284,30 +283,21 @@ function CreatePost() {
 
         URL.revokeObjectURL(checkURL);
 
-        
-        // Check if video duration exceeds the maximum allowed limit for the user's TikTok Account
         if (video.duration > maxVideoLength) {
 
           setMediaError(true);
           setValidationMessage(`Video exceeds maximum duration of TikTok's allowed post duration of ${maxVideoLength} seconds.`);
           URL.revokeObjectURL(video.src);
 
-
           previews.forEach(url => URL.revokeObjectURL(url));
-
-          setMediaFiles([]); 
+          setMediaFiles([]);
           setMediaFilePreviews([]);
-          return;
-
+          
         }
-
       };
 
     }
-
   }
-
-
   // Function handles the uploading of post with the given info
   async function handleSubmitUpload() {
 
@@ -410,6 +400,42 @@ function CreatePost() {
     });
 
   }
+
+
+  // Function returns TikTok User Consent depending on which are selected for Commercial Content and Promotion
+  function getTikTokUserConsent() {
+
+    if(!isCommercialContent)
+      return null;
+    else if (isBrandedContent)
+      return (
+        <p>By posting, you agree to TikTok's{" "}
+          <a href="https://www.tiktok.com/legal/page/global/bc-policy/en" target="_blank" rel="noreferrer">Branded Content Policy</a> and{" "}
+          <a href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en" target="_blank" rel="noreferrer">Music Usage Confirmation.</a>
+        </p>
+      );
+    else if(isYourOwnBrand)
+      return (
+        <p>By posting, you agree to TikTok's{" "}
+          <a href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en" target="_blank" rel="noreferrer">Music Usage Confirmation.</a>
+        </p>
+      );
+
+
+    return null; // If all fails, return null
+
+  }
+
+  // useEffect for adjusting privacy options depending on commercial content
+  useEffect(() => {
+
+    // If branded content is activated and privacy level is set to SELF_ONLY, remove it and show error.
+    if (isBrandedContent && privacyLevel === "SELF_ONLY") {
+      setPrivacyLevel("");
+      setValidationMessage("Branded content visibility cannot be set to private. Please choose a different privacy setting.");
+    }
+
+  }, [isBrandedContent, privacyLevel]);
 
 
   return (

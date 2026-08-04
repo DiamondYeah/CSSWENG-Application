@@ -38,7 +38,8 @@ export interface IPost extends Document{
 
     scheduledDate?: Date // If null/undefined = Post right away
     publishMediaStatus: PublishMediaStatus // Determines the status of the scheduled post whether it is awaiting or already published
-    localFilePath?: string // Location of file path for scheduled post to be accessed later
+    localFilePath?: string;
+    localFilePaths?: string[] // Location of file path for scheduled post to be accessed later
 
     title?: string
     description?: string
@@ -89,6 +90,7 @@ const postSchema = new Schema<IPost>({
     scheduledDate: {type: Date, required: false} ,
     publishMediaStatus: {type: String, enum:["awaiting_schedule", "published_to_platform"], required: true, default: "published_to_platform"},
     localFilePath: {type: String, required: false},
+    localFilePaths: {type: [String], required: false},
     
     title: {type: String, required: false},
     description: {type: String, required: false},
