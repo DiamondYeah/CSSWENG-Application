@@ -15,7 +15,6 @@ export interface ISocialMediaAccount extends Document{
     scope: string;
     tokenExpiresIn: Date;
     refreshExpiresIn?: Date;
-
     
 }
 
@@ -29,8 +28,7 @@ const socialMediaAccountSchema = new Schema<ISocialMediaAccount>({
     refreshToken: { type: String, default: "" },
     scope: { type: String, required: true},
     tokenExpiresIn: { type: Date, required: true},
-    refreshExpiresIn: { type: Date, default: null }, 
-
+    refreshExpiresIn: { type: Date, default: null },
 },
 
     { timestamps: true } // Adds cretedAt and updatedAt Dates

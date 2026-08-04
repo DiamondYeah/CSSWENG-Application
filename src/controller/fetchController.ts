@@ -105,6 +105,7 @@ export async function fetchAccountInfo(){
 
     const res = await fetch(ACCOUNTINFO_DIRECT,{
 
+        headers: { "ngrok-skip-browser-warning": "true" },
         credentials: "include",
 
     })
@@ -373,7 +374,9 @@ export async function checkUploadStatus(publishID: string, platformAccountID?: s
 
 
 // Function calls router to upload photos to Tiktok API 
-export async function uploadPhotos(photos: File[], title: string, description: string, ){
+export async function uploadPhotos(photos: File[], title: string, description: string, privacyLevel: string,
+                                    allowComments: boolean, isYourOwnBrand: boolean, isBrandedContent: boolean,
+                                    scheduleDate?: Date, socialMediaAccountsIDs?: string[]){
 
     // Create FormData object and append videoFile and uploadURL
     const formData = new FormData();
@@ -383,6 +386,16 @@ export async function uploadPhotos(photos: File[], title: string, description: s
     })
     formData.append('title', title);
     formData.append('description', description);
+    formData.append('privacyLevel', privacyLevel);
+    formData.append('allowComments', String(allowComments));
+    formData.append('isYourOwnBrand', String(isYourOwnBrand));
+    formData.append('isBrandedContent', String(isBrandedContent));
+
+    if(socialMediaAccountsIDs)
+        formData.append('socialMediaAccountsIDs', JSON.stringify(socialMediaAccountsIDs));
+
+    if(scheduleDate)
+        formData.append('scheduleDate', scheduleDate.toISOString());
 
     // Fetch router with credentials
     const res = await fetch(UPLOAD_PHOTOS_DIRECT, {
@@ -620,15 +633,18 @@ export async function uploadToLinkedIn(
 
 }
 
-export async function uploadToFacebook(title: string, connectionId: string, mediaFile?: File, scheduleMode?: string, scheduledDate?: string) {
+export async function uploadToFacebook(title: string, connectionId: string, mediaFiles?: File[], scheduleMode?: string, scheduledDate?: string) {
 
     const formData = new FormData();
 
     formData.append("title", title);
     formData.append("connectionId", connectionId);
 
-    if (mediaFile)
-        formData.append("media", mediaFile);
+    if (mediaFiles) {
+         mediaFiles.forEach(file => {
+            formData.append("media", file);
+        });
+    }
 
     if (scheduleMode)
         formData.append("scheduleMode", scheduleMode);
@@ -649,16 +665,19 @@ export async function uploadToFacebook(title: string, connectionId: string, medi
 }
 
 
-export async function uploadToInstagram(title: string, connectionId: string, mediaFile?: File, scheduleMode?: string, scheduledDate?: string) {
+export async function uploadToInstagram(title: string, connectionId: string, mediaFiles?: File[], scheduleMode?: string, scheduledDate?: string) {
 
     const formData = new FormData();
 
     formData.append("title", title);
     formData.append("connectionId", connectionId);
 
-    if (mediaFile)
-        formData.append("media", mediaFile);
-
+    if (mediaFiles) {
+        mediaFiles.forEach(file => {
+            formData.append("media", file);
+        });
+    }
+    
     if (scheduleMode)
         formData.append("scheduleMode", scheduleMode);
 

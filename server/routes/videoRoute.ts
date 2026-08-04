@@ -68,6 +68,10 @@ router.post("/initupload", findAccountAuth, findTikTokAccount, async (req: AuthU
     // Store array of tiktokAccount info
     const results = [];
 
+    // Store an object array of errors
+    const errors: {platformAccountID: string; code?: string; message: string;}[] = [];
+
+
     try{
 
         // Loop through tiktokAccounts
@@ -103,59 +107,82 @@ router.post("/initupload", findAccountAuth, findTikTokAccount, async (req: AuthU
                 });
 
 
-                // Push successful scheduled document. 
+                // Push successful scheduled document and go to next iteration
                 results.push({platformAccountID: tiktokAccount.platformAccountID, publish_id: encryptedPlaceholderID, upload_url: "scheduled"})
-
                 continue;
 
             }
 
 
-            // If not scheduled, then perform steps for TikTok upload via the API
-            // Get user TikTok initial upload info results by calling obtainInitialUpload and passing arguments below and return result
-            const userInitUpload = await obtainInitialUpload({ 
 
-                tiktokUser: tiktokAccount, 
-                title: title, 
-                privacyLevel: privacyLevel, 
-                videoSize: videoSize,
-                allowComments: allowComments,
-                allowDuet: allowDuet,
-                allowStitch: allowStitch,
-                isYourOwnBrand: isYourOwnBrand,
-                isBrandedContent: isBrandedContent,
+            // Inner try-catch block to check for any errors on video upload
+            try{
 
-            })
+                // If not scheduled, then perform steps for TikTok upload via the API
+                // Get user TikTok initial upload info results by calling obtainInitialUpload and passing arguments below and return result
+                const userInitUpload = await obtainInitialUpload({ 
 
-
-            // If info is returned from initial upload, create a user document
-            if(userInitUpload){
-
-                // Create document of initial post status by calling createUserPost from db controller repo
-                await createUserPost({
-
-                    userID: tiktokAccount.accountID,
-                    platformAccountID: tiktokAccount.platformAccountID,
-                    platform: "tiktok",
-                    postType: "video",
-                    publishID: userInitUpload.data.publish_id,
-                    status: "pending",
-                    title: title,
-                    scheduledDate: scheduleDate ? new Date(scheduleDate) : undefined,
-                    publishMediaStatus: !!scheduleDate ? "awaiting_schedule" : "published_to_platform",
-                    localFilePath: !!scheduleDate ? req.file?.path : undefined,
-                    privacyLevel: privacyLevel,
+                    tiktokUser: tiktokAccount, 
+                    title: title, 
+                    privacyLevel: privacyLevel, 
+                    videoSize: videoSize,
                     allowComments: allowComments,
                     allowDuet: allowDuet,
                     allowStitch: allowStitch,
                     isYourOwnBrand: isYourOwnBrand,
-                    isBrandedContent: isBrandedContent                
+                    isBrandedContent: isBrandedContent,
 
-                });
+                })
 
 
-                // Push successful document. 
-                results.push({platformAccountID: tiktokAccount.platformAccountID, ...userInitUpload.data})
+                // If info is returned from initial upload, create a user document
+                if(userInitUpload){
+
+                    // Create document of initial post status by calling createUserPost from db controller repo
+                    await createUserPost({
+
+                        userID: tiktokAccount.accountID,
+                        platformAccountID: tiktokAccount.platformAccountID,
+                        platform: "tiktok",
+                        postType: "video",
+                        publishID: userInitUpload.data.publish_id,
+                        status: "pending",
+                        title: title,
+                        scheduledDate: scheduleDate ? new Date(scheduleDate) : undefined,
+                        publishMediaStatus: !!scheduleDate ? "awaiting_schedule" : "published_to_platform",
+                        localFilePath: !!scheduleDate ? req.file?.path : undefined,
+                        privacyLevel: privacyLevel,
+                        allowComments: allowComments,
+                        allowDuet: allowDuet,
+                        allowStitch: allowStitch,
+                        isYourOwnBrand: isYourOwnBrand,
+                        isBrandedContent: isBrandedContent                
+
+                    });
+
+
+                    // Push successful document. 
+                    results.push({platformAccountID: tiktokAccount.platformAccountID, ...userInitUpload.data})
+
+                }
+                
+            }catch(err){
+
+
+                console.error(`Init upload failed for account ${tiktokAccount.platformAccountID}: `, err);
+
+
+                // Add a variable that stores the code and message of errors below
+                let errorCode: {code: string, message: string} = {code: "", message: ""};
+
+                // Modify code variable depending on err message from catch
+                if((err as Error).message == "POSTING_CAP_REACHED")
+                    errorCode =  {code: "POSTING_CAP_REACHED", message: "You have reached your posting limit. Please try again later."};
+                else if((err as Error).message == "BANNED_FROM_POSTING")
+                    errorCode = {code: "BANNED_FROM_POSTING", message: "Your account is banned from posting. Please use a different account."};
+
+                // Push information into errors array. Get code and message from errorCode variable
+                errors.push({platformAccountID: tiktokAccount.platformAccountID, code: errorCode.code, message: errorCode.message});
 
             }
 
@@ -164,7 +191,10 @@ router.post("/initupload", findAccountAuth, findTikTokAccount, async (req: AuthU
 
         // Return the results
         if(results.length > 0)
-            return res.json({success: true, data: results})
+            return res.json({success: true, data: results, failures: errors.length > 0 ? errors : undefined});
+        // If results is empty, that means upload was not successful to all accounts. Check for errors and return error with errors array.
+        else if(errors.length > 0)
+            return res.status(422).json({success: false, message: "Post was not able to be uploaded to any accounts!:", errors});
 
         
         // Fallback in case nothing was returned

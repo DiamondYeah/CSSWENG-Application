@@ -3,7 +3,8 @@ import path from "path";
 import pkg from "express";
 import type { Response } from "express";
 import multer from "multer";
-import { findSpecificSocialMediaAccount } from "../dbcontrollers/socialMediaAccountRepository.ts";import { publishInstagramMedia } from "../server_services/instagramPostService.ts";
+import { findSpecificSocialMediaAccount } from "../dbcontrollers/socialMediaAccountRepository.ts";
+import { publishInstagramMedia, publishInstagramCarousel } from "../server_services/instagramPostService.ts";
 import Post from "../models/post.ts";
 import { findAccountAuth } from "../middleware/accountAuthMiddleware.ts";
 import type { AuthUserRequest } from "../types/express.ts";
@@ -13,12 +14,20 @@ const { Router } = pkg;
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
-router.post("/upload", findAccountAuth, upload.single("media"), async (req: AuthUserRequest, res: Response) => {
+router.post("/upload", findAccountAuth, upload.array("media", 10), async (req: AuthUserRequest, res: Response) => {
     const account: IAccount = req.account as IAccount;
     const { title, connectionId, scheduleMode, scheduledDate } = req.body;
-    const mediaFile = req.file;
+    const mediaFiles = req.files as Express.Multer.File[] || [];
+    
+    console.log("Instagram files received:", mediaFiles.length);
 
-    if (!mediaFile) {
+    console.log(
+        mediaFiles.map(file => file.originalname)
+    );
+
+    const mediaFile = mediaFiles[0];
+
+    if (mediaFiles.length === 0) {
         // Instagram has no text-only post type — every post needs an image or video.
         return res.status(400).json({ success: false, message: "Instagram requires an image or video for every post." });
     }
@@ -49,10 +58,23 @@ router.post("/upload", findAccountAuth, upload.single("media"), async (req: Auth
             const uploadDir = path.join(process.cwd(), "publicfiles", "scheduled");
             await fs.promises.mkdir(uploadDir, { recursive: true });
 
-            const filename = `${Date.now()}-${mediaFile.originalname}`;
-            const filePath = path.join(uploadDir, filename);
+            const savedFilePaths:string[] = [];
 
-            await fs.promises.writeFile(filePath, mediaFile.buffer);
+            for (const file of mediaFiles) {
+
+                const filename = `${Date.now()}-${mediaFile.originalname}`;
+            
+                const filePath = path.join(uploadDir, filename);
+            
+                await fs.promises.writeFile(filePath, mediaFile.buffer);
+
+                savedFilePaths.push(filePath);
+            }
+
+
+            
+            
+
 
             const post = await Post.create({
                 userID: account._id,
@@ -65,7 +87,7 @@ router.post("/upload", findAccountAuth, upload.single("media"), async (req: Auth
                 scheduledDate: schedule,
                 title,
                 description: title,
-                localFilePath: filePath,
+                localFilePaths:savedFilePaths,
             });  
 
             console.log("Scheduled Instagram post saved:", post._id);
@@ -73,11 +95,34 @@ router.post("/upload", findAccountAuth, upload.single("media"), async (req: Auth
             return res.json({ success: true, message: "Instagram post scheduled successfully.", data: { postId: post._id } });
         }
 
-        const mediaId = await publishInstagramMedia(igUserId, accessToken, title, {
-            buffer: mediaFile.buffer,
-            contentType: mediaFile.mimetype,
-            filename: mediaFile.originalname,
-        });
+        let mediaId: string;
+
+        if (mediaFiles.length > 1) {
+
+            mediaId = await publishInstagramCarousel(
+                igUserId,
+                accessToken,
+                title,
+                mediaFiles.map(file => ({
+                    buffer: file.buffer,
+                    contentType: file.mimetype,
+                    filename: file.originalname,
+                }))
+            );
+        } 
+        else {
+
+            mediaId = await publishInstagramMedia(
+                igUserId,
+                accessToken,
+                title,
+                {
+                    buffer: mediaFile.buffer,
+                    contentType: mediaFile.mimetype,
+                    filename: mediaFile.originalname,
+                }
+            );
+        }
 
         return res.json({ success: true, data: { mediaId } });
 

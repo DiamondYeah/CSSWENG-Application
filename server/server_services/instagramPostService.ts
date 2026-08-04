@@ -96,3 +96,129 @@ export async function publishInstagramMedia(
         await fs.unlink(savedFilePath).catch(() => undefined);
     }
 }
+
+
+// carousel publisher function
+export async function publishInstagramCarousel(igUserId: string, accessToken: string, caption: string,
+    mediaFiles: {
+        buffer: Buffer;
+        contentType: string;
+        filename?: 
+        string; 
+    }[]): Promise<string> {
+
+
+    const publicMediaDir = path.join(
+        process.cwd(),
+        "publicfiles",
+        "instagram"
+    );
+
+
+    await fs.mkdir(publicMediaDir, {recursive:true});
+
+
+    const children:string[] = [];
+
+
+    for(const media of mediaFiles){
+
+        const filename = `${crypto.randomUUID()}.jpg`;
+
+        const savedFilePath = path.join(
+            publicMediaDir,
+            filename
+        );
+
+
+        await fs.writeFile(
+            savedFilePath,
+            media.buffer
+        );
+
+
+        const publicUrl = process.env.PUBLIC_URL;
+
+        if(!publicUrl)
+            throw new Error("PUBLIC_URL missing");
+
+
+        const mediaUrl =
+            `${publicUrl.replace(/\/$/,"")}/publicfiles/instagram/${filename}`;
+
+
+        const containerID =
+            await uploadInstagramImageContainer(
+                igUserId,
+                accessToken,
+                mediaUrl
+            );
+
+
+        children.push(containerID);
+    }
+
+    const carouselResponse = await axios.post(
+        `${IG_GRAPH_BASE}/${igUserId}/media`,
+        null,
+        {
+            params: {
+                media_type:"CAROUSEL",
+                caption,
+                children: children.join(","),
+                access_token: accessToken
+            }
+        }
+    );
+
+    const carouselContainerId = carouselResponse.data.id;
+
+    let status = await checkContainerStatus(
+        carouselContainerId,
+        accessToken
+    );
+
+    let attempts = 0;
+    const maxAttempts = 20;
+
+    while (status.status_code === "IN_PROGRESS" && attempts < maxAttempts) {
+
+        await new Promise(resolve => setTimeout(resolve, 3000));
+
+        status = await checkContainerStatus(carouselContainerId, accessToken);
+        
+        attempts++;
+    }
+
+    if (status.status_code === "ERROR" || status.status_code === "EXPIRED") {
+        throw new Error(`Instagram carousel failed: ${status.status_code}`);
+    }
+
+    if (status.status_code === "IN_PROGRESS") {
+         throw new Error("Instagram carousel is still processing.");
+    }
+
+    return await publishContainer(
+         igUserId,
+        accessToken,
+        carouselContainerId
+    );
+}
+
+// image carousel children function
+async function uploadInstagramImageContainer( igUserId: string, accessToken: string, mediaUrl: string): Promise<string> {
+
+    const response = await axios.post(
+        `${IG_GRAPH_BASE}/${igUserId}/media`,
+        null,
+        {
+            params: {
+                image_url: mediaUrl,
+                is_carousel_item: "true",
+                access_token: accessToken
+            }
+        }
+    );
+
+    return response.data.id;
+}
