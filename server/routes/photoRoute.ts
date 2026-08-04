@@ -175,6 +175,13 @@ router.post("/photoUpload", findAccountAuth, findTikTokAccount, upload.array("ph
             }catch(err){
 
                 console.error(`Photo upload failed for account ${tiktokAccount.platformAccountID}: `, err);
+                
+                results.push({
+                    platformAccountID: tiktokAccount.platformAccountID,
+                    error: true,
+                    message: (err as Error).message,
+                    cause: (err as Error).cause,
+                });
 
             }
 
