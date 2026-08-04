@@ -7,7 +7,8 @@ import {
     performPostUpdateToFilePath, 
     uploadToLinkedIn,
     uploadToFacebook,
-    uploadToInstagram 
+    uploadToInstagram,
+    uploadPhotos
 } from "../controller/fetchController.ts";
 
 import {timer} from "../frontend_utilities//genericUtilities.ts";
@@ -25,8 +26,8 @@ const POLL_INTERVALS = 12000;
 interface PostUpload{
 
     title: string;
-    mediaFile?: File;   
-    mediaFiles?: File[];  // only change: allow LinkedIn text posts
+    mediaFile?: File;   // only change: allow LinkedIn text posts
+    mediaFiles?: File[];
 
     privacyLevel: string;
     allowComments: boolean;
@@ -165,6 +166,57 @@ export function usePostUpload(){
             }
 
         setUploadStatus("Posting to TikTok... It may take a few minutes for the content to appear on your profile");
+
+
+        // Checks if the given media upload is all photos.
+        const isPhotoUpload = !!postDetails.mediaFiles && postDetails.mediaFiles.length > 0 && postDetails.mediaFiles.every((f) => f.type.startsWith("image/"));
+
+
+        if(isPhotoUpload){
+
+            const photoUploadResults = await uploadPhotos(
+
+                postDetails.mediaFiles!,
+                postDetails.title,
+                postDetails.title ?? "",
+                postDetails.privacyLevel,
+                postDetails.allowComments,
+                postDetails.isYourOwnBrand,
+                postDetails.isBrandedContent,
+                postDetails.scheduleDate,
+                postDetails.socialMediaAccountsIDs,
+
+            );
+
+
+            if(photoUploadResults?.success){
+
+
+                const results: any[] = photoUploadResults.data ?? [];
+                const totalAccountsCount  = postDetails.socialMediaAccountsIDs.length;
+
+
+                // Check if count and data length are equal, meaning every post has been posted and display results
+                if(postDetails.scheduleDate)
+                    setUploadStatus("Post has been scheduled successfully! Please check the calendar to view the schedule.")            
+                else if(results.length == totalAccountsCount)
+                    setUploadStatus("Post has been successfully published to all accounts! Please check accounts to check if it has been reflected.");
+                else if(results.length > 0)
+                    setUploadStatus(`Post has been successfully published to ${results.length} out of ${totalAccountsCount} accounts! Please check accounts to check if it has been reflected.`);
+                else
+                    setUploadStatus("Error! Post was not able to be published to any accounts! Please try again.");
+
+            }else
+                setUploadStatus(photoUploadResults.message ?? `Error! Photo Upload Failed! Please try again.`);  
+
+
+            return;
+
+        }
+
+
+
+
     
         // Get initial upload info from initializeUploadPost and store info result
         const initUploadResults = await initializeUploadPost(postDetails.title, postDetails.privacyLevel, postDetails.mediaFile!.size, 
@@ -235,7 +287,7 @@ export function usePostUpload(){
 
               }catch(err){
 
-                setUploadStatus(`Error! Uploading Failed of Post to Account ${result.platformAccountID}! Please check if other accounts have succeded.`);
+                setUploadStatus(`Error! Video Uploading Failed of Post to Account ${result.platformAccountID}! Please check if other accounts have succeded.`);
 
               }
 

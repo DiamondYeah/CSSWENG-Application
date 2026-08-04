@@ -60,7 +60,7 @@ function CreatePost() {
 
   // Find tiktok IDs from social media accounts and get specific query info if needed
   const tiktokIDs = accounts.filter(acc => acc.platform == "tiktok").map(acc => acc.id);
-  const {queryInfo, getSpecificQueryInfo} = useUserQueryInfo(tiktokIDs);
+  const {getSpecificQueryInfo} = useUserQueryInfo(tiktokIDs);
 
   const {isUploading, uploadStatus, uploadPost} = usePostUpload();
 
@@ -128,10 +128,10 @@ function CreatePost() {
   // multiple Facebook accounts still only produce one Facebook settings box.
   const uniquePlatforms = Array.from(new Set(selectedPlatforms));
 
-  // isPhotoPost is derived from the uploaded file, not stored as separate state
-  const isPhotoPost =
-    mediaFiles.length > 0 &&
-    mediaFiles[0].type.startsWith("image/");
+  // isPhotoPost is derived from the uploaded files, not stored as separate state
+  const isPhotoPost = mediaFiles.length > 0 && mediaFiles[0].type.startsWith("image/");
+
+  
 
   // useEffect for adjusting privacy options depending on commercial content
   useEffect(() => {
@@ -143,6 +143,50 @@ function CreatePost() {
     }
 
   }, [isBrandedContent, privacyLevel]);
+
+
+  // Performed validation checking on uploading media files to check for allowed file types and if multiple uploads are allowed
+  useEffect(() => {
+
+    let updatedFiles = [...mediaFiles];
+
+    // If allowPDF is disabled, filter out any media files that are pdf type
+    if(!allowPDF)
+      updatedFiles = updatedFiles.filter((file) => file.type != "application/pdf");
+
+
+    // Get all images from mediaFiles and check if they are allowed or not
+    const allImages = updatedFiles.every((f) => f.type.startsWith("image/")); 
+    if((!allowMultipleFiles || !allImages) && updatedFiles.length > 1)
+      updatedFiles = [updatedFiles[0]]; // Get first image if only multi upload is not allowed
+
+
+    // If updatedFiles and original mediaFiles are not equal due to validation, update mediaFiles with the content of updatedFiles
+    if(updatedFiles.length != mediaFiles.length){
+
+      // Remove url previews and update media files and previews tih the ones from updatedFiles
+      mediaFilePreviews.forEach(url => URL.revokeObjectURL(url));
+      setMediaFiles(updatedFiles);
+      setMediaFilePreviews(updatedFiles.map((file) => URL.createObjectURL(file)));
+
+    }
+
+
+
+  }, [selectedPlatforms]);
+
+
+  // Removes URL object from mediaFilePreviews on unmount/leaving the page to prevent memory leaks
+  useEffect(() => {
+
+    return () => {
+
+      mediaFilePreviews.forEach(url => URL.revokeObjectURL(url));
+
+    }
+
+  }, [mediaFilePreviews]);
+
 
 
   function toggleAccount(id: string) {
@@ -190,62 +234,49 @@ function CreatePost() {
     if (files.length === 0)
         return;
 
-    const filteredFiles =
-      !selectedPlatforms.includes("facebook") &&
-      !selectedPlatforms.includes("instagram")
-        ? [files[0]]
-        : files;
-
+    // Get all files that are images and filter files with social medias that do allow multiple files and multiple images
+    const allImages = files.every((f) => f.type.startsWith("image/")); 
+    const filteredFiles = (allowMultipleFiles && allImages) ? files : [files[0]];
 
     if (filteredFiles.length === 0)
       return;
 
 
-    // Check every file size
+    // Check every file size if it exceeds the given MAX_MEDIA_FILE constant. If so, show error and return
     for (const file of filteredFiles) {
 
       if (file.size > MAX_MEDIA_FILE_SIZE) {
 
         setMediaError(true);
-        setValidationMessage(
-          `File size exceeds current file size limit. ${(file.size / 1024 / 1024).toFixed(2)} MB`
-        );
-
+        setValidationMessage(`File size exceeds current file size limit. ${(file.size / 1024 / 1024).toFixed(2)} MB`);
         return;
+
       }
     }
 
 
-    // Remove old preview URLs
+    // Remove old preview URLs to prevent memory leaks
     mediaFilePreviews.forEach(url => URL.revokeObjectURL(url));
 
 
-    const previews = filteredFiles.map(file =>
-      URL.createObjectURL(file)
-    );
-
+    // Create a preview URL object for the uploaded video file and update mediaFilePreview
+    const previews = filteredFiles.map(file => URL.createObjectURL(file));
 
     setMediaFiles(filteredFiles);
     setMediaFilePreviews(previews);
-
     setValidationMessage("");
     setMediaError(false);
 
-    const firstQueryInfo = queryInfo?.[0] ?? null;
+    // Get max duration for TikTok with firstFile
+    const firstFile = filteredFiles[0];
+    if (selectedPlatforms.includes("tiktok") && firstFile.type.startsWith("video/")){
 
-    if (firstQueryInfo && selectedPlatforms.includes("tiktok") && filteredFiles.length > 0 && filteredFiles[0].type.startsWith("video/")) {
-
-      const maxVideoLength =
-        getMergedTikTokQueryInfo(
-          selectedAccounts,
-          accounts,
-          getSpecificQueryInfo
-        )?.max_video_post_duration_sec ?? Infinity;
+      // Get max duration of all of the selecegted accounts for TikTok
+      const maxVideoLength = getMergedTikTokQueryInfo(selectedAccounts, accounts, getSpecificQueryInfo)?.max_video_post_duration_sec ?? Infinity;
 
 
       const video = document.createElement("video");
-      const checkURL = URL.createObjectURL(filteredFiles[0]);
-
+      const checkURL = URL.createObjectURL(firstFile);
       video.src = checkURL;
 
       video.onloadedmetadata = () => {
@@ -255,20 +286,16 @@ function CreatePost() {
         if (video.duration > maxVideoLength) {
 
           setMediaError(true);
-
-          setValidationMessage(
-            `Video exceeds TikTok's allowed maximum duration of ${maxVideoLength} seconds.`
-          );
+          setValidationMessage(`Video exceeds maximum duration of TikTok's allowed post duration of ${maxVideoLength} seconds.`);
+          URL.revokeObjectURL(video.src);
 
           previews.forEach(url => URL.revokeObjectURL(url));
-
           setMediaFiles([]);
           setMediaFilePreviews([]);
-
+          
         }
       };
 
-    
     }
   }
   // Function handles the uploading of post with the given info
@@ -276,9 +303,8 @@ function CreatePost() {
 
     const missingTitle = !title.trim();
     // Media is only required for platforms that need it
-    const missingMedia =
-      (selectedPlatforms.includes("tiktok") || selectedPlatforms.includes("instagram")) &&
-      mediaFiles.length === 0;    const missingPrivacy = selectedPlatforms.includes("tiktok") && !privacyLevel;
+    const missingMedia = (selectedPlatforms.includes("tiktok") || selectedPlatforms.includes("instagram")) && mediaFiles.length <= 0;
+    const missingPrivacy = selectedPlatforms.includes("tiktok") && !privacyLevel;
     const missingSchedule = scheduleMode === "schedule" && (!scheduleDate || !scheduleTime);
     const missingCommercialContent = isCommercialContent && !isYourOwnBrand && !isBrandedContent;
 
@@ -330,7 +356,7 @@ function CreatePost() {
      // Perform media upload
     await uploadPost({
       title: title,
-      mediaFiles: mediaFiles,
+      mediaFiles: mediaFiles, // Pass both array and single instance of mediaFile
       mediaFile: mediaFiles[0],
 
       // TikTok fields
@@ -410,76 +436,6 @@ function CreatePost() {
     }
 
   }, [isBrandedContent, privacyLevel]);
-
-  // fix filtering of file previews across platforms
-  useEffect(() => {
-
-    const onlyLinkedIn =
-        selectedPlatforms.length === 1 &&
-        selectedPlatforms.includes("linkedin");
-
-
-    const hasSingleFilePlatform =
-        selectedPlatforms.includes("linkedin") ||
-        selectedPlatforms.includes("tiktok");
-
-
-    let updatedFiles = [...mediaFiles];
-
-    // Remove PDF if LinkedIn is not the only selected platform
-    if (!onlyLinkedIn) {
-
-        updatedFiles = updatedFiles.filter(
-            file => file.type !== "application/pdf"
-        );
-
-    }
-
-
-    // Limit to one file if LinkedIn/TikTok is selected
-    if (hasSingleFilePlatform && updatedFiles.length > 1) {
-
-        updatedFiles = [updatedFiles[0]];
-
-    }
-
-
-    // Only update if something changed
-    if (updatedFiles.length !== mediaFiles.length) {
-
-        mediaFilePreviews.forEach(url =>
-            URL.revokeObjectURL(url)
-        );
-
-
-        setMediaFiles(updatedFiles);
-
-
-        setMediaFilePreviews(
-            updatedFiles.map(file =>
-                URL.createObjectURL(file)
-            )
-        );
-
-    }
-
-  
-  }, [selectedPlatforms]);
-
-  // Removes URL object from mediaFilePreview on unmount/leaving the page to prevent memory leaks
-  useEffect(() => {
-
-    return () => {
-
-      mediaFilePreviews.forEach(url =>
-        URL.revokeObjectURL(url)
-      );
-
-    }
-
-
-  }, [mediaFilePreviews]);
-
 
 
   return (
@@ -655,78 +611,71 @@ function CreatePost() {
                   </div>
                 </label>
 
-                {mediaFiles.length > 0 ?  (
+                {mediaFiles.length > 0 ? (
 
                   <>
+
                     {mediaFiles.map((file, index) => (
-                      
                       <div key={index}>
+                        <div className="cp-dropzone-title">{file.name}</div>
+                        <div className="cp-dropzone-sub">{(file.size / 1024 / 1024).toFixed(2)} MB</div>
 
-                          <div className="cp-dropzone-title">
-                            {file.name}
-                          </div>
 
-                          <div className="cp-dropzone-sub">
-                            {(file.size / 1024 / 1024).toFixed(2)} MB
-                          </div>
+                        {/** Show video preview if mediaFile is an video */}
+                        {file.type.startsWith("video/") && (
+                          <>
 
-                          {file.type.startsWith("video/") && (
-                            <>
-                              <div className="cp-media-preview-title">
-                                Video Preview
-                              </div>
+                            <div className="cp-media-preview-title">Video Preview</div>
 
-                              <video
-                                className="cp-media-preview"
-                                height="320"
-                                width="500"
-                                controls
-                              >
-                                <source 
-                                  src={mediaFilePreviews[index]} 
-                                  type={file.type}
-                                />
-                                Browser does not support video format.
-                              </video>
-                            </>
-                          )}
+                            <video className = "cp-media-preview" height = "320" width = "500" controls>
 
-                          {file.type.startsWith("image/") && (
-                            <>
-                              <div className="cp-media-preview-title">
-                                Image Preview
-                              </div>
+                              <source src = {mediaFilePreviews[index]} type = {file.type} ></source>
+                              Browser does not support video format for preview.
 
-                              <img
-                                src={mediaFilePreviews[index]}
-                                alt="Image Preview"
-                                className="cp-media-preview"
-                              />
-                            </>
-                          )}
+                            </video>
 
-                          {file.type === "application/pdf" && (
-                            <>
-                              <div className="cp-media-preview-title">
-                                PDF Preview
-                              </div>
+                          </>
 
-                              <iframe
-                                src={mediaFilePreviews[index]}
-                                className="cp-media-preview"
-                                width="500"
-                                height="320"
-                                title="PDF Preview"
-                              />
-                            </>
-                          )}
+                        )}
+
+                        {/** Show video preview if mediaFile is an image */}
+                        {file.type.startsWith("image/") && (
+                          <>
+
+                            <div className="cp-media-preview-title">Image Preview</div>
+
+                            <img src = {mediaFilePreviews[index]} alt = "Image Preview" className = "cp-media-preview"></img>
+
+                          </>
+
+                        )}
+
+                        {/** Show video preview if mediaFile is a PDF */}
+                        {file.type === "application/pdf" && (
+                          <>
+
+                            <div className="cp-media-preview-title">PDF Preview</div>
+
+                            <iframe
+                              src={mediaFilePreviews[index]}
+                              className="cp-media-preview"
+                              width="500"
+                              height="320"
+                              title="PDF Preview"
+                            />
+                          </>
+                        )}
+
                       </div>
+
                     ))}
+
                   </>
+
                 ) : (
                   <>
                     <div className="cp-dropzone-title">Click or drag files to upload</div>
-                    <div className="cp-dropzone-sub">PNG, JPG, MP4, PDF up to 750MB</div>
+                    <div className="cp-dropzone-sub">PNG, JPG, MP4, and PDF up to 750MB</div>
                   </>
                 )}
 
