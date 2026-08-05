@@ -20,15 +20,6 @@ export async function processFacebookScheduledPosts() {
 
     const duePosts = await findAwaitingSchedulePosts();
 
-    for (const post of duePosts) {
-        console.log(
-            "Platform:", post.platform,
-            "| Status:", post.status,
-            "| Scheduled:", post.scheduledDate
-        );
-    }
-
-
     for (const duePost of duePosts) {
 
         if (duePost.platform !== "facebook")
@@ -53,7 +44,7 @@ export async function processFacebookScheduledPosts() {
                 console.error("Facebook account not found.");
 
                 await updatePostStatus({
-                    publishID: duePost.publishID,
+                    publishID: duePost.publishID || duePost._id.toString(),
                     status: "failed"
                 });
 
@@ -117,10 +108,9 @@ export async function processFacebookScheduledPosts() {
 
         } catch (err) {
 
-            console.error(
-                "Facebook scheduled post error:",
-                err
-            );
+            console.error("Facebook scheduled post error:", err);
+            await updatePostStatus({ publishID: duePost.publishID || duePost._id.toString(), status: "failed"});
+
         }
     }
 }

@@ -18,6 +18,8 @@ import {uploadUserPhoto} from "../server_services/tiktokPhotoService.ts"
 import {findAccountAuth} from "../middleware/accountAuthMiddleware.ts";
 import {findTikTokAccount} from "../middleware/tiktokAccountConnectMiddleware.ts";
 import { createUserPost } from "../dbcontrollers/postRepository.ts";
+import { checkTokenIfExpired } from "../server_services/tiktokAuthService.ts";
+import { platform } from "process";
 
 // Constant for the max media file size
 const MAX_MEDIA_FILE_SIZE: number = 750 * 1024 * 1024;
@@ -135,10 +137,29 @@ router.post("/photoUpload", findAccountAuth, findTikTokAccount, upload.array("ph
             // Inner try-catch block to check for any errors on photo upload
             try{
 
+
+                // Check for the tiktok token to see if expired.
+                const refreshTikTokAccount: ISocialMediaAccount | null = await checkTokenIfExpired(String(tiktokAccount._id));
+
+
+                if(!refreshTikTokAccount){
+
+                    console.error(`Error! Tiktok account and could not be refreshed for account ${tiktokAccount.platformAccountID}.`);
+                    results.push({
+
+                        platformAccountID: tiktokAccount.platformAccountID,
+                        error: true,
+                        message: "Error! TikTok account token expired or invalid — please reconnect this account."
+                    })
+
+                    continue; // Skip to next post
+
+                }
+
                 // Upload user photos to their account by calling uploadUserPhoto function in services and receive result of upload
                 const photoUploadResult = await uploadUserPhoto({
                     
-                    tiktokUser: tiktokAccount, 
+                    tiktokUser: refreshTikTokAccount, 
                     title: title, 
                     description: description,
                     photoURLs: photoURLs,
@@ -153,8 +174,8 @@ router.post("/photoUpload", findAccountAuth, findTikTokAccount, upload.array("ph
                 if(photoUploadResult)       
                     await createUserPost({
 
-                        userID: tiktokAccount.accountID,
-                        platformAccountID: tiktokAccount.platformAccountID,
+                        userID: refreshTikTokAccount.accountID,
+                        platformAccountID: refreshTikTokAccount.platformAccountID,
                         platform: "tiktok",
                         postType: "photo",
                         publishID: photoUploadResult.data.publish_id,
@@ -170,7 +191,7 @@ router.post("/photoUpload", findAccountAuth, findTikTokAccount, upload.array("ph
                     });
 
                     // Push photo upload results into results
-                    results.push({platformAccountID: tiktokAccount.platformAccountID, ...photoUploadResult.data});
+                    results.push({platformAccountID: refreshTikTokAccount.platformAccountID, ...photoUploadResult.data});
 
             }catch(err){
 

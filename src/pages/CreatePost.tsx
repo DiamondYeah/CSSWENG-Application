@@ -150,10 +150,10 @@ function CreatePost() {
     .map(acc => acc.platform.toLowerCase());
 
   const allowMultipleFiles =
-    (selectedPlatforms.includes("facebook") ||
-    selectedPlatforms.includes("instagram")) &&
-    !selectedPlatforms.includes("linkedin") &&
-    !selectedPlatforms.includes("tiktok");
+      (selectedPlatforms.includes("facebook") ||
+      selectedPlatforms.includes("instagram") ||
+      selectedPlatforms.includes("tiktok")) &&
+      !selectedPlatforms.includes("linkedin");
 
   const allowPDF =
     selectedPlatforms.length === 1 &&

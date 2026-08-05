@@ -14,14 +14,6 @@ export async function processInstagramScheduledPosts() {
 
     const duePosts = await findAwaitingSchedulePosts();
 
-    for (const post of duePosts) {
-        console.log(
-            "Platform:", post.platform,
-            "| Status:", post.status,
-            "| Scheduled:", post.scheduledDate
-        );
-    }
-
 
     for (const duePost of duePosts) {
 
@@ -47,7 +39,7 @@ export async function processInstagramScheduledPosts() {
                 console.error("Instagram account not found.");
 
                 await updatePostStatus({
-                    publishID: duePost.publishID,
+                    publishID: duePost.publishID || duePost._id.toString(),
                     status: "failed"
                 });
 
@@ -125,6 +117,8 @@ export async function processInstagramScheduledPosts() {
         } catch (err) {
 
             console.error("Instagram scheduled post error:", err);
+            await updatePostStatus({ publishID: duePost.publishID || duePost._id.toString(), status: "failed"});
+
         }
     }
 }

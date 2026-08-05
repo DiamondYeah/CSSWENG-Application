@@ -274,7 +274,7 @@ export async function updatePublishToPlatformPost(postID: string, publishID: str
     return await Post.findByIdAndUpdate(
 
         postID,
-        {publishMediaStatus: "published_to_platform", publishID, uploadURL, status: "processing"},
+        {publishMediaStatus: "published_to_platform", publishID, uploadURL, status: "published"},
         {returnDocument: "after"},
 
     )

@@ -40,7 +40,7 @@ export async function processLinkedInScheduledPosts(){
 
                 console.error("LinkedIn account not found.");
                 await updatePostStatus({
-                    publishID: duePost.publishID,
+                    publishID: duePost.publishID || duePost._id.toString(),
                     status: "failed"
                 });
 
@@ -88,13 +88,14 @@ export async function processLinkedInScheduledPosts(){
                 String(duePost._id),
                 postURN
             );
+
+            
         }
         catch(err){
 
-            console.error(
-                "LinkedIn scheduled post error:",
-                err
-            );
+            console.error("LinkedIn scheduled post error:", err);
+            await updatePostStatus({ publishID: duePost.publishID || duePost._id.toString(), status: "failed"});
+
         }
     }
 }

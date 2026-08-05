@@ -115,15 +115,12 @@ export async function processScheduledDuePosts(){
         }catch(err){
 
             console.error(`Error processing post ${duePost._id}: `, err);
+            await updatePostStatus({ publishID: duePost.publishID || duePost._id.toString(), status: "failed"});
 
         }
 
 
-
-
     }
-
-
 
 
 }
