@@ -161,8 +161,8 @@ function CreatePost() {
 
 
   const acceptedMediaTypes = allowPDF
-    ? "video/mp4, image/jpeg, application/pdf"
-    : "video/mp4, image/jpeg";
+    ? "video/mp4, image/jpeg, image/png, application/pdf"
+    : "video/mp4, image/jpeg, image/png";
   // Every unique platform in the current selection gets its own settings block,
   // shown together — matches Buffer's "Customize for each network" pattern, where
   // multiple Facebook accounts still only produce one Facebook settings box.
@@ -780,7 +780,8 @@ function CreatePost() {
 
                   {statusToView && (
                     <div className={`cp-upload-status ${statusToView.toLowerCase().includes("failed")
-                      || statusToView.toLowerCase().includes("error!") ? "cp-status-failed" : "cp-status-success"}`}>
+                      || statusToView.toLowerCase().includes("error!") || statusToView.toLowerCase().includes("error") 
+                        ? "cp-status-failed" : "cp-status-success"}`}>
                       {statusToView}
                     </div>
                   )}

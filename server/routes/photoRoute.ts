@@ -193,7 +193,7 @@ router.post("/photoUpload", findAccountAuth, findTikTokAccount, upload.array("ph
             return res.json({success: true, data: results});
 
         // Fallback in case nothing was returned
-        return res.json({ success: false, message: "photoUploadResult returned with no data from service call!"});
+        return res.json({ success: false, message: "Error! photoUploadResult returned with no data from service call!"});
 
     }catch(err){
 
