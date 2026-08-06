@@ -18,6 +18,10 @@ const SCHEDULED_POSTS_DIRECT = `${API_BASE}/postInfo/getscheduledposts`;
 const GENERATE_SHARE_CALENDAR_DIRECT = `${API_BASE}/userInfo/createsharetoken`
 const OPEN_SHARE_CALENDAR_DIRECT = `${API_BASE}/userInfo/sharecalendar`
 const UPDATE_POST_FILEPATH_DIRECT = `${API_BASE}/postInfo/updatepostfilepath`
+const CATEGORIES_DIRECT = `${API_BASE}/category/getcategories`;
+const CREATE_CATEGORIES_DIRECT = `${API_BASE}/category/createcategory`
+const UPDATE_CATEGORIES_DIRECT = `${API_BASE}/category/updatecategory`
+const DELETE_CATEGORIES_DIRECT = `${API_BASE}/category/deletecategory`
 
 // for linkedin
 const LINKEDIN_UPLOAD_DIRECT = `${API_BASE}/linkedinPost/upload`;
@@ -117,6 +121,88 @@ export async function fetchAccountInfo(){
     return accountInfo;
 
 }
+
+
+// Function calls router to fetch all categories associated with the account
+export async function fetchCategories(){
+
+    const res = await fetch(CATEGORIES_DIRECT,{
+
+        credentials: "include",
+
+    })
+
+
+    // Convert res to json and return
+    const categoriesInfo = await res.json();
+
+    return categoriesInfo;
+
+}
+
+
+// Function calls router to create a new category for the account with the given required information in the parameters
+export async function createUserCategory(name: string, color: string, socialMediaAccountIDs: string[]){
+
+    const res = await fetch(CREATE_CATEGORIES_DIRECT,{
+
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({name, color, socialMediaAccountIDs}),    
+
+    })
+
+
+    // Convert res to json and return
+    const createdCategoryInfo = await res.json();
+
+    return createdCategoryInfo;
+
+}
+
+
+// Function calls router to update an existing category for the account with the given optional information in the parameters
+export async function updateUserCategory(categoryID: string, categoryUpdatesDetails?: {name: string, color?: string, socialMediaAccountIDs?: string[]}){
+
+    const res = await fetch(`${UPDATE_CATEGORIES_DIRECT}/${categoryID}`,{
+
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(categoryUpdatesDetails),    
+            
+    })
+
+
+    // Convert res to json and return
+    const updatedCategoryInfo = await res.json();
+
+    return updatedCategoryInfo;
+
+}
+
+
+// Function calls router to delete an existing category for the account with the given categoryID in the parameter
+export async function deleteUserCategory(categoryID: string){
+
+    const res = await fetch(`${DELETE_CATEGORIES_DIRECT}/${categoryID}`,{
+
+        method: "DELETE",
+        credentials: "include",
+              
+    })
+
+
+    // Convert res to json and return
+    const deletedCategoryInfo = await res.json();
+
+    return deletedCategoryInfo;
+
+
+
+}
+
 
 
 // Funcation calls router to disconnect TikTok user

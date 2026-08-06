@@ -4,8 +4,10 @@ import "./Category.css";
 
 import SchedulingTabs from "../components/SchedulingTabs"; // NEW: replaces hardcoded tab divs
 
+import { useConnectAccounts } from "../hooks/connectAccounts.ts";
+
 // Shared frontend-only category store (also read by Calendar.tsx)
-import { useCategories, saveCategory, deleteCategory, createCategory } from "../store/categoryStore";
+import { useCategories, updateCategory, deleteCategory, createCategory } from "../store/categoryStore";
 import type { Category } from "../types/category";
 
 // ---------------------------------------------------------------
@@ -47,17 +49,6 @@ const PLATFORM_META: Record<Platform, { label: string; color: string }> = {
   instagram: { label: "Instagram", color: "#E1306C" },
   tiktok: { label: "TikTok", color: "#000000" },
 };
-
-// ---------------------------------------------------------------
-// default demo data (used only if no accounts prop supplied)
-// ---------------------------------------------------------------
-
-const DEFAULT_ACCOUNTS: ConnectedAccount[] = [
-  { id: "acc-1", name: "AgilaPost Official", platform: "instagram" },
-  { id: "acc-2", name: "AgilaPost Biz", platform: "linkedin" },
-  { id: "acc-3", name: "Creator Hub", platform: "tiktok" },
-  { id: "acc-4", name: "Community Page", platform: "facebook" },
-];
 
 // ---------------------------------------------------------------
 // account chip
@@ -231,20 +222,34 @@ function CategoryCard({
 // ---------------------------------------------------------------
 
 export default function CategoryPage({
-  accounts = DEFAULT_ACCOUNTS,
+  accounts: accountsProp,
   onCreateCategory,
   onSaveCategory,
   onDeleteCategory,
 }: CategoryPageProps) {
-  // Categories now live in a shared frontend store so Calendar.tsx sees
-  // the same list live — no backend involved, purely in-memory for now.
+
+  const { accounts: rawAccounts } = useConnectAccounts();
+
+  const realAccounts: ConnectedAccount[] = useMemo(
+    () =>
+      (rawAccounts || []).map((acc) => ({
+        id: acc.id,
+        name: acc.name,
+        platform: acc.platform.toLowerCase().trim() as Platform,
+      })),
+    [rawAccounts]
+  );
+
+  // Use the real connected accounts unless a prop was explicitly supplied (e.g. for testing)
+  const accounts = accountsProp ?? realAccounts;
+
   const categories = useCategories();
   const [openId, setOpenId] = useState<string | null>(null);
 
   const handleToggleOpen = (id: string) => setOpenId((prev) => (prev === id ? null : id));
 
   const handleSave = (updated: Category) => {
-    saveCategory(updated);
+    updateCategory(updated);
     onSaveCategory?.(updated);
   };
 
@@ -254,14 +259,23 @@ export default function CategoryPage({
     onDeleteCategory?.(id);
   };
 
-  const handleCreate = () => {
-    const newCategory: Category = {
-      id: `cat-${Date.now()}`,
-      name: "New Category",
+  const handleCreate = async () => {
+
+    const newCategory = await createCategory({
+
+      name: `New Category ${categories.length + 1}`,
       color: COLOR_OPTIONS[categories.length % COLOR_OPTIONS.length],
-      accountIds: [],
-    };
-    createCategory(newCategory);
+
+    });
+
+    if (!newCategory){
+
+      alert("Couldn't create category — a category with that name may already exist. Try renaming or deleting it first.");
+      return;
+      
+    }
+
+
     setOpenId(newCategory.id);
     onCreateCategory?.();
   };

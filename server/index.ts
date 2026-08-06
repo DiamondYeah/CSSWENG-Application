@@ -19,6 +19,7 @@ import videoRoute from "./routes/videoRoute.ts";
 import photoRoute from "./routes/photoRoute.ts";
 import postRoute from "./routes/postRoute.ts";
 import accountRoute from "./routes/accountRoute.ts";
+import categoryRoute from "./routes/categoryRoute.ts";
 
 // for linkedin
 import linkedinAuthRoute from "./routes/linkedinAuthRoute.ts";
@@ -65,6 +66,7 @@ app.use("/videoUpload", videoRoute);
 app.use("/photoUpload", photoRoute);
 app.use("/postInfo", postRoute);
 app.use("/account", accountRoute);
+app.use("/category", categoryRoute);
 
 app.use("/auth", linkedinAuthRoute);
 app.use("/linkedinPost", linkedinPostRoute);

@@ -151,22 +151,49 @@ export async function checkTokenIfExpired(tiktokAccountID: string): Promise<ISoc
         }
 
       console.log("Attempting token refresh...");
-        let socialMediaAccountRefresh = await refreshTikTokToken(socialMediaAccount);
-      console.log("Refresh result:", socialMediaAccountRefresh);
 
-        // If not null, update user's API
-        if(socialMediaAccountRefresh)
-            socialMediaAccount = await createOrSaveUserTokensFromSeconds({
-        
+        let socialMediaAccountRefresh;
+
+      try{
+
+        socialMediaAccountRefresh = await refreshTikTokToken(socialMediaAccount);
+
+      }catch(err){
+
+        console.error(`Refresh failed for account ${tiktokAccountID}, marking refresh token as expired: `, err);
+
+        await createOrSaveUserTokensFromSeconds({
+
             accountID: socialMediaAccount.accountID.toString(),
             platformAccountID: socialMediaAccount.platformAccountID,
-            accessToken: socialMediaAccountRefresh.access_token,
-            refreshToken: socialMediaAccountRefresh.refresh_token,
-            scope: socialMediaAccountRefresh.scope,
-            tokenExpiresIn: socialMediaAccountRefresh.expires_in,      
-            refreshExpiresIn: socialMediaAccountRefresh.refresh_expires_in,
-        
+            accessToken: socialMediaAccount.accessToken,  
+            refreshToken: socialMediaAccount.refreshToken ?? "", 
+            scope: socialMediaAccount.scope,
+            tokenExpiresIn: 0,
+            refreshExpiresIn: 0,
+
         });
+
+        return null;
+
+      }
+
+
+        if (socialMediaAccountRefresh) {
+
+            socialMediaAccount = await createOrSaveUserTokensFromSeconds({
+
+                accountID: socialMediaAccount.accountID.toString(),
+                platformAccountID: socialMediaAccount.platformAccountID,
+                accessToken: socialMediaAccountRefresh.access_token,
+                refreshToken: socialMediaAccountRefresh.refresh_token,
+                scope: socialMediaAccountRefresh.scope,
+                tokenExpiresIn: socialMediaAccountRefresh.expires_in,
+                refreshExpiresIn: socialMediaAccountRefresh.refresh_expires_in,
+
+            });
+
+        }
 
     }
 

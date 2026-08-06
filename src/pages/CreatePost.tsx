@@ -1,5 +1,5 @@
 import "./CreatePost.css";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo  } from "react";
 import { useNavigate } from "react-router-dom";
 import { IoArrowBack, IoCloudUploadOutline, IoCheckmark,} from "react-icons/io5";
 import { MdOutlineEmojiEmotions, MdOutlineAlternateEmail } from "react-icons/md";
@@ -13,6 +13,9 @@ import {useUserQueryInfo} from "../hooks/userQueryInfo.ts"
 import {usePostUpload} from "../hooks/postUpload.ts"
 import {getMergedTikTokQueryInfo} from "../frontend_utilities/tiktokUtilities.ts";
 
+// Import category store
+import {useCategories} from "../store/categoryStore.ts";
+
 // Import Components for the CreatePost
 import TikTokSettings from "../components/TikTokSettings.tsx";
 import DatePicker from "../components/DatePicker.tsx";
@@ -25,47 +28,6 @@ import TikTokConsent from "../components/TikTokConsent.tsx";
 const MAX_TITLE_LENGTH: number = 2200;
 const MAX_CAPTION_LENGTH: number = 2200;
 const MAX_MEDIA_FILE_SIZE: number = 750 * 1024 * 1024;
-
-
-// ---------- Preset categories for quick-select ---------- //
-// Hardcoded for now (no backend/store) — each category carries one sample
-// account so the quick-select row always has something to show, independent
-// of whichever real accounts are actually connected.
-
-interface PresetCategoryAccount {
-  id: string;
-  name: string;
-  handle: string;
-  platform: string;
-}
-
-interface PresetCategory {
-  id: string;
-  name: string;
-  color: string;
-  account: PresetCategoryAccount;
-}
-
-const PRESET_CATEGORIES: PresetCategory[] = [
-  {
-    id: "preset-product-launches",
-    name: "Product Launches",
-    color: "#7C5CFF",
-    account: { id: "preset-acc-1", name: "AgilaPost Official", handle: "@agilapost", platform: "instagram" },
-  },
-  {
-    id: "preset-behind-the-scenes",
-    name: "Behind the Scenes",
-    color: "#FF8A5C",
-    account: { id: "preset-acc-2", name: "Creator Hub", handle: "@creatorhub", platform: "tiktok" },
-  },
-  {
-    id: "preset-client-work",
-    name: "Client Work",
-    color: "#3CC8A0",
-    account: { id: "preset-acc-3", name: "AgilaPost Biz", handle: "@agilapostbiz", platform: "linkedin" },
-  },
-];
 
 
 // ---------- Placeholder settings for platforms without real fields yet ---------- //
@@ -93,13 +55,22 @@ function CreatePost() {
   const navigate = useNavigate();
   const {accounts: realAccounts, isLoading: accountsLoading, error: accountsError} = useConnectAccounts();
 
-  // Preset category sample accounts are appended for display/selection only —
-  // guarded out at submit time (see handleSubmitUpload) so they can never
-  // actually be posted to.
-  const accounts = [
-    ...realAccounts,
-    ...PRESET_CATEGORIES.map((cat) => cat.account),
-  ];
+
+
+  const accounts = realAccounts;
+
+  const categories = useCategories();
+
+
+  const categoriesWithAccounts = useMemo(() =>
+    
+      categories.map((cat) => ({...cat, memberAccounts: accounts.filter((a) => cat.accountIds.includes(a.id)),}))
+                .filter((cat) => cat.memberAccounts.length > 0),
+
+    [categories, accounts]
+
+  );
+
 
   // Find tiktok IDs from social media accounts and get specific query info if needed.
   // Preset/sample accounts are excluded here — they're display-only and have no
@@ -143,6 +114,10 @@ function CreatePost() {
 
   // Status to show to user when something occurs in the post page.
   const statusToView = validationMessage || uploadStatus;
+
+  
+  // Stateful consts for storing active categories
+  const [activeCategoryIds, setActiveCategoryIds] = useState<string[]>([]);
 
   // Derived values
   const selectedPlatforms = accounts
@@ -235,17 +210,43 @@ function CreatePost() {
     );
   }
 
-  // A category reads as "checked" only when its sample account is selected.
-  function isCategoryChecked(accountId: string): boolean {
-    return selectedAccounts.includes(accountId);
-  }
+
+  // Toggle category filter
+  function toggleCategoryFilter(id: string) {
+
+    const isActivating = !activeCategoryIds.includes(id);
+
+    setActiveCategoryIds((prev) => prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]);
+
+    const category = categoriesWithAccounts.find((c) => c.id === id);
 
 
-  // Toggling a category selects/deselects its sample account.
-  function toggleCategory(accountId: string) {
-    setSelectedAccounts((prev) =>
-      prev.includes(accountId) ? prev.filter((id) => id !== accountId) : [...prev, accountId]
-    );
+    if (!category) 
+      return;
+
+
+    const memberIds = category.memberAccounts.map((a) => a.id);
+
+    setSelectedAccounts((prev) => {
+      
+      if (isActivating) {
+
+        // Add any member accounts not already selected
+        const toAdd = memberIds.filter((mid) => !prev.includes(mid));
+        return [...prev, ...toAdd];
+
+      } else {
+
+        const stillNeeded = new Set<string>();
+        categoriesWithAccounts.filter((c) => c.id !== id && activeCategoryIds.includes(c.id))
+                              .forEach((c) => c.memberAccounts.forEach((a) => stillNeeded.add(a.id)));
+
+        return prev.filter((pid) => !memberIds.includes(pid) || stillNeeded.has(pid));
+
+      }
+
+    });
+
   }
 
 
@@ -370,12 +371,6 @@ function CreatePost() {
     if (selectedAccounts.length === 0)
       return setValidationMessage("Please select an account to upload to!");
 
-    // Guard: preset category sample accounts are for previewing the category
-    // quick-select only, never for real submission.
-    const presetAccountIds = new Set(PRESET_CATEGORIES.map((cat) => cat.account.id));
-    const selectedPresetAccounts = selectedAccounts.filter((id) => presetAccountIds.has(id));
-    if (selectedPresetAccounts.length > 0)
-      return setValidationMessage("That's a sample account for previewing categories — deselect it and choose a real connected account before posting.");
 
     // Clear validation messages and remove errors
     setValidationMessage("");
@@ -430,6 +425,22 @@ function CreatePost() {
     });
 
   }
+
+  // useMemo for displaying visible accounts for categories
+  const visibleAccounts = useMemo(() => {
+
+    if(activeCategoryIds.length <= 0)
+      return accounts;
+
+    const allowedAccounts = new Set<string>();
+
+    categoriesWithAccounts.filter((c) => activeCategoryIds.includes(c.id))
+                          .forEach((c) => c.memberAccounts.forEach((a) => allowedAccounts.add(a.id)));
+
+    return accounts.filter((a) => allowedAccounts.has(a.id));
+
+  }, [accounts, categoriesWithAccounts, activeCategoryIds]);
+
   
 
   // useEffect for adjusting privacy options depending on commercial content
@@ -467,21 +478,22 @@ function CreatePost() {
                   Select by category
                 </span>
                 <div className="cp-category-chip-row">
-                  {PRESET_CATEGORIES.map((cat) => {
-                    const checked = isCategoryChecked(cat.account.id);
+                  {categoriesWithAccounts.map((cat) => {
+                    const active = activeCategoryIds.includes(cat.id);
+
                     return (
                       <button
                         type="button"
                         key={cat.id}
-                        className={`cp-category-chip${checked ? " selected" : ""}`}
-                        onClick={() => toggleCategory(cat.account.id)}
+                        className={`cp-category-chip${active ? " selected" : ""}`}
+                        onClick={() => toggleCategoryFilter(cat.id)}
                       >
                         <span
                           className="cp-category-chip__dot"
                           style={{ background: cat.color }}
                         />
                         {cat.name}
-                        {checked && <IoCheckmark size={12} />}
+                        {active && <IoCheckmark size={12} />}
                       </button>
                     );
                   })}
@@ -494,17 +506,17 @@ function CreatePost() {
 
                 {accountsError && <div className="cp-section-sub"> Error in loading accounts. Please refresh! </div>}
 
-                {!accountsLoading && !accountsError && accounts.length === 0 &&
-                  <div className="cp-section-sub"> No accounts connected to. </div>}
+                {!accountsLoading && !accountsError && visibleAccounts.length === 0 &&
+                  <div className="cp-section-sub"> 
+                    {accounts.length === 0 ? "No accounts connected." : "No accounts in this category."}
+                  </div>}
 
-                {accounts.map((acc) => {
+                {visibleAccounts.map((acc) => {
+
                   const selected = selectedAccounts.includes(acc.id);
-                  const isSample = acc.id.startsWith("preset-acc-");
-
-
                   let accQueryInfo = null;
 
-                  if(acc.platform == "tiktok" && !isSample)
+                  if(acc.platform == "tiktok")
                     accQueryInfo = getSpecificQueryInfo(acc.id);
 
 
@@ -514,7 +526,7 @@ function CreatePost() {
                   return (
                     <div
                       key={acc.id}
-                      className={`cp-account-row${selected ? " selected" : ""}${isSample ? " is-demo" : ""}`}
+                      className={`cp-account-row${selected ? " selected" : ""}`}
                       onClick={() => toggleAccount(acc.id)}
                     >
                       <div className="cp-account-checkbox">
@@ -522,9 +534,7 @@ function CreatePost() {
                       </div>
                       <img src={avatarSrc} alt="" />
                       <div className="cp-account-info">
-                        <span className="cp-account-name">
-                          {acc.name}{isSample && <span className="cp-demo-badge">SAMPLE</span>}
-                        </span>
+                        <span className="cp-account-name">{acc.name}</span>
                         <span className="cp-account-handle">{acc.handle}</span>
                         <span className="cp-account-platform">{acc.platform}</span>
                       </div>
