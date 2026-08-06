@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, LogOut } from "lucide-react";
 import "./UserStatus.css";
+import { useNavigate } from "react-router-dom";
+import { logoutAccount } from "../controller/fetchController";
 
 // ---------------------------------------------------------------
 // UserStatus
@@ -14,6 +16,8 @@ import "./UserStatus.css";
 // auth hook here — pass in whatever your auth context/hook exposes.
 // ---------------------------------------------------------------
 
+
+
 export interface UserStatusProps {
   username?: string;
   onLogout?: () => void | Promise<void>;
@@ -21,11 +25,12 @@ export interface UserStatusProps {
 
 export default function UserStatus({
   username = "Account",
-  onLogout,
 }: UserStatusProps) {
   const [open, setOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+
+  const navigate = useNavigate();
 
   // Close the dropdown on outside click
   useEffect(() => {
@@ -40,18 +45,27 @@ export default function UserStatus({
   }, [open]);
 
   const handleLogout = async () => {
+
     if (loggingOut) return;
     setLoggingOut(true);
+    
     try {
-      if (onLogout) {
-        await onLogout();
-      } else {
-        // Default fallback until real logout logic is wired in.
-        console.warn("UserStatus: no onLogout handler provided");
-      }
-    } finally {
-      setLoggingOut(false);
-      setOpen(false);
+
+      // Call function to perform logout
+      const logoutRes = await logoutAccount();
+
+      if (!logoutRes.success) 
+        console.error("Logout failed:", logoutRes.message);
+
+    } catch (err) {
+
+      console.error("Error logging out: ", err);
+
+    } 
+    finally {
+
+        navigate("/signin", { replace: true });
+
     }
   };
 

@@ -1,22 +1,12 @@
-// store/categoryStore.ts
-//
-// Frontend-only, in-memory category store shared between Category.tsx and
-// Calendar.tsx (and anywhere else that needs it). No backend/API calls here —
-// when the devs wire up real persistence, this file is the seam to swap out:
-// keep the same `useCategories()` hook signature and replace the internals
-// with fetch/useQuery/whatever, and Category.tsx / Calendar.tsx won't need
-// to change.
-
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import type { Category } from "../types/category";
 
-const DEFAULT_CATEGORIES: Category[] = [
-  { id: "cat-1", name: "Product Launches", color: "#d97706", accountIds: ["acc-1", "acc-2"] },
-  { id: "cat-2", name: "Behind the Scenes", color: "#059669", accountIds: ["acc-3"] },
-  { id: "cat-3", name: "Client Work", color: "#a8124a", accountIds: ["acc-1", "acc-3", "acc-4"] },
-];
+// Import Controller Functions
+import { fetchCategories, createUserCategory, updateUserCategory, deleteUserCategory } from "../controller/fetchController";
 
-let categories: Category[] = DEFAULT_CATEGORIES;
+let categories: Category[] = [];
+let hasLoaded = false;
+let isLoading = false;
 const listeners = new Set<() => void>();
 
 function emit() {
@@ -32,35 +22,186 @@ function getSnapshot() {
   return categories;
 }
 
+
+// Function maps data from backend to frontend equivalent
+function mapDataFromBackend(raw: any): Category{
+
+  return({
+
+    id: raw._id ?? raw.id,
+    name: raw.name,
+    color: raw.color, // hex
+    accountIds: raw.socialMediaAccountIDs ?? [],
+
+  })
+
+}
+
+
+// ---------------------------------------------------------------
+// load — fetches categories from the backend once, caches locally
+// ---------------------------------------------------------------
+
+async function loadCategories(){
+
+  // If function has already loaded or is still loading, just return
+  if(hasLoaded || isLoading)
+    return;
+
+  isLoading = true;
+
+
+  try{
+
+    // Fetch categories of account from backend
+    const categoryFetchRes = await fetchCategories();
+
+
+    // Check if success or not, if so proceed with mapping and performing emit
+    if(categoryFetchRes.success){
+
+      categories = (categoryFetchRes.data ?? []).map(mapDataFromBackend);
+      hasLoaded = true;
+      emit();
+
+    }else
+      console.error("Error! Failed in fetching categories to load: ", categoryFetchRes.message);
+
+
+  }catch(err){
+
+    console.error("Error in loading categories: ", err);
+
+  }finally{
+
+    isLoading = false;
+
+  }
+
+
+
+}
+
+
+
 // ---------------------------------------------------------------
 // mutators — call these from Category.tsx (or anywhere)
 // ---------------------------------------------------------------
 
-export function setCategories(next: Category[] | ((prev: Category[]) => Category[])) {
-  categories = typeof next === "function" ? (next as (prev: Category[]) => Category[])(categories) : next;
-  emit();
+export async function createCategory(newCategory: {name: string, color: string, socialMediaAccountIDs?: string[]}) {
+
+    try {
+
+    // Perform creation of user category by calling function from fetch controller
+    const res = await createUserCategory(newCategory.name, newCategory.color, newCategory.socialMediaAccountIDs ?? []);
+
+    // Check if operation was success or not
+    if(!res.success){
+
+      console.error("Failed to create category: ", res.message);
+      return null;
+
+    }
+
+    const createdMappedCategory = mapDataFromBackend(res.data);
+
+    // Update categories to add the new category and perform emit
+    categories = [...categories, createdMappedCategory];
+    emit();
+
+    return createdMappedCategory; // Return new category
+
+  }catch(err){
+
+    console.error("Error creating new category: ", err);
+    return ;
+
+  }
+
 }
 
-export function saveCategory(updated: Category) {
-  categories = categories.map((c) => (c.id === updated.id ? updated : c));
-  emit();
+export async function updateCategory(updated: Category) {
+
+    try {
+
+    // Perform creation of user category by calling function from fetch controller
+    const res = await updateUserCategory(updated.id,{
+
+      name: updated.name,
+      color: updated.color,
+      socialMediaAccountIDs: updated.accountIds,
+
+    });
+
+    // Check if operation was success or not
+    if(!res.success){
+
+      console.error("Failed to update category: ", res.message);
+      return null;
+
+    }
+
+    const updatedMappedCategory = mapDataFromBackend(res.data);
+
+    // Update categories to add the updated category or not and perform emit
+    categories = categories.map((c) => c.id === updatedMappedCategory.id ? updatedMappedCategory : c);
+    emit();
+
+    return updatedMappedCategory; // Return updated category
+
+  }catch(err){
+
+    console.error("Error saving new category: ", err);
+    return ;
+
+  }
+
 }
 
-export function deleteCategory(id: string) {
-  categories = categories.filter((c) => c.id !== id);
-  emit();
+export async function deleteCategory(id: string) {
+
+  try {
+
+    // Perform deletion of user category by calling function from fetch controller
+    const res = await deleteUserCategory(id);
+
+    // Check if operation was success or not
+    if(!res.success){
+
+      console.error("Failed to delete category: ", res.message);
+      return false;
+
+    }
+
+    // Update categories to remove the deleted category and perform emit
+    categories = categories.filter((c) => c.id !== id);
+    emit();
+
+    return true;
+
+  }catch(err){
+
+    console.error("Error deleting category: ", err);
+    return false;
+
+  }
+
 }
 
-export function createCategory(newCategory: Category) {
-  categories = [...categories, newCategory];
-  emit();
-  return newCategory;
-}
+
 
 // ---------------------------------------------------------------
 // hook — call this from any component that needs live category data
 // ---------------------------------------------------------------
 
 export function useCategories() {
+
+  useEffect(()=> {
+
+    loadCategories();
+
+  }, []);
+
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+
 }
