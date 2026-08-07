@@ -68,7 +68,7 @@ router.post("/upload", findAccountAuth, upload.single("media"), async (req: Auth
             publishID: "pending",
             status: "pending",
             publishMediaStatus: "awaiting_schedule",
-            scheduledDate: new Date(scheduledDate),
+            scheduledDate: new Date(`${scheduledDate}+08:00`),
             title,
             description: title,
             localFilePath: localFilePath,
