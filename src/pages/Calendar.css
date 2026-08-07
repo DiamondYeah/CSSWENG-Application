@@ -930,3 +930,28 @@
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+.ap-post-card__video-preview {
+    position: relative;
+    width: 45px;
+    height: 45px;
+    flex-shrink: 0;
+}
+
+
+.ap-post-card__video-preview .ap-post-card__preview {
+    width: 45px;
+    height: 45px;
+}
+
+
+.ap-post-card__play {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    background: rgba(0,0,0,0.25);
+    border-radius: 6px;
+}

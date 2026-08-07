@@ -33,9 +33,11 @@ export function mapPostToSchedulePost(post: any): ScheduledPost{
         title: post.title ?? "No Title",
         snippet: post.description || undefined,
 
-        mediaUrl: post.localFilePath
-            ? `http://localhost:5000/${post.localFilePath.replace("./", "")}`
-            : post.uploadURL || undefined,
+        mediaUrl: post.localFilePaths?.length > 0
+            ? `http://localhost:5000/${post.localFilePaths[0]}`
+            : post.localFilePath
+                ? `http://localhost:5000/${post.localFilePath.replace("./", "")}`
+                : post.uploadURL || undefined,
 
         mediaType:
             post.postType === "video"

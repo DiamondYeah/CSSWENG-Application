@@ -62,13 +62,15 @@ router.post("/upload", findAccountAuth, upload.array("media", 10), async (req: A
 
             for (const file of mediaFiles) {
 
-                const filename = `${Date.now()}-${mediaFile.originalname}`;
+                const filename = `${Date.now()}-${file.originalname}`;
             
                 const filePath = path.join(uploadDir, filename);
             
-                await fs.promises.writeFile(filePath, mediaFile.buffer);
+                await fs.promises.writeFile(filePath, file.buffer);
 
-                savedFilePaths.push(filePath);
+                savedFilePaths.push(
+                    path.relative(process.cwd(), filePath).replaceAll("\\", "/")
+                );
             }
 
 

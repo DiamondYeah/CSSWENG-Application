@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Clock, MessageCircle, Check, X } from "lucide-react";
-
+import { ChevronLeft, ChevronRight, Clock, MessageCircle, Check, X, Play } from "lucide-react";
 // Import utility for platform icons
 import {PLATFORM_META} from "../frontend_utilities/platformIcons.tsx"
 
@@ -161,6 +160,13 @@ export function CalendarGrid({posts, readOnly, postsView, setPostsView, onSelect
                         </div>
                         {dayPosts.map((post) => {
 
+                            console.log("POST DEBUG:", {
+                                platform: post.platform,
+                                title: post.title,
+                                mediaUrl: post.mediaUrl,
+                                mediaType: post.mediaType
+                            });
+
                             const meta = PLATFORM_META[post.platform as Platform]
                             if(!meta)
                                 return null;
@@ -239,10 +245,19 @@ export function CalendarGrid({posts, readOnly, postsView, setPostsView, onSelect
                                         )}
 
                                         {post.mediaUrl && post.mediaType === "video" && (
-                                             <video
-                                                src={post.mediaUrl}
-                                                className="ap-post-card__preview"
-                                            />
+                                            <div className="ap-post-card__video-preview">
+                                                <video
+                                                    src={post.mediaUrl}
+                                                    className="ap-post-card__preview"
+                                                    muted
+                                                    playsInline
+                                                    preload="metadata"
+                                                />
+
+                                                <span className="ap-post-card__play">
+                                                    <Play size={12} fill="white" />
+                                                </span>
+                                            </div>
                                         )}
                                     </div>
 
