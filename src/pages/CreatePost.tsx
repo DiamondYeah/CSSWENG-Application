@@ -125,10 +125,10 @@ function CreatePost() {
     .map(acc => acc.platform.toLowerCase());
 
   const allowMultipleFiles =
-      (selectedPlatforms.includes("facebook") ||
+      selectedPlatforms.includes("facebook") ||
       selectedPlatforms.includes("instagram") ||
-      selectedPlatforms.includes("tiktok")) &&
-      !selectedPlatforms.includes("linkedin");
+      selectedPlatforms.includes("tiktok") ||
+      selectedPlatforms.includes("linkedin");
 
   const allowPDF =
     selectedPlatforms.length === 1 &&
@@ -416,11 +416,6 @@ function CreatePost() {
       scheduledDate:
           scheduleMode === "schedule" && scheduleDate
               ? `${scheduleDate}T${scheduleTime || "00:00"}`
-              : undefined,
-
-      scheduleDate:
-          scheduleMode === "schedule" && scheduleDate
-              ? new Date(`${scheduleDate}T${scheduleTime || "00:00"}`)
               : undefined,
     });
 

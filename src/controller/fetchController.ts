@@ -688,7 +688,7 @@ export async function performPostUpdateToFilePath(publishID: string, localFilePa
 export async function uploadToLinkedIn(
     title: string,
     connectionId: string,
-    mediaFile?: File,
+    mediaFiles?: File[],
     scheduleMode?: string,
     scheduledDate?: string
 ) {
@@ -698,8 +698,11 @@ export async function uploadToLinkedIn(
     formData.append("title", title);
     formData.append("connectionId", connectionId);
 
-    if (mediaFile)
-        formData.append("media", mediaFile);
+    if (mediaFiles) {
+        mediaFiles.forEach(file => {
+            formData.append("media", file);
+        });
+    }
 
     if (scheduleMode)
         formData.append("scheduleMode", scheduleMode);
