@@ -17,7 +17,8 @@ const upload = multer({
     storage: multer.memoryStorage(),
 });
 
-router.post("/upload", findAccountAuth, upload.single("media"), async (req: AuthUserRequest, res: Response) => {
+
+router.post("/upload", findAccountAuth, upload.array("media"), async (req: AuthUserRequest, res: Response) => {
 
     const account: IAccount = req.account as IAccount;
     const { 
@@ -26,15 +27,18 @@ router.post("/upload", findAccountAuth, upload.single("media"), async (req: Auth
         scheduleMode,
         scheduledDate 
     } = req.body;
-    
-    const mediaFile = req.file;
 
+    console.log("Received scheduled date:", scheduledDate);
+    
+    const mediaFiles = req.files as Express.Multer.File[];
+
+    console.log("Files received:", mediaFiles.length);
 
     if (scheduleMode === "schedule") {
 
         let localFilePath: string | undefined;
 
-        if (mediaFile) {
+        if (mediaFiles.length > 0) {
             const uploadDir = "./mediauploads/";
 
             if (!fs.existsSync(uploadDir)) {
@@ -43,12 +47,12 @@ router.post("/upload", findAccountAuth, upload.single("media"), async (req: Auth
 
             const filePath = path.join(
                 uploadDir,
-                `${Date.now()}-${mediaFile.originalname}`
+                `${Date.now()}-${mediaFiles[0].originalname}`
             );
 
             fs.writeFileSync(
                 filePath,
-                mediaFile.buffer
+                mediaFiles[0].buffer
             );
 
             localFilePath = filePath;
@@ -60,9 +64,9 @@ router.post("/upload", findAccountAuth, upload.single("media"), async (req: Auth
             platformAccountID: connectionId,
             platform: "linkedin",
             postType: 
-                mediaFile?.mimetype.startsWith("video/") 
+                mediaFiles[0]?.mimetype.startsWith("video/") 
                     ? "video" 
-                    : mediaFile?.mimetype === "application/pdf" 
+                    : mediaFiles[0]?.mimetype === "application/pdf" 
                         ? "document"
                         : "photo",
             publishID: "pending",
@@ -100,18 +104,20 @@ router.post("/upload", findAccountAuth, upload.single("media"), async (req: Auth
 
 try {
 
-    if (mediaFile) {
+    if (mediaFiles.length > 0) {
         console.log("Media uploaded!");
-        console.log("Filename:", mediaFile.originalname);
-        console.log("MIME Type:", mediaFile.mimetype);
-        console.log("Size:", mediaFile.size);
+        console.log("Filename:", mediaFiles[0].originalname);
+        console.log("MIME Type:", mediaFiles[0].mimetype);
+        console.log("Size:", mediaFiles[0].size);
 
         const postURN = await publishLinkedInMedia(
             accessToken,
             personURN,
             title,
-            mediaFile.buffer,
-            mediaFile.mimetype
+            mediaFiles.map(file => ({
+                buffer: file.buffer,
+                mimetype: file.mimetype
+            }))
         );
 
         return res.json({

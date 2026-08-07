@@ -75,7 +75,8 @@ export function usePostUpload(){
                     await uploadToLinkedIn(
                         postDetails.title,
                         connectionId,
-                        postDetails.mediaFile,
+                        postDetails.mediaFiles ??
+                                (postDetails.mediaFile ? [postDetails.mediaFile] : []),
                         postDetails.scheduleMode,
                         postDetails.scheduledDate
                     );

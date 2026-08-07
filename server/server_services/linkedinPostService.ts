@@ -335,12 +335,18 @@ export async function publishLinkedInMedia(
     accessToken: string,
     personURN: string,
     title: string,
-    mediaBuffer: Buffer,
-    mimeType: string
+    mediaFiles: {
+        buffer: Buffer;
+        mimetype: string;
+    }[]
 ): Promise<string> {
 
-    const isPdf = mimeType === "application/pdf"; // added for PDFs
-    const isVideo = mimeType.startsWith("video/");
+    const isMultipleImages =
+        mediaFiles.length > 1 &&
+        mediaFiles.every(file => file.mimetype.startsWith("image/"));
+    
+    const isPdf = mediaFiles[0].mimetype === "application/pdf";
+    const isVideo = mediaFiles[0].mimetype.startsWith("video/");
 
     let uploadInfo;
 
@@ -372,8 +378,41 @@ export async function publishLinkedInMedia(
 
         await uploadImageBinary(
             uploadUrl,
-            mediaBuffer,
-            mimeType
+            mediaFiles[0].buffer,
+            mediaFiles[0].mimetype
+        );
+    }
+
+    if (isMultipleImages) {
+
+        const assets: string[] = [];
+
+        for (const file of mediaFiles) {
+
+            const uploadInfo = await registerImageUpload(
+                accessToken,
+                personURN
+            );
+
+            const uploadUrl =
+                uploadInfo.uploadMechanism[
+                    "com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest"
+                ].uploadUrl;
+
+            await uploadImageBinary(
+                uploadUrl,
+                file.buffer,
+                file.mimetype
+            );
+
+            assets.push(uploadInfo.asset);
+        }
+
+        return await createLinkedInMultiImagePost(
+            accessToken,
+            personURN,
+            title,
+            assets
         );
     }
 
@@ -448,3 +487,45 @@ export async function publishLinkedInMedia(
 }
 
 
+export async function createLinkedInMultiImagePost(
+    accessToken: string,
+    personURN: string,
+    commentary: string,
+    assets: string[]
+) {
+
+    const body = {
+        author: personURN,
+        lifecycleState: "PUBLISHED",
+
+        specificContent: {
+            "com.linkedin.ugc.ShareContent": {
+
+                shareCommentary: {
+                    text: commentary
+                },
+
+                shareMediaCategory: "IMAGE",
+
+                media: assets.map(asset => ({
+                    status: "READY",
+                    media: asset
+                }))
+            }
+        },
+
+        visibility: {
+            "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"
+        }
+    };
+
+    const response = await axios.post(
+        LINKEDIN_UGC_POSTS_URL,
+        body,
+        {
+            headers: commonHeaders(accessToken)
+        }
+    );
+
+    return response.headers["x-restli-id"];
+}
