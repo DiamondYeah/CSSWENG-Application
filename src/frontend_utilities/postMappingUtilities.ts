@@ -33,6 +33,17 @@ export function mapPostToSchedulePost(post: any): ScheduledPost{
         title: post.title ?? "No Title",
         snippet: post.description || undefined,
 
+        mediaUrl: post.localFilePath
+            ? `http://localhost:5000/${post.localFilePath.replace("./", "")}`
+            : post.uploadURL || undefined,
+
+        mediaType:
+            post.postType === "video"
+                ? "video"
+                : post.postType === "document"
+                    ? "document"
+                    : "image",
+
         approvalStatus: (post.postApprovalStatus as PostApprovalStatus) ?? "pending",
         rejectionReason: post.rejectionReason  ?? undefined,
         comments: mappedComments,

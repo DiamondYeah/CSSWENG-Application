@@ -341,9 +341,11 @@ export async function publishLinkedInMedia(
     }[]
 ): Promise<string> {
 
+    console.log("LinkedIn media files:", mediaFiles);
+
     const isMultipleImages =
         mediaFiles.length > 1 &&
-        mediaFiles.every(file => file.mimetype.startsWith("image/"));
+        mediaFiles.every(file => file.mimetype?.startsWith("image/"));
     
     const isPdf = mediaFiles[0].mimetype === "application/pdf";
     const isVideo = mediaFiles[0].mimetype.startsWith("video/");
@@ -371,8 +373,8 @@ export async function publishLinkedInMedia(
 
         await uploadDocumentBinary(
             uploadUrl,
-            mediaBuffer,
-            mimeType
+            mediaFiles[0].buffer,
+            mediaFiles[0].mimetype
         );
     } else {
 

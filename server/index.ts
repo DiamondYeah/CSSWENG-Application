@@ -80,6 +80,7 @@ app.use("/instagramPost", instagramPostRoute);
 // Access files stored in /publicfiles in browser
 app.use("/publicfiles", express.static(path.join(process.cwd(), "publicfiles")));
 
+app.use("/mediauploads", express.static(path.join(process.cwd(), "mediauploads")));
 
 // Variable that will act as a gate to prevent any double checks if an existing promise is already running.
 let isProcessingPosts = false;

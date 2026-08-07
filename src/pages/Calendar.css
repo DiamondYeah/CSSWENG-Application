@@ -904,3 +904,29 @@
   cursor: pointer;
   
 }
+
+.ap-post-card__preview {
+    width: 45px;
+    height: 45px;
+    object-fit: cover;
+    border-radius: 6px;
+    flex-shrink: 0;
+}
+
+.ap-post-card__body {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.ap-post-card__text {
+    flex: 1;
+    min-width: 0;
+}
+
+.ap-post-card__title,
+.ap-post-card__snippet {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

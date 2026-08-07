@@ -215,10 +215,35 @@ export function CalendarGrid({posts, readOnly, postsView, setPostsView, onSelect
                                     </div>
 
                                     <div className="ap-post-card__body">
+
                                         <div className="ap-post-card__text">
-                                        {post.title && <p className="ap-post-card__title">{post.title}</p>}
-                                        {post.snippet && <p className="ap-post-card__snippet">{post.snippet}</p>}
+                                            {post.title && (
+                                                <p className="ap-post-card__title">
+                                                    {post.title}
+                                                </p>
+                                            )}
+
+                                            {post.snippet && (
+                                                <p className="ap-post-card__snippet">
+                                                    {post.snippet}
+                                                </p>
+                                            )}
                                         </div>
+
+                                        {post.mediaUrl && post.mediaType === "image" && (
+                                            <img
+                                                src={post.mediaUrl}
+                                                className="ap-post-card__preview"
+                                                alt="Post preview"
+                                            />
+                                        )}
+
+                                        {post.mediaUrl && post.mediaType === "video" && (
+                                             <video
+                                                src={post.mediaUrl}
+                                                className="ap-post-card__preview"
+                                            />
+                                        )}
                                     </div>
 
                                     <div className="ap-post-card__footer">

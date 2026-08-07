@@ -52,9 +52,27 @@ export async function processLinkedInScheduledPosts(){
 
             let postURN;
 
-            if(duePost.localFilePath){
+            if(duePost.localFilePaths && duePost.localFilePaths.length > 0) {
 
-                const buffer = fs.readFileSync(duePost.localFilePath);
+                const mediaFiles = duePost.localFilePaths.map((filePath) => {
+                    
+                    const buffer = fs.readFileSync(filePath);
+
+                    let mimetype = "image/jpeg";
+
+                    if(duePost.postType === "video"){
+                        mimetype = "video/mp4";
+                    }
+                    else if(duePost.postType === "document"){
+                        mimetype = "application/pdf";
+                    }
+
+                    return {
+                        buffer,
+                        mimetype
+                    };
+
+                });
 
                 let mimeType = "image/jpeg";
 
@@ -69,8 +87,32 @@ export async function processLinkedInScheduledPosts(){
                     accessToken,
                     personURN,
                     duePost.title ?? "",
-                    buffer,
-                    mimeType
+                    mediaFiles
+                );
+            }
+            else if(duePost.localFilePath) {
+
+                const buffer = fs.readFileSync(duePost.localFilePath);
+
+                let mimetype = "image/jpeg";
+
+                if(duePost.postType === "video"){
+                    mimetype = "video/mp4";
+                }
+                else if(duePost.postType === "document"){
+                    mimetype = "application/pdf";
+                }
+
+                postURN = await publishLinkedInMedia(
+                    accessToken,
+                    personURN,
+                    duePost.title ?? "",
+                    [
+                        {
+                            buffer,
+                            mimetype
+                        }
+                    ]
                 );
             }
             else {
@@ -80,6 +122,7 @@ export async function processLinkedInScheduledPosts(){
                     personURN,
                     duePost.title ?? ""
                 );
+
             }
 
             console.log("LinkedIn scheduled post published:", postURN);

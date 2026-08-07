@@ -36,7 +36,7 @@ router.post("/upload", findAccountAuth, upload.array("media"), async (req: AuthU
 
     if (scheduleMode === "schedule") {
 
-        let localFilePath: string | undefined;
+        let localFilePaths: string[] = [];
 
         if (mediaFiles.length > 0) {
             const uploadDir = "./mediauploads/";
@@ -45,17 +45,20 @@ router.post("/upload", findAccountAuth, upload.array("media"), async (req: AuthU
                 fs.mkdirSync(uploadDir, { recursive: true });
             }
 
-            const filePath = path.join(
-                uploadDir,
-                `${Date.now()}-${mediaFiles[0].originalname}`
-            );
+            for (const file of mediaFiles) {
 
-            fs.writeFileSync(
-                filePath,
-                mediaFiles[0].buffer
-            );
+                const filePath = path.join(
+                    uploadDir,
+                        `${Date.now()}-${file.originalname}`
+                );
 
-            localFilePath = filePath;
+                fs.writeFileSync(
+                    filePath,
+                    file.buffer
+                );
+
+                localFilePaths.push(filePath);
+            }
         }
 
         const post = await Post.create({
@@ -75,7 +78,7 @@ router.post("/upload", findAccountAuth, upload.array("media"), async (req: AuthU
             scheduledDate: new Date(`${scheduledDate}+08:00`),
             title,
             description: title,
-            localFilePath: localFilePath,
+            localFilePaths: localFilePaths,
         });
 
         console.log("Scheduled LinkedIn post saved:", post._id);
