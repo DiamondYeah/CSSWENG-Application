@@ -8,13 +8,16 @@ import { type IAccount } from "../models/account.ts";
 import { findAccountAuth } from "../middleware/accountAuthMiddleware.ts";
 import type { AuthUserRequest } from "../types/express.ts";
 import { findSpecificSocialMediaAccount } from "../dbcontrollers/socialMediaAccountRepository.ts";
-import fs from "fs";
-import path from "path";
 
 const { Router } = pkg;
 const router = Router();
 const upload = multer({
-    storage: multer.memoryStorage(),
+    storage: multer.diskStorage({
+        destination: "./mediauploads/",
+        filename: (_req, file, cb) => {
+            cb(null, `${Date.now()}-${file.originalname}`);
+        },
+    }),
 });
 
 
@@ -37,25 +40,11 @@ router.post("/upload", findAccountAuth, upload.array("media"), async (req: AuthU
     if (scheduleMode === "schedule") {
 
         let localFilePath: string | undefined;
+        let localFilePaths: string[] = [];
 
         if (mediaFiles.length > 0) {
-            const uploadDir = "./mediauploads/";
-
-            if (!fs.existsSync(uploadDir)) {
-                fs.mkdirSync(uploadDir, { recursive: true });
-            }
-
-            const filePath = path.join(
-                uploadDir,
-                `${Date.now()}-${mediaFiles[0].originalname}`
-            );
-
-            fs.writeFileSync(
-                filePath,
-                mediaFiles[0].buffer
-            );
-
-            localFilePath = filePath;
+            localFilePath = mediaFiles[0].path;
+            localFilePaths = mediaFiles.map(file => file.path);
         }
 
         const post = await Post.create({
@@ -76,6 +65,7 @@ router.post("/upload", findAccountAuth, upload.array("media"), async (req: AuthU
             title,
             description: title,
             localFilePath: localFilePath,
+            localFilePaths: localFilePaths,
         });
 
         console.log("Scheduled LinkedIn post saved:", post._id);
@@ -115,8 +105,8 @@ try {
             personURN,
             title,
             mediaFiles.map(file => ({
-                buffer: file.buffer,
-                mimetype: file.mimetype
+                mimetype: file.mimetype,
+                path: file.path
             }))
         );
 

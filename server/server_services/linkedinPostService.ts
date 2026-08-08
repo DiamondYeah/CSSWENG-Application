@@ -1,7 +1,8 @@
 import axios from "axios";
+import fs from "fs";
 
 const LINKEDIN_API_BASE = "https://api.linkedin.com/rest";
-const LINKEDIN_VERSION = "202601"; // YYYYMM format — check LinkedIn's docs periodically, versions sunset after -> this is the latest
+const LINKEDIN_VERSION = "202607"; // YYYYMM format — check LinkedIn's docs periodically, versions sunset after -> this is the latest
 const LINKEDIN_UGC_POSTS_URL = "https://api.linkedin.com/v2/ugcPosts";
 
 const commonHeaders = (accessToken: string) => ({
@@ -209,28 +210,22 @@ export async function createLinkedInImagePost(
 
 }
 
-export async function registerVideoUpload(
+export async function initializeVideoUpload(
     accessToken: string,
-    personURN: string
+    personURN: string,
+    fileSizeBytes: number
 ) {
-
     const body = {
-        registerUploadRequest: {
-            recipes: [
-                "urn:li:digitalmediaRecipe:feedshare-video"
-            ],
+        initializeUploadRequest: {
             owner: personURN,
-            serviceRelationships: [
-                {
-                    relationshipType: "OWNER",
-                    identifier: "urn:li:userGeneratedContent"
-                }
-            ]
+            fileSizeBytes,
+            uploadCaptions: false,
+            uploadThumbnail: false
         }
     };
 
     const response = await axios.post(
-        "https://api.linkedin.com/v2/assets?action=registerUpload",
+        `${LINKEDIN_API_BASE}/videos?action=initializeUpload`,
         body,
         {
             headers: commonHeaders(accessToken)
@@ -239,6 +234,98 @@ export async function registerVideoUpload(
 
     return response.data.value;
 }
+
+
+export async function uploadVideoInChunks(
+    filePath: string,
+    uploadInfo: {
+        video: string;
+        uploadToken: string;
+        uploadInstructions: {
+            uploadUrl: string;
+            firstByte: number;
+            lastByte: number;
+        }[];
+    }
+) {
+    const fileHandle = await fs.promises.open(filePath, "r");
+    const uploadedPartIds: string[] = [];
+
+    try {
+        for (const instruction of uploadInfo.uploadInstructions) {
+            const { uploadUrl, firstByte, lastByte } = instruction;
+
+            const bytesToRead = lastByte - firstByte + 1;
+
+            // Allocate memory for ONLY this part
+            const chunkBuffer = Buffer.alloc(bytesToRead);
+
+            // Read ONLY this byte range from the video
+            await fileHandle.read(
+                chunkBuffer,
+                0,
+                bytesToRead,
+                firstByte
+            );
+
+            // Upload this part to LinkedIn
+            const response = await axios.put(
+                uploadUrl,
+                chunkBuffer,
+                {
+                    headers: {
+                        "Content-Type": "application/octet-stream",
+                        "Content-Length": `${bytesToRead}`
+                    },
+                    validateStatus: status => status >= 200 && status < 300
+                }
+            );
+
+            const etag = response.headers["etag"];
+
+            if (!etag) {
+                throw new Error(
+                    `LinkedIn did not return an ETag for bytes ${firstByte}-${lastByte}`
+                );
+            }
+
+            // LinkedIn expects the ETag without quotation marks
+            uploadedPartIds.push(etag.replace(/"/g, ""));
+        }
+    } finally {
+        await fileHandle.close();
+    }
+
+    return uploadedPartIds;
+}
+
+
+export async function finalizeVideoUpload(
+    accessToken: string,
+    video: string,
+    uploadToken: string,
+    uploadedPartIds: string[]
+) {
+    const body = {
+        finalizeUploadRequest: {
+            video,
+            uploadToken,
+            uploadedPartIds
+        }
+    };
+
+    const response = await axios.post(
+        `${LINKEDIN_API_BASE}/videos?action=finalizeUpload`,
+        body,
+        {
+            headers: commonHeaders(accessToken)
+        }
+    );
+
+    return response.data;
+}
+
+
 
 // to handle document uploads
 export async function initializeDocumentUpload(accessToken: string, personURN: string) {
@@ -266,120 +353,175 @@ export async function initializeDocumentUpload(accessToken: string, personURN: s
 
 export async function checkVideoStatus(
     accessToken: string,
-    asset: string
+    videoURN: string
 ) {
 
-    const assetId = asset.replace("urn:li:digitalmediaAsset:", "");
-
     const response = await axios.get(
-        `https://api.linkedin.com/v2/assets/${assetId}`,
+        `${LINKEDIN_API_BASE}/videos/${encodeURIComponent(videoURN)}`,
         {
             headers: commonHeaders(accessToken)
         }
     );
 
     return response.data;
-
 }
+
+
 export async function createLinkedInVideoPost(
     accessToken: string,
     personURN: string,
     commentary: string,
-    asset: string
+    videoURN: string
 ) {
-
     const body = {
         author: personURN,
-        lifecycleState: "PUBLISHED",
+        commentary,
+        visibility: "PUBLIC",
 
-        specificContent: {
-            "com.linkedin.ugc.ShareContent": {
+        distribution: {
+            feedDistribution: "MAIN_FEED",
+            targetEntities: [],
+            thirdPartyDistributionChannels: []
+        },
 
-                shareCommentary: {
-                    text: commentary
-                },
-
-                shareMediaCategory: "VIDEO",
-
-                media: [
-                    {
-                        status: "READY",
-                        media: asset
-                    }
-                ]
+        content: {
+            media: {
+                title: commentary,
+                id: videoURN
             }
         },
 
-        visibility: {
-            "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"
-        }
+        lifecycleState: "PUBLISHED",
+        isReshareDisabledByAuthor: false
     };
 
     const response = await axios.post(
-        "https://api.linkedin.com/v2/ugcPosts",
+        `${LINKEDIN_API_BASE}/posts`,
         body,
         {
-            headers: {
-                Authorization: `Bearer ${accessToken}`,
-                "X-Restli-Protocol-Version": "2.0.0",
-                "Content-Type": "application/json"
-            }
+            headers: commonHeaders(accessToken)
         }
     );
 
     return response.headers["x-restli-id"];
-
 }
+
 
 export async function publishLinkedInMedia(
     accessToken: string,
     personURN: string,
     title: string,
     mediaFiles: {
-        buffer: Buffer;
+        buffer?: Buffer;
         mimetype: string;
+        path?: string;
     }[]
 ): Promise<string> {
 
     const isMultipleImages =
         mediaFiles.length > 1 &&
         mediaFiles.every(file => file.mimetype.startsWith("image/"));
-    
+
     const isPdf = mediaFiles[0].mimetype === "application/pdf";
     const isVideo = mediaFiles[0].mimetype.startsWith("video/");
 
     let uploadInfo;
 
     if (isPdf) {
-        uploadInfo = await initializeDocumentUpload(accessToken, personURN);
+
+        uploadInfo = await initializeDocumentUpload(
+            accessToken,
+            personURN
+        );
+
     } else if (isVideo) {
-        uploadInfo = await registerVideoUpload(accessToken, personURN);
-    } else {
-        uploadInfo = await registerImageUpload(accessToken, personURN);
-    }
-    
-    let uploadUrl: string;
 
-    if (isPdf) {
-        uploadUrl = uploadInfo.uploadUrl;
-    } else {
-        uploadUrl =
-            uploadInfo.uploadMechanism["com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest"].uploadUrl;
-    }
+        const videoFile = mediaFiles[0];
 
+        if (!videoFile.path) {
+            throw new Error("Video file path is missing");
+        }
+
+        const fileStats = await fs.promises.stat(videoFile.path);
+
+        uploadInfo = await initializeVideoUpload(
+            accessToken,
+            personURN,
+            fileStats.size
+        );
+
+    } else {
+
+        uploadInfo = await registerImageUpload(
+            accessToken,
+            personURN
+        );
+    }
     if (isPdf) {
+
+        const pdfFile = mediaFiles[0];
+
+        if (!pdfFile.path) {
+            throw new Error("PDF file path is missing");
+        }
+
+        const pdfBuffer = await fs.promises.readFile(
+            pdfFile.path
+        );
 
         await uploadDocumentBinary(
-            uploadUrl,
-            mediaBuffer,
-            mimeType
+            uploadInfo.uploadUrl,
+            pdfBuffer,
+            pdfFile.mimetype
         );
-    } else {
+    }
+    else if (isVideo) {
+
+        const videoFile = mediaFiles[0];
+
+        if (!videoFile.path) {
+            throw new Error("Video file path is missing");
+        }
+
+        console.log("Uploading LinkedIn video in chunks...");
+
+        const uploadedPartIds = await uploadVideoInChunks(
+            videoFile.path,
+            uploadInfo
+        );
+
+        console.log("All video chunks uploaded.");
+
+        await finalizeVideoUpload(
+            accessToken,
+            uploadInfo.video,
+            uploadInfo.uploadToken,
+            uploadedPartIds
+        );
+
+        console.log("LinkedIn video upload finalized.");
+    }
+    else {
+
+        const imageFile = mediaFiles[0];
+
+        if (!imageFile.path) {
+            throw new Error("Image file path is missing");
+        }
+
+        const imageBuffer = await fs.promises.readFile(
+            imageFile.path
+        );
+
+        const uploadUrl =
+            uploadInfo.uploadMechanism[
+                "com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest"
+            ].uploadUrl;
 
         await uploadImageBinary(
             uploadUrl,
-            mediaFiles[0].buffer,
-            mediaFiles[0].mimetype
+            imageBuffer,
+            imageFile.mimetype
         );
     }
 
@@ -388,6 +530,10 @@ export async function publishLinkedInMedia(
         const assets: string[] = [];
 
         for (const file of mediaFiles) {
+
+            if (!file.path) {
+                throw new Error("Image file path is missing");
+            }
 
             const uploadInfo = await registerImageUpload(
                 accessToken,
@@ -399,9 +545,13 @@ export async function publishLinkedInMedia(
                     "com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest"
                 ].uploadUrl;
 
+            const imageBuffer = await fs.promises.readFile(
+                file.path
+            );
+
             await uploadImageBinary(
                 uploadUrl,
-                file.buffer,
+                imageBuffer,
                 file.mimetype
             );
 
@@ -418,6 +568,7 @@ export async function publishLinkedInMedia(
 
     let postURN: string;
 
+
     if (isPdf) {
 
         console.log("Waiting for LinkedIn to process document...");
@@ -426,7 +577,9 @@ export async function publishLinkedInMedia(
 
         while (documentStatus !== "AVAILABLE") {
 
-            await new Promise(resolve => setTimeout(resolve, 3000));
+            await new Promise(resolve =>
+                setTimeout(resolve, 3000)
+            );
 
             const status = await checkDocumentStatus(
                 accessToken,
@@ -445,8 +598,8 @@ export async function publishLinkedInMedia(
             title,
             uploadInfo.document
         );
-
-    } else if (isVideo) {
+    }
+    else if (isVideo) {
 
         console.log("Waiting for LinkedIn to process video...");
 
@@ -454,14 +607,22 @@ export async function publishLinkedInMedia(
 
         while (videoStatus !== "AVAILABLE") {
 
-            await new Promise(resolve => setTimeout(resolve, 3000));
+            await new Promise(resolve =>
+                setTimeout(resolve, 3000)
+            );
 
             const status = await checkVideoStatus(
                 accessToken,
-                uploadInfo.asset
+                uploadInfo.video
             );
 
-            videoStatus = status.recipes?.[0]?.status;
+            videoStatus = status.status;
+
+            if (videoStatus === "PROCESSING_FAILED") {
+                throw new Error(
+                    "LinkedIn video processing failed."
+                );
+            }
         }
 
         console.log("Video is ready!");
@@ -470,10 +631,11 @@ export async function publishLinkedInMedia(
             accessToken,
             personURN,
             title,
-            uploadInfo.asset
+            uploadInfo.video
         );
+    }
 
-    } else {
+    else {
 
         postURN = await createLinkedInImagePost(
             accessToken,

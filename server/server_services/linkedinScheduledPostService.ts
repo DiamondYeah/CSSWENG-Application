@@ -1,5 +1,3 @@
-import fs from "fs";
-import path from "path";
 
 import { 
     findAwaitingSchedulePosts,
@@ -52,28 +50,43 @@ export async function processLinkedInScheduledPosts(){
 
             let postURN;
 
-            if(duePost.localFilePath){
-
-                const buffer = fs.readFileSync(duePost.localFilePath);
-
-                let mimeType = "image/jpeg";
-
-                if(duePost.postType === "video"){
-                    mimeType = "video/mp4";
-                }
-                else if(duePost.postType === "document"){
-                    mimeType = "application/pdf";
-                }
+            if (duePost.localFilePaths && duePost.localFilePaths.length > 0) {
                 
+                const mediaFiles = duePost.localFilePaths.map(filePath => ({
+                    mimetype: "image/jpeg",
+                    path: filePath
+                }));
+
                 postURN = await publishLinkedInMedia(
                     accessToken,
                     personURN,
                     duePost.title ?? "",
-                    buffer,
-                    mimeType
+                    mediaFiles
                 );
-            }
-            else {
+            } else if (duePost.localFilePath) {
+
+                let mimeType = "image/jpeg";
+
+                if (duePost.postType === "video") {
+                    mimeType = "video/mp4";
+                }
+                else if (duePost.postType === "document") {
+                    mimeType = "application/pdf";
+                }
+
+                postURN = await publishLinkedInMedia(
+                    accessToken,
+                    personURN,
+                    duePost.title ?? "",
+                    [
+                        {
+                            mimetype: mimeType,
+                            path: duePost.localFilePath
+                        }
+                    ]
+                );
+
+            } else {
 
                 postURN = await createLinkedInPost(
                     accessToken,
