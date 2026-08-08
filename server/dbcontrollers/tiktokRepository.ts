@@ -40,7 +40,7 @@ export async function createOrSaveUserTokens(tiktokAPI: TiktokAPIResponse): Prom
 
         {platformAccountID: tiktokAPI.platformAccountID}, // Identifier
         {   // Data to be stored
-            ...tiktokAPI 
+            $set: { ...tiktokAPI } 
         },
         {   // Create new document if ID not found
             returnDocument: 'after',
