@@ -125,86 +125,65 @@ export async function obtainInitialUpload(video: TikTokVideoUpload){
 // Returns upload results
 export async function uploadVideo(video: Express.Multer.File, uploadURL: string){
 
-    // Read file to buffer by finding its path location via fileSystem
-    const videoBuffer = await fs.promises.readFile(video.path);
+    // Open file to allow any reading of the file. Avoids directly reading the entire video size especially for large videos
+    const videoFileHandle = await fs.promises.open(video.path, 'r');
 
     // Get the chunk size and chunk count by calling calculateChunkCount function
     const  {chunk_size, total_chunk_count} = await calculateChunkCount(video.size);
 
 
-    if(total_chunk_count == 1){
-
-        //  Performs fetch to put the video to the tiktokUser's TikTok account and return results
-        const tiktokUserUploadFetch = await fetch(uploadURL, 
-            {
-
-                method: "PUT",
-                headers:{
-
-                    "Content-Type": "video/mp4",
-                    "Content-Length": `${video.size}`,
-                    "Content-Range": `bytes 0-${video.size - 1}/${video.size}`,
-
-                },
-                body: videoBuffer,
-
-            }
-        );
-
-
-        // Check if there is error when uploading video size
-        if(!tiktokUserUploadFetch.ok)
-            throw new Error("Video upload to TikTok error!");
-
-
-        // Send successful JSON 
-        return tiktokUserUploadFetch;
-
-
-    }
-
-
     // Stores the res of the video uploaded in chunks
     let lastRes;
 
+    try{
 
-    
 
-    // Loop through each chunk count, and upload each chunk 
-    for(let i = 0; i < total_chunk_count; i++){
+        // Loop through each chunk count, and upload each chunk 
+        for(let i = 0; i < total_chunk_count; i++){
 
-        // Checks i if its the last chunk that will be used in endRange to put any remainder sizes into last chunk
-        const isLastChunk = i == total_chunk_count - 1;
+            // Checks i if its the last chunk that will be used in endRange to put any remainder sizes into last chunk
+            const isLastChunk = i == total_chunk_count - 1;
 
-        // Computes the start and end range for the chunk, and the chunk itself
-        let startRange = i * chunk_size; // For max chunk size its i * 64MB
-        let endRange = isLastChunk ? (video.size - 1) :(startRange + chunk_size - 1);
+            // Computes the start and end range for the chunk, and the chunk itself
+            const startRange = i * chunk_size; // For max chunk size its i * 64MB
+            const endRange = isLastChunk ? (video.size - 1) :(startRange + chunk_size - 1);
 
-        const chunkBuffer = videoBuffer.subarray(startRange, endRange + 1); 
+            // Computes the range of bytes to read
+            const bytesToRead = endRange - startRange + 1;
 
-        lastRes = await fetch(uploadURL, 
-                {
+            // Allocate a read for only a chunk instead of whole file
+            const chunkBuffer = Buffer.alloc(bytesToRead); 
+            await videoFileHandle.read(chunkBuffer, 0, bytesToRead, startRange); // Reads needed bytes for said chunk
 
-                    method: "PUT",
-                    headers:{
+            lastRes = await fetch(uploadURL, 
+                    {
 
-                        "Content-Type": "video/mp4",
-                        "Content-Length": `${chunkBuffer.length}`,
-                        "Content-Range": `bytes ${startRange}-${endRange}/${video.size}`,
+                        method: "PUT",
+                        headers:{
 
-                    },
+                            "Content-Type": "video/mp4",
+                            "Content-Length": `${bytesToRead}`,
+                            "Content-Range": `bytes ${startRange}-${endRange}/${video.size}`,
 
-                    body: chunkBuffer,
+                        },
 
-                }
-            );
+                        body: chunkBuffer,
 
-        // Check if there is error when uploading chunk
-        if(!lastRes.ok)
-            throw new Error(`Video chunk ${i + 1} upload to TikTok error!`);
+                    }
+                );
+
+
+            // Check if there is error when uploading chunk
+            if(!lastRes.ok)
+                throw new Error(`Video chunk ${i + 1} upload to TikTok error!`);
+
+        }
+
+    }finally{
+
+        await videoFileHandle.close(); // Close file handler
 
     }
-
 
     return lastRes;
 
