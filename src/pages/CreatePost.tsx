@@ -413,10 +413,14 @@ function CreatePost() {
 
       scheduleMode: scheduleMode,
 
-      scheduledDate:
-          scheduleMode === "schedule" && scheduleDate
-              ? `${scheduleDate}T${scheduleTime || "00:00"}`
-              : undefined,
+scheduledDate:
+    scheduleMode === "schedule" && scheduleDate
+        ? (() => {
+            const built = `${scheduleDate}T${scheduleTime || "00:00"}`;
+            console.log("Built scheduledDate string:", built, "| Parsed:", new Date(built));
+            return built;
+          })()
+        : undefined,
     });
 
   }
