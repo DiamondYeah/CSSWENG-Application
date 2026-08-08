@@ -52,7 +52,7 @@ export async function processFacebookScheduledPosts() {
             }
 
             let mediaFiles: {
-                buffer: Buffer;
+                path: string;
                 contentType: string;
                 filename?: string;
             }[] = [];
@@ -60,8 +60,6 @@ export async function processFacebookScheduledPosts() {
             if (duePost.localFilePaths && duePost.localFilePaths.length > 0) {
 
                 for (const filePath of duePost.localFilePaths) {
-                    
-                    const buffer = fs.readFileSync(filePath);
 
                     const ext = filePath.split(".").pop()?.toLowerCase();
 
@@ -75,13 +73,13 @@ export async function processFacebookScheduledPosts() {
                         contentType = "video/mp4";
                     else if (ext === "mov")
                         contentType = "video/quicktime";
-
+                
                     mediaFiles.push({
-                        buffer,
+                        path: filePath,
                         contentType,
                         filename: path.basename(filePath)
                     });
-                }   
+                }
             }
 
             const publishID = await publishFacebookPost(

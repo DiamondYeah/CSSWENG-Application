@@ -14,7 +14,14 @@ import { schedule } from "node-cron";
 
 const { Router } = pkg;
 const router = Router();
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({
+    storage: multer.diskStorage({
+        destination: "./mediauploads/",
+        filename: (_req, file, cb) => {
+            cb(null, `${Date.now()}-${file.originalname}`);
+        },
+    }),
+});
 
 router.post("/upload", findAccountAuth, upload.array("media", 10), async (req: AuthUserRequest, res: Response) => {
     const account: IAccount = req.account as IAccount;
@@ -46,29 +53,13 @@ router.post("/upload", findAccountAuth, upload.array("media", 10), async (req: A
     const pageAccessToken = connection.accessToken;
 
     try {
+        
         if (scheduleMode === "schedule") {
 
-            let localFilePaths: string[] = [];
+            const localFilePaths: string[] = [];
 
-            if (mediaFiles.length > 0) {
-
-                const uploadDir = "./mediauploads/";
-
-                if (!fs.existsSync(uploadDir)) {
-                    fs.mkdirSync(uploadDir, { recursive: true });
-                }
-
-                for (const file of mediaFiles) {
-
-                    const filePath = path.join(uploadDir, `${Date.now()}-${file.originalname}`);
-                    
-                    fs.writeFileSync(
-                        filePath,
-                        file.buffer
-                    );
-                    
-                    localFilePaths.push(filePath);
-                }
+            for (const file of mediaFiles) {
+                localFilePaths.push(file.path);
             }
 
             const post = await Post.create({
@@ -98,7 +89,7 @@ router.post("/upload", findAccountAuth, upload.array("media", 10), async (req: A
         }
 
         const formattedMediaFiles = mediaFiles.map(file => ({
-            buffer: file.buffer,
+            path: file.path,
             contentType: file.mimetype,
             filename: file.originalname,
         }));
