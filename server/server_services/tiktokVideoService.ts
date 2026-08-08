@@ -38,13 +38,13 @@ const MAX_SIZE_PER_CHUNK: number = 64 * 1024 * 1024;
 // Return number of chunk counts needed
 async function calculateChunkCount(videoSize: number){
 
-    // If smaller than MIN size, just return 1 chunk
-    if(videoSize <= MIN_SIZE_PER_CHUNK)
+    // If smaller than MAX size, just return 1 chunk
+    if(videoSize <= MAX_SIZE_PER_CHUNK)
         return {chunk_size: videoSize, total_chunk_count: 1};
 
 
-    // If larger, then divide videoSize with the max size per chunk and perform ceiling so minimum is always 1.
-    let numberofChunks = Math.ceil(videoSize / MAX_SIZE_PER_CHUNK)
+    // If larger, then divide videoSize with the max size per chunk. Any remainder gets sent to the final chunk
+    let numberofChunks = Math.floor(videoSize / MAX_SIZE_PER_CHUNK)
 
     return {chunk_size: MAX_SIZE_PER_CHUNK, total_chunk_count: numberofChunks};
 
@@ -167,12 +167,19 @@ export async function uploadVideo(video: Express.Multer.File, uploadURL: string)
     // Stores the res of the video uploaded in chunks
     let lastRes;
 
+
+    
+
     // Loop through each chunk count, and upload each chunk 
     for(let i = 0; i < total_chunk_count; i++){
 
+        // Checks i if its the last chunk that will be used in endRange to put any remainder sizes into last chunk
+        const isLastChunk = i == total_chunk_count - 1;
+
         // Computes the start and end range for the chunk, and the chunk itself
         let startRange = i * chunk_size; // For max chunk size its i * 64MB
-        let endRange = Math.min(startRange + chunk_size, video.size) - 1;
+        let endRange = isLastChunk ? (video.size - 1) :(startRange + chunk_size - 1);
+
         const chunkBuffer = videoBuffer.subarray(startRange, endRange + 1); 
 
         lastRes = await fetch(uploadURL, 
