@@ -13,10 +13,10 @@ dotenv.config();
 console.log("BASE_URL loaded as:", process.env.BASE_URL);
 
 // Import routes
-import loginRoute from "./routes/loginRoute.ts";
+import loginRoute from "./routes/tiktokLoginRoute.ts";
 import userInfoRoute from "./routes/userInfoRoute.ts";
-import videoRoute from "./routes/videoRoute.ts";
-import photoRoute from "./routes/photoRoute.ts";
+import videoRoute from "./routes/tiktokVideoRoute.ts";
+import photoRoute from "./routes/tiktokPhotoRoute.ts";
 import postRoute from "./routes/postRoute.ts";
 import accountRoute from "./routes/accountRoute.ts";
 import categoryRoute from "./routes/categoryRoute.ts";

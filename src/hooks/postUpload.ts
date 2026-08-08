@@ -36,7 +36,6 @@ interface PostUpload{
     isYourOwnBrand: boolean;
     isBrandedContent: boolean;
 
-    scheduleDate?: Date;
     socialMediaAccountsIDs: string[]; 
 
     platforms: string[];
@@ -58,6 +57,9 @@ export function usePostUpload(){
 
         setIsUploading(true);
         setUploadStatus("Preparing Upload...");
+
+
+        const scheduledDateObj = postDetails.scheduledDate ? new Date(postDetails.scheduledDate) : undefined;
 
         try{
 
@@ -184,7 +186,7 @@ export function usePostUpload(){
                     postDetails.allowComments,
                     postDetails.isYourOwnBrand,
                     postDetails.isBrandedContent,
-                    postDetails.scheduleDate,
+                    scheduledDateObj,
                     postDetails.socialMediaAccountsIDs,
 
                 );
@@ -198,7 +200,7 @@ export function usePostUpload(){
 
 
                     // Check if count and data length are equal, meaning every post has been posted and display results
-                    if(postDetails.scheduleDate)
+                    if(scheduledDateObj)
                         setUploadStatus("Post has been scheduled successfully! Please check the calendar to view the schedule.")            
                     else if(results.length == totalAccountsCount)
                         setUploadStatus("Post has been successfully published to all accounts! Please check accounts to check if it has been reflected.");
@@ -222,7 +224,7 @@ export function usePostUpload(){
             // Get initial upload info from initializeUploadPost and store info result
             const initUploadResults = await initializeUploadPost(postDetails.title, postDetails.privacyLevel, postDetails.mediaFile!.size, 
                                                                 postDetails.allowComments, postDetails.allowDuet, postDetails.allowStitch,
-                                                                postDetails.isYourOwnBrand, postDetails.isBrandedContent, postDetails.scheduleDate, 
+                                                                postDetails.isYourOwnBrand, postDetails.isBrandedContent, scheduledDateObj, 
                                                                 postDetails.socialMediaAccountsIDs);
 
 
@@ -240,7 +242,7 @@ export function usePostUpload(){
 
 
             // Check if postDetails has a scheduled date, if so don't immediately post them and save them for now
-            if(postDetails.scheduleDate){
+            if(scheduledDateObj){
 
 
                 // Upload to route the details of the scheduled post
