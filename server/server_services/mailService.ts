@@ -1,6 +1,5 @@
-import nodemailer from "nodemailer";
+import Mailjet from "node-mailjet";
 import dotenv from "dotenv";
-import dns from "dns";
 
 // Import email utility and type
 import {mapEmailTypeToSubject} from "../server_utilities/emailUtilities.ts";
@@ -9,34 +8,13 @@ import { type emailDeatils } from "../types/email.ts";
 // Load env file
 dotenv.config();
 
-// Force IPv4 DNS resolution to make SMTP work
-dns.setDefaultResultOrder("ipv4first");
+// Create a mailjet object client
+const mailjet = (Mailjet as any).apiConnect(
+    process.env.MAILJET_API_KEY as string,
+    process.env.MAILJET_API_SECRET as string,
+);
 
-
-// Create a transporter options list for SMTP 
-const transportOptions: any = {
-    
-  pool: true,
-  host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT ?? 587),
-  secure: Number(process.env.SMTP_PORT ?? 587) === 465, // Use TLS from the start (required for port 465)
-  family: 4,
-  auth: {
-
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASSWORD,
-
-  },
-
-};
-
-
-// Create a transporter to send messages via SMTP
-const transporter = nodemailer.createTransport(transportOptions);
-
-
-
-// Functions sends email to receiver with content obtained from mapEmailTypeToSubject depending on subject type
+// Functions sends email to receiver via Resend with content obtained from mapEmailTypeToSubject depending on subject type
 export async function sendEmailToReceiver(commentDetails: emailDeatils){
 
     // Get starting email subject
@@ -44,14 +22,27 @@ export async function sendEmailToReceiver(commentDetails: emailDeatils){
 
     try{
 
-        await transporter.sendMail({
+        // Send email with information via Mailjet
+        await mailjet.post("send", {version: "v3.1"}).request({
 
-            from: `AgilaPost <${process.env.SMTP_FROM ?? process.env.SMTP_USER}>`,
-            to: commentDetails.receiver,
-            subject: `${subjectDetails}${commentDetails.subjectTitle}`,
-            html: textDetails,
+            Messages: [
+                {
+                    From: {
+                        Email: process.env.MAILJET_FROM as string,
+                        Name: "AgilaPost",
+                    },
+                    To: [
+                        {
+                            Email: commentDetails.receiver,
+                        },
+                    ],
+                    Subject: `${subjectDetails}${commentDetails.subjectTitle}`,
+                    HTMLPart: textDetails,
+                },
+            ],
 
         });
+
 
 
     }catch(err){
