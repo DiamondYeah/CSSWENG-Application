@@ -76,7 +76,7 @@ export default function AgilaPostCalendar({
 }: Omit<AgilaPostCalendarProps, "accounts" | "posts">) {
 
   const {accounts: unmappedAccounts} = useConnectAccounts();
-  const [postsView, setPostsView] = useState<"pending" | "published">("published");
+  const [postsView, setPostsView] = useState<"pending" | "published">("pending");
   const {posts: fetchedPosts, isLoading: _postsLoading, error: _postsError, refetchPosts} = useScheduledPosts(postsView);
 
   const posts = useMemo(
