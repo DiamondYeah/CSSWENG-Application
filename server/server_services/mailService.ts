@@ -13,8 +13,8 @@ dotenv.config();
 dns.setDefaultResultOrder("ipv4first");
 
 
-// Create a transporter to send messages via SMTP
-const transporter = nodemailer.createTransport({
+// Create a transporter options list for SMTP 
+const transportOptions: any = {
     
   pool: true,
   host: process.env.SMTP_HOST,
@@ -28,7 +28,11 @@ const transporter = nodemailer.createTransport({
 
   },
 
-});
+};
+
+
+// Create a transporter to send messages via SMTP
+const transporter = nodemailer.createTransport(transportOptions);
 
 
 
