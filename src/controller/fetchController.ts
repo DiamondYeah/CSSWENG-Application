@@ -15,6 +15,8 @@ const UPLOAD_VIDEO_DIRECT = `${API_BASE}/videoUpload/upload`;
 const UPLOAD_STATUS_DIRECT = `${API_BASE}/videoUpload/poststatus`;
 const UPLOAD_PHOTOS_DIRECT = `${API_BASE}/photoUpload/photoUpload`;
 const SCHEDULED_POSTS_DIRECT = `${API_BASE}/postInfo/getscheduledposts`;
+const CANCEL_SCHEDULED_POST_DIRECT = `${API_BASE}/postInfo/cancelscheduledpost`
+const DELETE_POST_DIRECT = `${API_BASE}/postInfo/deletepost`
 const GENERATE_SHARE_CALENDAR_DIRECT = `${API_BASE}/userInfo/createsharetoken`
 const OPEN_SHARE_CALENDAR_DIRECT = `${API_BASE}/userInfo/sharecalendar`
 const UPDATE_POST_FILEPATH_DIRECT = `${API_BASE}/postInfo/updatepostfilepath`
@@ -514,6 +516,50 @@ export async function fetchScheduledPosts(status: PostMediaStatus = "pending"){
     const scheduledPostInfo = await res.json();
 
     return scheduledPostInfo;
+
+}
+
+
+// Function calls router to cancel scheduled post connected to the user
+export async function cancelScheduledPost(postID: string){
+
+    // Fetch router with credentials
+    const res = await fetch(`${CANCEL_SCHEDULED_POST_DIRECT}`, 
+    {
+
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" },
+        body: JSON.stringify({postID}),
+
+    })
+
+    // Convert res to json and return
+    const cancelledPostInfo = await res.json();
+
+    return cancelledPostInfo;
+
+}
+
+
+// Function calls router to delete post connected to the user
+export async function deleteUserPost(postID: string){
+
+    // Fetch router with credentials
+    const res = await fetch(`${DELETE_POST_DIRECT}`, 
+    {
+
+        method: "DELETE",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" },
+        body: JSON.stringify({postID}),
+
+    })
+
+    // Convert res to json and return
+    const deletedPostInfo = await res.json();
+
+    return deletedPostInfo;
 
 }
 

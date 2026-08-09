@@ -210,6 +210,30 @@ export async function findScheduledPosts(userID: string, status: PostMediaStatus
 }
 
 
+// Function finds a specific post of the user in the database via the accountID and postID sent to the parameter
+// Returns either a Post document or null
+export async function deleteSpecificPostOfUser(postID: Types.ObjectId, accountID: Types.ObjectId): Promise<IPost | null>{
+
+    return await Post.findOneAndDelete({_id: postID, userID: accountID, });
+
+}
+
+
+// Function updates specific post with the cancelled status by checking the postID parameter
+// Returns either updated scheduled Post document or null
+export async function cancelScheduledPost(postID: string): Promise<IPost | null>{
+
+    return await Post.findByIdAndUpdate(
+
+        postID,
+        {status: "cancelled"},
+        {returnDocument: "after"},
+
+    );
+
+}
+
+
 // Function updates specific post with a comment by checking the commentDetails parameter
 // Returns updated post with comment
 export async function addComment(commentDetails: PostComments): Promise<IPost | null>{

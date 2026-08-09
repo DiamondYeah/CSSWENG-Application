@@ -1,4 +1,4 @@
-import {useState, useEffect} from "react";
+import {useState, useEffect, useCallback} from "react";
 
 // Import controller and utilities functions needed 
 import {fetchScheduledPosts} from "../controller/fetchController";
@@ -16,55 +16,60 @@ export function useScheduledPosts(passedStatus: PostMediaStatus){
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
+    const loadScheduledPosts = useCallback(async (ignoreRef?: {ignore: boolean}) => {
 
-        let ignore = false; // Ignore prevents double checking
+        try{
 
-        async function loadScheduledPosts(){
-
-            try{
-
-                const postsFetch = await fetchScheduledPosts(passedStatus)
-
-                // Check if fetch was success
-                if(!postsFetch.success)
-                    throw new Error("Failed to fetch scheduled posts!");
-
-                // Get data of fetch return
-                const scheduledPostsInfo = postsFetch.data ?? [];
-
-                // Create a const that maps the posts from fetch as ScheduledPost array
-                const mappedPosts: ScheduledPost[] = scheduledPostsInfo.map(mapPostToSchedulePost);
-
-                // Add to scheduledPots
-                if(!ignore) 
-                    setPosts(mappedPosts);
+            setIsLoading(true);
 
 
-            }
-            catch(e){
+            const postsFetch = await fetchScheduledPosts(passedStatus)
 
-                if(!ignore)
-                    setError(String(e));
+            // Check if fetch was success
+            if(!postsFetch.success)
+                throw new Error("Failed to fetch scheduled posts!");
 
-            }
-            finally{
+            // Get data of fetch return
+            const scheduledPostsInfo = postsFetch.data ?? [];
 
-                if(!ignore)
-                    setIsLoading(false);
+            // Create a const that maps the posts from fetch as ScheduledPost array
+            const mappedPosts: ScheduledPost[] = scheduledPostsInfo.map(mapPostToSchedulePost);
 
-            }
+            // Add to scheduledPots
+            if(!ignoreRef || !ignoreRef.ignore) 
+                setPosts(mappedPosts);
+
+
+        }
+        catch(e){
+
+            if(!ignoreRef || !ignoreRef.ignore) 
+                setError(String(e));
+
+        }
+        finally{
+
+            if(!ignoreRef || !ignoreRef.ignore) 
+                setIsLoading(false);
 
         }
 
-        // Call function
-        loadScheduledPosts();
-        return() => {ignore = true;} // Return if ignore is true
+        
 
     }, [passedStatus]);
 
-    // Return result
-    return {posts, isLoading, error};
+
+    useEffect(() => {
+
+        // Set ignoreRef to false and call loadScheduledPosts
+        const ignoreRef = {ignore: false}
+        loadScheduledPosts(ignoreRef);
+        return() => {ignoreRef.ignore = true;} // Return if ignore is true
+
+    }, [loadScheduledPosts]);
+
+    // Return result with refetch to manually trigger function
+    return {posts, isLoading, error, refetchPosts: loadScheduledPosts};
 
 
 }

@@ -11,7 +11,7 @@ import SchedulingTabs from "../components/SchedulingTabs";
 // Import functions from controller, hooks and utilities
 import {useConnectAccounts} from "../hooks/connectAccounts.ts";
 import {useScheduledPosts} from "../hooks/getScheduledPost";
-import {generateShareCalenderToken} from "../controller/fetchController.ts";
+import {generateShareCalenderToken, cancelScheduledPost, deleteUserPost} from "../controller/fetchController.ts";
 
 // Import utility for platform icons
 import { PLATFORM_META} from "../frontend_utilities/platformIcons.tsx"
@@ -77,7 +77,7 @@ export default function AgilaPostCalendar({
 
   const {accounts: unmappedAccounts} = useConnectAccounts();
   const [postsView, setPostsView] = useState<"pending" | "published">("published");
-  const {posts: fetchedPosts, isLoading: _postsLoading, error: _postsError} = useScheduledPosts(postsView);
+  const {posts: fetchedPosts, isLoading: _postsLoading, error: _postsError, refetchPosts} = useScheduledPosts(postsView);
 
   const posts = useMemo(
     () => [...(fetchedPosts || [])],
@@ -138,21 +138,47 @@ export default function AgilaPostCalendar({
 
   // NEW: Handle canceling a post
   const handleCancelPost = async (postId: string) => {
+
+
     if (postId === "mock-ui-test-post") {
+
       alert("This is just a mock post! It looks great though.");
       return;
+
     }
 
     const confirmCancel = window.confirm("Are you sure you want to cancel this scheduled post?");
     if (!confirmCancel) return;
 
     try {
+
       // Add your actual backend deletion logic here
+
+      // Call function to cancel scheduled post and return res
+      const cancelRes = await cancelScheduledPost(postId);
+
+
+      if(!cancelRes.success)
+        throw new Error(cancelRes.message ?? "Error! Failed to cancel scheduled post!");
+
+      // Call function to delete scheduled post and return res
+      const deleteRes = await deleteUserPost(postId);
+
+      if(!deleteRes.success)
+        throw new Error(cancelRes.message ?? "Error! Failed to delete scheduled post!");
+
+
+      await refetchPosts(); // Perform hook again to refetch updated scheduled posts
+
+
       console.log(`Cancelled post: ${postId}`);
-      alert("Post cancelled! (Add your refetch logic to make it disappear)");
+      alert("Scheduled Post Successfully Cancelled!");
+      
     } catch (err) {
+
       console.error(err);
       alert("Failed to cancel post! Please try again.");
+
     }
   };
 

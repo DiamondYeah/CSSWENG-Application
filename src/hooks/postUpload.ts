@@ -65,7 +65,10 @@ export function usePostUpload(){
 
             if(postDetails.platforms.includes("linkedin")){
 
-                setUploadStatus("Posting to LinkedIn... It may take a few minutes for the content to appear on your profile");
+                if(postDetails.scheduleMode === "schedule")
+                    setUploadStatus("Scheduling post for LinkedIn...");
+                else
+                    setUploadStatus("Posting to LinkedIn... It may take a few minutes for the content to appear on your profile");
 
                 if(!postDetails.linkedinConnectionIds || postDetails.linkedinConnectionIds.length === 0){
 
@@ -98,7 +101,10 @@ export function usePostUpload(){
 
             if (postDetails.platforms.includes("facebook")) {
 
-                setUploadStatus("Posting to Facebook... It may take a few minutes for the content to appear on your profile");
+                if(postDetails.scheduleMode === "schedule")
+                    setUploadStatus("Scheduling post for Facebook...");
+                else
+                    setUploadStatus("Posting to Facebook... It may take a few minutes for the content to appear on your profile");
 
                 if (!postDetails.facebookConnectionIds || postDetails.facebookConnectionIds.length === 0) {
                     throw new Error("No Facebook account selected.");
@@ -132,7 +138,10 @@ export function usePostUpload(){
 
             if (postDetails.platforms.includes("instagram")) {
 
-                setUploadStatus("Posting to Instagram... It may take a few minutes for the content to appear on your profile");
+                if(postDetails.scheduleMode === "schedule")
+                    setUploadStatus("Scheduling post for Instagram...");
+                else
+                    setUploadStatus("Posting to Instagram... It may take a few minutes for the content to appear on your profile");
 
                 if (!postDetails.instagramConnectionIds || postDetails.instagramConnectionIds.length === 0) {
                     throw new Error("No Instagram account selected.");
@@ -168,7 +177,11 @@ export function usePostUpload(){
                 throw new Error("No media file selected for TikTok.");
             }
 
-            setUploadStatus("Posting to TikTok... It may take a few minutes for the content to appear on your profile");
+
+            if(scheduledDateObj)
+                setUploadStatus("Scheduling post for TikTok...");
+            else
+                setUploadStatus("Posting to TikTok... It may take a few minutes for the content to appear on your profile");
 
 
             // Checks if the given media upload is all photos.

@@ -1,4 +1,5 @@
 import pkg from "express";
+import mongoose, { ObjectId, Types } from "mongoose";
 import type { Request, Response } from "express";
 import dotenv from "dotenv";
 import crypto from "crypto";
@@ -20,11 +21,12 @@ import {createAccountShareToken, findAccountByShareToken} from "../dbcontrollers
 import {findScheduledPosts, findSpecificPostOfUser, updatePostApproval, updateAllPostsForApproval, addComment} from "../dbcontrollers/postRepository.ts";
 import {findAllSocialMediaAccounts} from "../dbcontrollers/socialMediaAccountRepository.ts";
 import {validateAccountToken} from "../server_services/accountService.ts";
-import mongoose, { ObjectId, Types } from "mongoose";
+
 import { getLinkedInUserInfo } from "../server_services/linkedinAuthService.ts";
 import { getFacebookPageInfo } from "../server_services/facebookAuthService.ts";
 import { getInstagramProfile } from "../server_services/instagramAuthService.ts";
 import { checkTokenIfExpired } from "../server_services/tiktokAuthService.ts";
+import { sendEmailToReceiver } from "../server_services/mailService.ts";
 
 // Constants for expiraition of share token calendar
 const DAYS_UNTIL_SHARE_TOKEN_EXPIRY: number = 14;
@@ -338,6 +340,22 @@ router.patch("/sharecalendar/:token/:postID/approve", async (req: Request, res: 
         // Update specific post with approved status
         const updatedPost = await updatePostApproval({postID: String(postID), approvalStatus: "approved" });
 
+        if(!updatedPost)
+            return res.status(404).json({ success: false, message: "updatedPost returned with no data!"});
+
+
+        // Call sendEmailToReceiver to send to accounts notification of a calendar post approval
+        await sendEmailToReceiver({
+
+            receiver: account.email,
+            subjectType: "postAcceptance", 
+            subjectTitle: updatedPost.title ?? "Untitled Post",
+            text: "This post has been approved, and ready to publish",
+            calendarLink: `${process.env.FRONTEND_URL}/calendar`,
+
+        });
+
+
         // Returned json with sharedPosts data
         return res.json({ success: true, message: "Post successfully approved!", data: updatedPost});
 
@@ -378,6 +396,21 @@ router.patch("/sharecalendar/:token/:postID/reject", async (req: Request, res: R
         // Update specific post with rejected status
         const updatedPost = await updatePostApproval({postID: String(postID), approvalStatus: "rejected", reason: reason});
 
+        if(!updatedPost)
+            return res.status(404).json({ success: false, message: "updatedPost returned with no data!"});
+
+
+        // Call sendEmailToReceiver to send to accounts notification of a calendar post rejection
+        await sendEmailToReceiver({
+
+            receiver: account.email,
+            subjectType: "postRejection", 
+            subjectTitle: updatedPost.title ?? "Untitled Post",
+            text: reason?.trim() ? reason : "No reason for rejection given.",
+            calendarLink: `${process.env.FRONTEND_URL}/calendar`,
+
+        });
+
         // Returned json with sharedPosts data
         return res.json({ success: true, message: "Post successfully denied!", data: updatedPost});
 
@@ -408,6 +441,18 @@ router.patch("/sharecalendar/:token/approveallposts", async (req: Request, res: 
 
         // Update all posts with rejected status
         await updateAllPostsForApproval(String(account._id), {postID: "", approvalStatus: "approved"});
+
+
+        // Call sendEmailToReceiver to send to accounts notification of entire calendar approval
+        await sendEmailToReceiver({
+
+            receiver: account.email,
+            subjectType: "calendarAcceptance", 
+            subjectTitle: "Your Content Calendar",
+            text: "All posts in calendar have been approved!",
+            calendarLink: `${process.env.FRONTEND_URL}/calendar`,
+
+        });
 
         // Returned json with sharedPosts data
         return res.json({ success: true, message: "All posts have been approved"});
@@ -441,6 +486,18 @@ router.patch("/sharecalendar/:token/rejectallposts", async (req: Request, res: R
         // Update all posts with rejected status
         await updateAllPostsForApproval(String(account._id), {postID: "", approvalStatus: "rejected", reason: reason});
 
+
+        // Call sendEmailToReceiver to send to accounts notification of entire calendar approval
+        await sendEmailToReceiver({
+
+            receiver: account.email,
+            subjectType: "calendarRejection", 
+            subjectTitle: "Your Content Calendar",
+            text: "All posts in calendar have been rejected!",
+            calendarLink: `${process.env.FRONTEND_URL}/calendar`,
+
+        });
+
         // Returned json with sharedPosts data
         return res.json({ success: true, message: "All posts have been rejected"});
 
@@ -470,8 +527,33 @@ router.post("/sharecalendar/:token/:postID/comment", async (req: Request, res: R
             return res.status(401).json({ success: false, message: "Share link is either invalid or expired!"})
 
 
+        // Checks if post is actually from the user. If the userPosts does not return with anything, it is not their post
+        // Prevents guessing postID
+        const userPost = await findSpecificPostOfUser(new mongoose.Types.ObjectId(String(postID)), account._id);
+
+        if(!userPost)
+            return res.status(404).json({ success: false, message: "userPosts returned with no data!"});
+
+
         // Update posts with comment
         const updatedPost = await addComment({postID: String(postID), username: username, text: text});
+
+        if(!updatedPost)
+            return res.status(404).json({ success: false, message: "updatedPost returned with no data!"});
+
+
+        // Call sendEmailToReceiver to send to accounts notification of a calendar comment
+        await sendEmailToReceiver({
+
+            receiver: account.email,
+            subjectType: "calendarComment", 
+            subjectTitle: updatedPost.title ?? "Untitled Post",
+            text: text,
+            commenterName: username,
+            calendarLink: `${process.env.FRONTEND_URL}/calendar`,
+
+        });
+
 
         // Returned json with sharedPosts data
         return res.json({ success: true, message: "Comment has been added to post!", data: updatedPost});
