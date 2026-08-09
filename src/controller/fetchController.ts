@@ -342,6 +342,7 @@ export async function fetchUserInfoViaToken(token: string){
     const res = await fetch(`${USER_TOKEN_DIRECT}/${token}`, 
     {
         headers: { "ngrok-skip-browser-warning": "true" },
+        cache: "no-store",
     })
 
     // Convert res to json and return
@@ -509,7 +510,7 @@ export async function fetchScheduledPosts(status: PostMediaStatus = "pending"){
     const res = await fetch(`${SCHEDULED_POSTS_DIRECT}?status=${status}`, 
     {
         credentials: "include",
-
+        cache: "no-store",
     })
 
     // Convert res to json and return
@@ -593,6 +594,7 @@ export async function fetchSharedCalenderToken(token: string, status: PostMediaS
     const res = await fetch(`${OPEN_SHARE_CALENDAR_DIRECT}/${token}?status=${status}`, 
     {
         headers: { "ngrok-skip-browser-warning": "true" },
+        cache: "no-store",
     })
 
     // Convert res to json and return
