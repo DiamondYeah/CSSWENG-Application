@@ -13,7 +13,7 @@ export function createInstagramAuth(state: string): string {
         client_id: process.env.INSTAGRAM_APP_ID as string,
         redirect_uri: process.env.INSTAGRAM_REDIRECT_URI as string,
         response_type: "code",
-        scope: "instagram_business_basic,instagram_business_content_publish",
+        scope: "instagram_business_basic,instagram_business_content_publish,instagram_business_manage_comments",
         state,
         // Instagram's native login supports this natively — connecting
         // another account will actually show the login screen, unlike LinkedIn.

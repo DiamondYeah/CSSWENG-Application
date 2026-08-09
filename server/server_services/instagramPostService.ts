@@ -222,3 +222,23 @@ async function uploadInstagramImageContainer( igUserId: string, accessToken: str
 
     return response.data.id;
 }
+
+export async function addInstagramFirstComment(
+    mediaID: string,
+    accessToken: string,
+    comment: string
+): Promise<string> {
+
+    const response = await axios.post(
+        `${IG_GRAPH_BASE}/${mediaID}/comments`,
+        null,
+        {
+            params: {
+                message: comment,
+                access_token: accessToken
+            }
+        }
+    );
+
+    return response.data.id;
+}

@@ -157,7 +157,8 @@ export function usePostUpload(){
                         postDetails.mediaFiles ??
                             (postDetails.mediaFile ? [postDetails.mediaFile] : []),
                         postDetails.scheduleMode,
-                        postDetails.scheduledDate
+                        postDetails.scheduledDate,
+                        postDetails.firstComment
                     );
                 }
 

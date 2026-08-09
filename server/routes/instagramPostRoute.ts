@@ -4,7 +4,7 @@ import pkg from "express";
 import type { Response } from "express";
 import multer from "multer";
 import { findSpecificSocialMediaAccount } from "../dbcontrollers/socialMediaAccountRepository.ts";
-import { publishInstagramMedia, publishInstagramCarousel } from "../server_services/instagramPostService.ts";
+import { publishInstagramMedia, publishInstagramCarousel, addInstagramFirstComment } from "../server_services/instagramPostService.ts";
 import Post from "../models/post.ts";
 import { findAccountAuth } from "../middleware/accountAuthMiddleware.ts";
 import type { AuthUserRequest } from "../types/express.ts";
@@ -16,7 +16,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 router.post("/upload", findAccountAuth, upload.array("media", 10), async (req: AuthUserRequest, res: Response) => {
     const account: IAccount = req.account as IAccount;
-    const { title, connectionId, scheduleMode, scheduledDate } = req.body;
+    const { title, connectionId, scheduleMode, scheduledDate, firstComment } = req.body;
     const mediaFiles = req.files as Express.Multer.File[] || [];
     
     console.log("Instagram files received:", mediaFiles.length);
@@ -87,6 +87,7 @@ router.post("/upload", findAccountAuth, upload.array("media", 10), async (req: A
                 scheduledDate: schedule,
                 title,
                 description: title,
+                firstComment,
                 localFilePaths:savedFilePaths,
             });  
 
@@ -122,6 +123,19 @@ router.post("/upload", findAccountAuth, upload.array("media", 10), async (req: A
                     filename: mediaFile.originalname,
                 }
             );
+        }
+
+        if (firstComment && firstComment.trim()) {
+
+            await new Promise(resolve => setTimeout(resolve, 5000));
+
+            await addInstagramFirstComment(
+                mediaId,
+                accessToken,
+                firstComment
+            );
+
+            console.log("Instagram first comment posted.");
         }
 
         return res.json({ success: true, data: { mediaId } });

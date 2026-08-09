@@ -5,7 +5,7 @@ import SocialMediaAccount from "../models/socialMediaAccount.ts";
 
 import { updateInstagramPostPublished, updatePostStatus, findAwaitingSchedulePosts } from "../dbcontrollers/postRepository.ts";
 
-import { publishInstagramMedia, publishInstagramCarousel } from "./instagramPostService.ts";
+import { publishInstagramMedia, publishInstagramCarousel, addInstagramFirstComment } from "./instagramPostService.ts";
 
 import {  findSpecificSocialMediaAccount } from "../dbcontrollers/socialMediaAccountRepository.ts";
 
@@ -111,6 +111,19 @@ export async function processInstagramScheduledPosts() {
             }
 
             console.log("Instagram scheduled post published:", publishID);
+
+            if (duePost.firstComment && duePost.firstComment.trim()) {
+
+                await new Promise(resolve => setTimeout(resolve, 5000));
+
+                await addInstagramFirstComment(
+                    publishID,
+                    instagramAccount.accessToken,
+                    duePost.firstComment
+                );
+
+                console.log("Instagram scheduled first comment posted.");
+            }
 
             await updateInstagramPostPublished(String(duePost._id), publishID);
 

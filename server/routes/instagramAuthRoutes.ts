@@ -114,7 +114,7 @@ router.get("/instagram/oauth2/callback", async (req: AuthUserRequest, res: Respo
             platform: "instagram",
             platformAccountID: profile.user_id,
             accessToken: longLived.access_token,
-            scope: "instagram_business_basic,instagram_business_content_publish",
+            scope: "instagram_business_basic,instagram_business_content_publish,instagram_business_manage_comments",
             tokenExpiresIn: longLived.expires_in ?? 60 * 24 * 60 * 60,
         });
 

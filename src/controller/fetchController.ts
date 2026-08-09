@@ -805,7 +805,7 @@ export async function uploadToFacebook(title: string, connectionId: string, medi
 }
 
 
-export async function uploadToInstagram(title: string, connectionId: string, mediaFiles?: File[], scheduleMode?: string, scheduledDate?: string) {
+export async function uploadToInstagram(title: string, connectionId: string, mediaFiles?: File[], scheduleMode?: string, scheduledDate?: string, firstComment?: string) {
 
     const formData = new FormData();
 
@@ -823,6 +823,9 @@ export async function uploadToInstagram(title: string, connectionId: string, med
 
     if (scheduledDate)
         formData.append("scheduledDate", scheduledDate);
+
+    if (firstComment)
+        formData.append("firstComment", firstComment);
 
     const res = await fetch(INSTAGRAM_UPLOAD_DIRECT, {
 
