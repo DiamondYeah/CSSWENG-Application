@@ -5,7 +5,7 @@ export type Platform = "tiktok" | "linkedin" | "facebook" | "instagram"
 
 export type PostMediaType = "photo" | "video" | "document"
 
-export type PostMediaStatus = "pending" | "processing" | "failed" | "expired" | "published"
+export type PostMediaStatus = "pending" | "processing" | "failed" | "expired" | "published" | "cancelled"
 
 export type PublishMediaStatus = "awaiting_schedule" | "published_to_platform";
 
@@ -82,7 +82,7 @@ const postSchema = new Schema<IPost>({
     publishID: {type: String, required: true},           
     uploadURL:  {type: String, required: false} ,     
 
-    status: {type: String, enum:["pending", "processing", "failed", "expired", "published"], required: true}, 
+    status: {type: String, enum:["pending", "processing", "failed", "expired", "published", "cancelled"], required: true}, 
     postApprovalStatus: {type: String, enum:["pending", "approved", "rejected"], required: false, default: "pending"},
     rejectionReason: { type: String, required: false },
     uploadURLExpiration: {type: Date, required: false},  
