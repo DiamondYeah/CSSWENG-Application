@@ -1,6 +1,6 @@
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
-
+import dns from "dns";
 
 // Import email utility and type
 import {mapEmailTypeToSubject} from "../server_utilities/emailUtilities.ts";
@@ -9,7 +9,8 @@ import { type emailDeatils } from "../types/email.ts";
 // Load env file
 dotenv.config();
 
-
+// Force IPv4 DNS resolution to make SMTP work
+dns.setDefaultResultOrder("ipv4first");
 
 
 // Create a transporter to send messages via SMTP
