@@ -345,7 +345,7 @@ router.patch("/sharecalendar/:token/:postID/approve", async (req: Request, res: 
 
 
         // Call sendEmailToReceiver to send to accounts notification of a calendar post approval
-        await sendEmailToReceiver({
+        sendEmailToReceiver({
 
             receiver: account.email,
             subjectType: "postAcceptance", 
@@ -401,7 +401,7 @@ router.patch("/sharecalendar/:token/:postID/reject", async (req: Request, res: R
 
 
         // Call sendEmailToReceiver to send to accounts notification of a calendar post rejection
-        await sendEmailToReceiver({
+        sendEmailToReceiver({
 
             receiver: account.email,
             subjectType: "postRejection", 
@@ -444,7 +444,7 @@ router.patch("/sharecalendar/:token/approveallposts", async (req: Request, res: 
 
 
         // Call sendEmailToReceiver to send to accounts notification of entire calendar approval
-        await sendEmailToReceiver({
+        sendEmailToReceiver({
 
             receiver: account.email,
             subjectType: "calendarAcceptance", 
@@ -488,7 +488,7 @@ router.patch("/sharecalendar/:token/rejectallposts", async (req: Request, res: R
 
 
         // Call sendEmailToReceiver to send to accounts notification of entire calendar approval
-        await sendEmailToReceiver({
+        sendEmailToReceiver({
 
             receiver: account.email,
             subjectType: "calendarRejection", 
@@ -543,7 +543,7 @@ router.post("/sharecalendar/:token/:postID/comment", async (req: Request, res: R
 
 
         // Call sendEmailToReceiver to send to accounts notification of a calendar comment
-        await sendEmailToReceiver({
+        sendEmailToReceiver({
 
             receiver: account.email,
             subjectType: "calendarComment", 
