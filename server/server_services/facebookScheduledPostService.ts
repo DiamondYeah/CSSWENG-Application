@@ -12,7 +12,8 @@ import {
 } from "../dbcontrollers/socialMediaAccountRepository.ts";
 
 import {
-    publishFacebookPost
+    publishFacebookPost,
+    addFacebookFirstComment
 } from "./facebookPostService.ts";
 
 
@@ -98,6 +99,17 @@ export async function processFacebookScheduledPosts() {
                 "Facebook scheduled post published:",
                 publishID
             );
+
+            if (duePost.firstComment && duePost.firstComment.trim()) {
+
+                await addFacebookFirstComment(
+                    publishID,
+                    facebookAccount.accessToken,
+                    duePost.firstComment
+                );
+
+                console.log("Facebook first comment posted.");
+            }
 
             await updateFacebookPostPublished(
                 String(duePost._id),

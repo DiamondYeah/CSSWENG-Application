@@ -82,6 +82,7 @@ function CreatePost() {
 
   const [caption, setCaption] = useState<string>("");
   const [title, setTitle] = useState<string>("");
+  const [firstComment, setFirstComment] = useState<string>("");
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
   const [scheduleMode, setScheduleMode] = useState<"now" | "schedule" | "queue">("schedule");
 
@@ -381,6 +382,7 @@ function CreatePost() {
      // Perform media upload
     await uploadPost({
       title: title,
+      firstComment: firstComment,
       mediaFiles: mediaFiles, // Pass both array and single instance of mediaFile
       mediaFile: mediaFiles[0],
 
@@ -609,6 +611,29 @@ scheduledDate:
                     </button>
                   </div>
                   <span className="cp-char-count">{caption.length}/{MAX_CAPTION_LENGTH}</span>
+                </div>
+              </div>
+
+              <div className="cp-card">
+                <div className="cp-section-title">First Comment</div>
+                <div className="cp-section-sub">
+                  Optional comment to automatically post after publishing
+                </div>
+
+                <div className="cp-textarea-wrapper">
+                  <textarea
+                    className="cp-textarea"
+                    placeholder="Write your first comment..."
+                    value={firstComment}
+                    onChange={(e) => setFirstComment(e.target.value)}
+                    maxLength={MAX_CAPTION_LENGTH}
+                  />
+                </div>
+
+                <div className="cp-textarea-footer">
+                  <span className="cp-char-count">
+                    {firstComment.length}/{MAX_CAPTION_LENGTH}
+                  </span>
                 </div>
               </div>
 

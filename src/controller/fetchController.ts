@@ -770,7 +770,7 @@ export async function uploadToLinkedIn(
 
 }
 
-export async function uploadToFacebook(title: string, connectionId: string, mediaFiles?: File[], scheduleMode?: string, scheduledDate?: string) {
+export async function uploadToFacebook(title: string, connectionId: string, mediaFiles?: File[], scheduleMode?: string, scheduledDate?: string, firstComment?: string) {
 
     const formData = new FormData();
 
@@ -788,6 +788,9 @@ export async function uploadToFacebook(title: string, connectionId: string, medi
 
     if (scheduledDate)
         formData.append("scheduledDate", scheduledDate);
+
+    if (firstComment)
+        formData.append("firstComment", firstComment);
 
     const res = await fetch(FACEBOOK_UPLOAD_DIRECT, {
 

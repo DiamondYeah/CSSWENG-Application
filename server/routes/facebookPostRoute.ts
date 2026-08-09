@@ -2,8 +2,10 @@ import pkg from "express";
 import type { Response } from "express";
 import multer from "multer";
 import Post from "../models/post.ts";
-import { publishFacebookPost } from "../server_services/facebookPostService.ts";
-import { findAccountAuth } from "../middleware/accountAuthMiddleware.ts";
+import {
+    publishFacebookPost,
+    addFacebookFirstComment
+} from "../server_services/facebookPostService.ts";import { findAccountAuth } from "../middleware/accountAuthMiddleware.ts";
 import type { AuthUserRequest } from "../types/express.ts";
 import { type IAccount } from "../models/account.ts";
 import { findSpecificSocialMediaAccount } from "../dbcontrollers/socialMediaAccountRepository.ts";
@@ -25,9 +27,9 @@ const upload = multer({
 
 router.post("/upload", findAccountAuth, upload.array("media", 10), async (req: AuthUserRequest, res: Response) => {
     const account: IAccount = req.account as IAccount;
-    const { title, connectionId, scheduleMode, scheduledDate } = req.body;
+    const { title, connectionId, scheduleMode, scheduledDate, firstComment } = req.body;
     const mediaFiles = req.files as Express.Multer.File[] || [];
-
+    
     const mediaFile = (mediaFiles.length === 1) ? mediaFiles[0] : undefined;
 
     if (!title || !title.trim())
@@ -76,6 +78,7 @@ router.post("/upload", findAccountAuth, upload.array("media", 10), async (req: A
                 scheduledDate: new Date(scheduledDate),
                 title,
                 description: title,
+                firstComment,
                 localFilePaths: localFilePaths,
             
             });
@@ -105,6 +108,17 @@ router.post("/upload", findAccountAuth, upload.array("media", 10), async (req: A
                 ? formattedMediaFiles
                 : undefined
         );
+
+        if (firstComment && firstComment.trim()) {
+
+            await addFacebookFirstComment(
+                postID,
+                pageAccessToken,
+                firstComment
+            );
+
+            console.log("Facebook first comment posted.");
+        }
 
         return res.json({ success: true, data: { postID } });
 

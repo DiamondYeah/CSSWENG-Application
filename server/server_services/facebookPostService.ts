@@ -287,3 +287,23 @@ export async function publishFacebookPost(
 
     throw new Error("Invalid Facebook media input");
 }
+
+export async function addFacebookFirstComment(
+    postID: string,
+    pageAccessToken: string,
+    comment: string
+): Promise<string> {
+
+    const response = await axios.post(
+        `${FACEBOOK_GRAPH_BASE}/${postID}/comments`,
+        null,
+        {
+            params: {
+                message: comment,
+                access_token: pageAccessToken
+            }
+        }
+    );
+
+    return response.data.id;
+}

@@ -26,6 +26,7 @@ const POLL_INTERVALS = 12000;
 interface PostUpload{
 
     title: string;
+    firstComment?: string;
     mediaFile?: File;   // only change: allow LinkedIn text posts
     mediaFiles?: File[];
 
@@ -118,7 +119,8 @@ export function usePostUpload(){
                         postDetails.mediaFiles ?? 
                             (postDetails.mediaFile ? [postDetails.mediaFile] : []),
                         postDetails.scheduleMode,
-                        postDetails.scheduledDate
+                        postDetails.scheduledDate,
+                        postDetails.firstComment
                     );
 
                 }

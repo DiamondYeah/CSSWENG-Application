@@ -31,6 +31,7 @@ export function createFacebookAuth(state: string): string {
             "pages_manage_posts",
             "pages_read_engagement",
             "pages_manage_metadata",
+            "pages_manage_engagement",
             "instagram_basic",
             "instagram_content_publish",
             ].join(",")
