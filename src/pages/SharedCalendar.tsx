@@ -33,7 +33,7 @@ function SharedCalendar(): React.JSX.Element{
     const [ownerName, setOwnerName] = useState<string>("");
     const {token} = useParams<{token: string}>();
     const [scheduledPosts, setScheduledPosts] = useState<ScheduledPost[]>([]);
-    const [postsView, setPostsView] = useState<"pending" | "published">("published");
+    const [postsView, setPostsView] = useState<"pending" | "published">("pending");
     const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string>("");
