@@ -43,6 +43,7 @@ export interface IPost extends Document{
 
     title?: string
     description?: string
+    caption?: string
     firstComment?: string
 
     comments: IComment[] // Store string of comments
@@ -95,6 +96,7 @@ const postSchema = new Schema<IPost>({
     
     title: {type: String, required: false},
     description: {type: String, required: false},
+    caption: {type: String, required: false},
     firstComment: {type: String, required: false},
 
     comments: {type: [commentSchema], default: []},

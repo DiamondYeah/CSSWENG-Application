@@ -382,6 +382,7 @@ function CreatePost() {
      // Perform media upload
     await uploadPost({
       title: title,
+      caption: caption,
       firstComment: firstComment,
       mediaFiles: mediaFiles, // Pass both array and single instance of mediaFile
       mediaFile: mediaFiles[0],

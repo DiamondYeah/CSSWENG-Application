@@ -27,7 +27,7 @@ const upload = multer({
 
 router.post("/upload", findAccountAuth, upload.array("media", 10), async (req: AuthUserRequest, res: Response) => {
     const account: IAccount = req.account as IAccount;
-    const { title, connectionId, scheduleMode, scheduledDate, firstComment } = req.body;
+    const { title, caption, connectionId, scheduleMode, scheduledDate, firstComment } = req.body;
     const mediaFiles = req.files as Express.Multer.File[] || [];
     
     const mediaFile = (mediaFiles.length === 1) ? mediaFiles[0] : undefined;
@@ -82,7 +82,8 @@ router.post("/upload", findAccountAuth, upload.array("media", 10), async (req: A
                 publishMediaStatus: "awaiting_schedule",
                 scheduledDate: new Date(`${scheduledDate}+08:00`),
                 title,
-                description: title,
+                description: caption,
+                caption,
                 firstComment,
                 localFilePaths: localFilePaths,
             

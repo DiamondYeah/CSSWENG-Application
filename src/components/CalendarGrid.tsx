@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Clock, MessageCircle, Check, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, X, Play, Check, MessageCircle} from "lucide-react";
 
 // Import utility for platform icons
 import {PLATFORM_META} from "../frontend_utilities/platformIcons.tsx"
@@ -67,6 +67,8 @@ function toDateKey(d: Date): string {
 
 // readOnly to be used at later date
 export function CalendarGrid({posts, readOnly, postsView, setPostsView, onSelectPost, onCancelPost}: CalendarGridDetails){ 
+
+    const [mediaIndexes, setMediaIndexes] = useState<Record<string, number>>({});
 
     const today = useMemo(() => new Date(), []);
     const [cursorDate, setCursorDate] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
@@ -161,6 +163,9 @@ export function CalendarGrid({posts, readOnly, postsView, setPostsView, onSelect
                         </div>
                         {dayPosts.map((post) => {
 
+                            const currentMediaIndex = mediaIndexes[post.id] ?? 0;
+                            const currentMedia = post.media?.[currentMediaIndex];
+
                             const meta = PLATFORM_META[post.platform as Platform]
                             if(!meta)
                                 return null;
@@ -216,9 +221,139 @@ export function CalendarGrid({posts, readOnly, postsView, setPostsView, onSelect
 
                                     <div className="ap-post-card__body">
                                         <div className="ap-post-card__text">
-                                        {post.title && <p className="ap-post-card__title">{post.title}</p>}
-                                        {post.snippet && <p className="ap-post-card__snippet">{post.snippet}</p>}
+                                            {post.snippet && <p className="ap-post-card__snippet">{post.snippet}</p>}
                                         </div>
+
+                                        {currentMedia && (
+                                            <div style={{display: "flex", alignItems: "center", gap: "3px"}}>
+                                                
+                                                {/* Left arrow — only shown for multiple media */}
+                                                {post.media && post.media.length > 1 && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+
+                                                            setMediaIndexes((prev) => ({
+                                                                ...prev,
+                                                                [post.id]:
+                                                                    currentMediaIndex === 0
+                                                                        ? post.media!.length - 1
+                                                                        : currentMediaIndex - 1
+                                                            }));
+                                                        }}
+                                                        style={{
+                                                            width: "16px",
+                                                            height: "24px",
+                                                            padding: 0,
+                                                            border: "none",
+                                                            borderRadius: "4px",
+                                                            background: "rgba(0, 0, 0, 0.55)",
+                                                            color: "white",
+                                                            cursor: "pointer",
+                                                            display: "flex",
+                                                            alignItems: "center",
+                                                            justifyContent: "center",
+                                                            fontSize: "14px",
+                                                            lineHeight: 1
+                                                        }}
+                                                    >
+                                                        ‹
+                                                    </button>
+                                                )}
+
+                                                {/* Current image/video */}
+                                                {currentMedia.type === "video" ? (
+                                                    <div
+                                                        className="ap-post-card__video-preview"
+                                                        style={{
+                                                            position: "relative",
+                                                            width: "45px",
+                                                            height: "45px",
+                                                            flexShrink: 0
+                                                        }}
+                                                    >
+                                                        <video
+                                                            src={currentMedia.url}
+                                                            className="ap-post-card__preview"
+                                                            muted
+                                                            playsInline
+                                                            preload="metadata"
+                                                            style={{
+                                                                width: "45px",
+                                                                height: "45px",
+                                                                objectFit: "cover",
+                                                                borderRadius: "6px",
+                                                                display: "block"
+                                                            }}
+                                                        />
+
+                                                        <span
+                                                            className="ap-post-card__play"
+                                                            style={{
+                                                                position: "absolute",
+                                                                inset: 0,
+                                                                display: "flex",
+                                                                alignItems: "center",
+                                                                justifyContent: "center",
+                                                                color: "white",
+                                                                background: "rgba(0, 0, 0, 0.25)",
+                                                                borderRadius: "6px",
+                                                                pointerEvents: "none"
+                                                            }}
+                                                        >
+                                                            <Play size={12} fill="white" />
+                                                        </span>
+                                                    </div>
+                                                ) : (
+                                                    <img
+                                                        src={currentMedia.url}
+                                                        alt="Scheduled post media"
+                                                        style={{
+                                                            width: "45px",
+                                                            height: "45px",
+                                                            objectFit: "cover",
+                                                            borderRadius: "6px",
+                                                            flexShrink: 0
+                                                        }}
+                                                    />
+                                                )}
+
+                                                {/* Right arrow — only shown for multiple media */}
+                                                {post.media && post.media.length > 1 && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+
+                                                            setMediaIndexes((prev) => ({
+                                                                ...prev,
+                                                                [post.id]:
+                                                                    currentMediaIndex === post.media!.length - 1
+                                                                        ? 0
+                                                                        : currentMediaIndex + 1
+                                                            }));
+                                                        }}
+                                                        style={{
+                                                            width: "16px",
+                                                            height: "24px",
+                                                            padding: 0,
+                                                            border: "none",
+                                                            borderRadius: "4px",
+                                                            background: "rgba(0, 0, 0, 0.55)",
+                                                            color: "white",
+                                                            cursor: "pointer",
+                                                            display: "flex",
+                                                            alignItems: "center",
+                                                            justifyContent: "center",
+                                                            fontSize: "14px",
+                                                            lineHeight: 1
+                                                        }}
+                                                    >
+                                                        ›
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
+
                                     </div>
 
                                     <div className="ap-post-card__footer">
