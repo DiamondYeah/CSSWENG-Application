@@ -8,8 +8,7 @@ const TABS = [
   { label: "Create Post", path: "/create-post" },
   { label: "Accounts", path: "/accounts" },
   { label: "Calendar", path: "/calendar" },
-  { label: "Category", path: "/category" },
-  { label: "Timeslots", path: "/timeslots" },
+  { label: "Category", path: "/category" }
 ];
 
 function SchedulingTabs() {
