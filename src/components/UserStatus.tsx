@@ -3,20 +3,13 @@ import { ChevronDown, LogOut } from "lucide-react";
 import "./UserStatus.css";
 import { useNavigate } from "react-router-dom";
 import { logoutAccount } from "../controller/fetchController";
+import { useAccountInfo } from "../hooks/accountInfo";
 
-// ---------------------------------------------------------------
+
+
 // UserStatus
 // Shows the logged-in user's name in the top bar. Click it to open
 // a small dropdown with a "Log out" option.
-//
-// NOTE: `onLogout` is left as a prop so you can wire it up to
-// whatever your real logout flow is (e.g. calling fetchController's
-// logout endpoint, clearing an auth cookie/token, then redirecting
-// to /login). `username` is likewise a prop since I don't have your
-// auth hook here — pass in whatever your auth context/hook exposes.
-// ---------------------------------------------------------------
-
-
 
 export interface UserStatusProps {
   username?: string;
@@ -24,16 +17,26 @@ export interface UserStatusProps {
 }
 
 export default function UserStatus({
-  username = "Account",
+  username: usernameProp,
 }: UserStatusProps) {
+
   const [open, setOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
   const navigate = useNavigate();
 
+  // Fetch account info from useAccountInfo hook with usernameProp as boolean
+  const {account, isLoading} = useAccountInfo(!!usernameProp)
+  const username = usernameProp ?? account?.username ?? "Account"; // Check props, if not check account, if not default to "Account"
+
+  // Checks if username is still loading or not
+  const isLoadingUsername = !usernameProp && isLoading;
+
+
   // Close the dropdown on outside click
   useEffect(() => {
+
     if (!open) return;
     const handleClickOutside = (e: MouseEvent) => {
       if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
@@ -43,6 +46,7 @@ export default function UserStatus({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [open]);
+
 
   const handleLogout = async () => {
 
@@ -77,9 +81,10 @@ export default function UserStatus({
         className="ap-user-status__trigger"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
+        disabled={isLoadingUsername} // Disasble if isLoadingUsername is true
       >
-        <span className="ap-user-status__avatar">{initials}</span>
-        <span className="ap-user-status__label">{username}</span>
+        <span className="ap-user-status__avatar">{isLoadingUsername ? "Loading..." : initials}</span>
+        <span className="ap-user-status__label">{isLoadingUsername ? "Loading..." : username}</span>
         <ChevronDown
           size={14}
           className={`ap-user-status__chevron ${open ? "is-open" : ""}`}
