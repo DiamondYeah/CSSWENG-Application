@@ -21,6 +21,10 @@ export function mapPostToSchedulePost(post: any): ScheduledPost{
         createdAt: c.createdAt,
 
     }));
+
+
+    // Check plural array paths, if empty switch back to the singular localFIlePath
+    const rawMediaPath: string[] = post.localFilePaths?.length ? post.localFilePaths : (post.localFilePath ? [post.localFilePath] : []);
     
     // Return a mapped version of post instance to ScheduledPost
     return{
@@ -33,7 +37,7 @@ export function mapPostToSchedulePost(post: any): ScheduledPost{
         title: post.title ?? "No Title",
         snippet: post.description || undefined,
 
-        media: (post.localFilePaths ?? []).map((filePath: string) => {
+        media: rawMediaPath.map((filePath: string) => {
             const cleanPath = filePath.replace(/\\/g, "/");
 
             let url = "";
@@ -55,8 +59,6 @@ export function mapPostToSchedulePost(post: any): ScheduledPost{
                 ? "video"
                 : "image";
 
-                console.log("Calendar media URL:", url);
-            console.log("Calendar media type:", type);
 
             return {
                 url,

@@ -6,6 +6,8 @@ import { findSpecificSocialMediaAccount } from "../dbcontrollers/socialMediaAcco
 import { type ISocialMediaAccount } from "../models/socialMediaAccount.ts";
 import { checkTokenIfExpired } from "./tiktokAuthService.ts";
 import { obtainInitialUpload, uploadVideo } from "./tiktokVideoService.ts";
+import path from "path";
+import { uploadUserPhoto } from "./tiktokPhotoService.ts";
 
 
 // Function checks lists of posts that have an awaiting schedule and checks if theyre due for an upload. If so, upload them to TikTok
@@ -20,6 +22,7 @@ export async function processScheduledDuePosts(){
     // Loop through each posts in duePosts to see if it should be ready for submission
     for(const duePost of duePosts){
 
+
         if(duePost.platform !== "tiktok")
             continue;
 
@@ -28,17 +31,19 @@ export async function processScheduledDuePosts(){
             // Set each posts to a processing status
             await updatePostStatus({publishID: duePost.publishID || duePost._id.toString(), status: "processing"})
 
+            // Check if file path(s) exist depending on post type
+            const hasValidFiles = duePost.postType === "photo"
+                ? !!duePost.localFilePaths?.length && duePost.localFilePaths.every((p: string) => fs.existsSync(p))
+                : !!duePost.localFilePath && fs.existsSync(duePost.localFilePath);
 
             // Check if file path exists. If not, show error and update post status of media to failed
-            if(!duePost.localFilePath || !fs.existsSync(duePost.localFilePath)){
+            if(!hasValidFiles){
 
                 console.error(`Cannot find post file path ${duePost._id}. Updating status with failure.`);
                 await updatePostStatus({publishID: duePost.publishID || duePost._id.toString(), status: "failed"});
                 continue; // Skip to next post
 
             }
-            else if(duePost.platform != "tiktok") // Skip if not tiktok
-                continue;
 
 
             // Find tiktok account associated with post
@@ -66,50 +71,119 @@ export async function processScheduledDuePosts(){
             }
 
 
-            // Return information and stats about the file in given path
-            const postInfo = fs.statSync(duePost.localFilePath);
+            // Check post type of scheduled post and perform different upload paths depending if photo or video
+            if(duePost.postType == "photo"){
 
-            // Perform initial upload with due post
-            const userInitUpload = await obtainInitialUpload({
+                if(!duePost.localFilePaths?.length){
 
-                tiktokUser: refreshTikTokAccount, 
-                title: duePost.title ?? "", 
-                privacyLevel: duePost.privacyLevel ?? "SELF_ONLY", 
-                videoSize: postInfo.size,
-                allowComments: duePost.allowComments ?? true,
-                allowDuet: duePost.allowDuet ?? false,
-                allowStitch: duePost.allowStitch ?? false,
-                isYourOwnBrand: duePost.isYourOwnBrand ?? false,
-                isBrandedContent: duePost.isBrandedContent ?? false,
+                    console.error(`No Photo Paths for: ${duePost._id}. Updating status with failure.`);
+                    await updatePostStatus({publishID: duePost.publishID || duePost._id.toString(), status: "failed"});
+                    continue; // Skip to next post
 
-            });
+                }
+
+
+                // Get the mapped photoURLs from localFilePaths
+                const photoURLs = duePost.localFilePaths.map((p: string) => `${process.env.BASE_URL}/publicfiles/${path.basename(p)}`);
+
+
+                // Upload user photos to their account by calling uploadUserPhoto function in services and receive result of upload
+                const photoUploadResult = await uploadUserPhoto({
+                    
+                    tiktokUser: refreshTikTokAccount, 
+                    title: duePost.title ?? "", 
+                    description: duePost.description ?? "",
+                    photoURLs: photoURLs,
+                    privacyLevel: duePost.privacyLevel ?? "SELF_ONLY", 
+                    allowComments: duePost.allowComments ?? true,
+                    isYourOwnBrand: duePost.isYourOwnBrand ?? false,
+                    isBrandedContent: duePost.isBrandedContent ?? false,
+ 
+                });
+
+
+                // Change status of post to be submitted to platform
+                await updatePublishToPlatformPost(String(duePost._id), photoUploadResult.data.publish_id, "")
+
+
+                // Remove the photo posts paths of duePost
+                duePost.localFilePaths.forEach((p: string) => {
+
+                    fs.unlink(p, (err) => {
             
-            // Check if returned data has an upload_url to upload video to.
-            if(!userInitUpload?.data.upload_url){
+                        // Display error for unlink
+                        if(err)
+                            console.error(`Error in deleting photo post ${duePost._id} from fileSystem: `, err);
+                        
+                    });
 
-                console.error(`Returned result has no upload url for post ${duePost._id}. Updating status with failure.`);
-                await updatePostStatus({publishID: duePost.publishID || duePost._id.toString(), status: "failed"});
-                continue; // Skip to next post
+                });
+
+
+                
+            }
+            else{
+
+
+                // Check if local file path exists
+                if(!duePost.localFilePath){
+
+                    console.error(`No Post Paths for: ${duePost._id}. Updating status with failure.`);
+                    await updatePostStatus({publishID: duePost.publishID || duePost._id.toString(), status: "failed"});
+                    continue; // Skip to next post
+
+                }
+
+                // Return information and stats about the file in given path
+                const postInfo = fs.statSync(duePost.localFilePath);
+
+                // Perform initial upload with due post
+                const userInitUpload = await obtainInitialUpload({
+
+                    tiktokUser: refreshTikTokAccount, 
+                    title: duePost.title ?? "", 
+                    privacyLevel: duePost.privacyLevel ?? "SELF_ONLY", 
+                    videoSize: postInfo.size,
+                    allowComments: duePost.allowComments ?? true,
+                    allowDuet: duePost.allowDuet ?? false,
+                    allowStitch: duePost.allowStitch ?? false,
+                    isYourOwnBrand: duePost.isYourOwnBrand ?? false,
+                    isBrandedContent: duePost.isBrandedContent ?? false,
+
+                });
+                
+                // Check if returned data has an upload_url to upload video to.
+                if(!userInitUpload?.data.upload_url){
+
+                    console.error(`Returned result has no upload url for post ${duePost._id}. Updating status with failure.`);
+                    await updatePostStatus({publishID: duePost.publishID || duePost._id.toString(), status: "failed"});
+                    continue; // Skip to next post
+
+                }
+
+
+                // Create a buffer to store the file and perform videoUpload
+                const fileBuffer = {path: duePost.localFilePath, size: postInfo.size } as Express.Multer.File;
+                await uploadVideo(fileBuffer, userInitUpload.data.upload_url);
+
+                // Change status of post to be submitted to platform
+                await updatePublishToPlatformPost(String(duePost._id), userInitUpload.data.publish_id, userInitUpload.data.upload_url)
+
+
+                // Remove/clean up file from fileSystem
+                fs.unlink(duePost.localFilePath, (err) => {
+        
+                    // Display error for unlink
+                    if(err)
+                        console.error(`Error in deleting post ${duePost._id} from fileSystem: `, err);
+                    
+                });
+
 
             }
 
 
-            // Create a buffer to store the file and perform videoUpload
-            const fileBuffer = {path: duePost.localFilePath, size: postInfo.size } as Express.Multer.File;
-            await uploadVideo(fileBuffer, userInitUpload.data.upload_url);
-
-            // Change status of post to be submitted to platform
-            await updatePublishToPlatformPost(String(duePost._id), userInitUpload.data.publish_id, userInitUpload.data.upload_url)
-
-
-            // Remove/clean up file from fileSystem
-            fs.unlink(duePost.localFilePath, (err) => {
-    
-                // Display error for unlink
-                if(err)
-                    console.error(`Error in deleting post ${duePost._id} from fileSystem: `, err);
-                
-            });
+ 
 
 
         }catch(err){
