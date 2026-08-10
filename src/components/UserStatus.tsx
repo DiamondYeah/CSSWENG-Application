@@ -83,7 +83,7 @@ export default function UserStatus({
         aria-expanded={open}
         disabled={isLoadingUsername} // Disasble if isLoadingUsername is true
       >
-        <span className="ap-user-status__avatar">{isLoadingUsername ? "Loading..." : initials}</span>
+        <span className="ap-user-status__avatar">{isLoadingUsername ? "" : initials}</span>
         <span className="ap-user-status__label">{isLoadingUsername ? "Loading..." : username}</span>
         <ChevronDown
           size={14}
