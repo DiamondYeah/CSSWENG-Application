@@ -123,7 +123,7 @@ router.post("/photoUpload", findAccountAuth, upload.array("photos", 35), findTik
                     allowStitch: false,
                     isYourOwnBrand: isYourOwnBrandBool,
                     isBrandedContent: isBrandedContentBool,     
-                    localFilePath: files.map(f => f.path).join(","), // Create file path for each file    
+                    localFilePaths: files.map(f => f.path), // Create file path for each file    
 
                 });
 

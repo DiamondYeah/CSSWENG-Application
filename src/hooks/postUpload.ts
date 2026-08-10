@@ -270,9 +270,23 @@ export function usePostUpload(){
 
                 if(scheduleUploadResult.data?.localFilePath){
 
-                // Add all posts to the same local file path
-                for(const result of initUploadResults.data)
-                    await performPostUpdateToFilePath(result.publish_id, scheduleUploadResult.data?.localFilePath);
+                    // Add all posts to the same local file path
+                    for(const result of initUploadResults.data){
+
+
+                        const filePathUpdate = await performPostUpdateToFilePath(result.publish_id, scheduleUploadResult.data?.localFilePath);
+
+                        // Show error if it was not a success
+                        if(!filePathUpdate?.success){
+
+                            console.error(`Failed to attach file path for post ${result.publish_id}: `, filePathUpdate?.message);
+                            setUploadStatus("Error! Post was scheduled but its media file could not be attached. Please delete and try again.");
+                            return;
+
+                        }
+
+                    }
+
 
                 }else{ // Show error if no file path was found
 

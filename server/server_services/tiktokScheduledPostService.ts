@@ -83,8 +83,8 @@ export async function processScheduledDuePosts(){
                 }
 
 
-                // Get the mapped photoURLs from localFilePaths
-                const photoURLs = duePost.localFilePaths.map((p: string) => `${process.env.BASE_URL}/publicfiles/${path.basename(p)}`);
+                // Get the mapped photoURLs from localFilePaths by using PUBLIC_URL/publicfile/basename
+                const photoURLs = duePost.localFilePaths.map((p: string) => `${process.env.PUBLIC_URL}/publicfiles/${path.basename(p)}`);
 
 
                 // Upload user photos to their account by calling uploadUserPhoto function in services and receive result of upload

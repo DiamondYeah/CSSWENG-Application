@@ -38,11 +38,17 @@ export function mapPostToSchedulePost(post: any): ScheduledPost{
         snippet: post.description || undefined,
 
         media: rawMediaPath.map((filePath: string) => {
+
+
             const cleanPath = filePath.replace(/\\/g, "/");
+            const fileName = cleanPath.split("/").pop();
 
             let url = "";
 
-            if (cleanPath.includes("/publicfiles/")) {
+            if (post.platform === "tiktok" && post.postType === "photo") {
+                url = `${import.meta.env.VITE_API_BASE_URL}/publicfiles/${fileName}`;
+            }
+            else if (cleanPath.includes("/publicfiles/")) {
                 const relativePath = cleanPath.split("/publicfiles/")[1];
                 url = `${import.meta.env.VITE_API_BASE_URL}/publicfiles/${relativePath}`;
             } 

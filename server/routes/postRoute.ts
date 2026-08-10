@@ -117,10 +117,10 @@ router.patch("/cancelscheduledpost", findAccountAuth, async (req: AuthUserReques
 
         // Remove any file/s in local file path since they are cancelled now
         const filesPathToRemove = userPost.localFilePaths?.length ? userPost.localFilePaths // Get file paths
-                                : (userPost.localFilePath ? [userPost] : []); // Get file path
+                                : (userPost.localFilePath ? [userPost.localFilePath] : []); // Get file path
 
         
-        for(const filePath in filesPathToRemove)
+        for(const filePath of filesPathToRemove)
             fs.unlink(filePath, (err) => {
 
                 // Display error for unlink
