@@ -49,7 +49,8 @@ router.post("/upload", findAccountAuth, upload.array("media", 10), async (req: A
 
     try {
         if (scheduleMode === "schedule") {
-            const schedule = new Date(scheduledDate);
+            const schedule = new Date(`${scheduledDate}+08:00`);
+            
             if (!scheduledDate || Number.isNaN(schedule.getTime()) || schedule.getTime() <= Date.now()) {
                 return res.status(400).json({ success: false, message: "Choose a valid future date and time." });
             }
