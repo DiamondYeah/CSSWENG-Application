@@ -15,7 +15,23 @@ export async function findTikTokAccount(req: AuthUserRequest, res: Response, nex
     const account: IAccount = req.account as IAccount;
     const body = req.body ?? {};
 
-    const socialMediaAccountsIDs: string[] | undefined = Array.isArray(body.socialMediaAccountsIDs)? body.socialMediaAccountsIDs : undefined;
+    let socialMediaAccountsIDs: string[] | undefined;
+
+    // Handle both cases of a real array or a JSON string array
+    if(Array.isArray(body.socialMediaAccountsIDs))
+        socialMediaAccountsIDs = body.socialMediaAccountsIDs
+    else if(typeof body.socialMediaAccountsIDs == "string")
+        try{
+    
+            const parsedIDs = JSON.parse(body.socialMediaAccountsIDs);
+            socialMediaAccountsIDs = Array.isArray(parsedIDs) ? parsedIDs : undefined;
+
+        }catch(err){
+
+            socialMediaAccountsIDs = undefined;
+
+        }
+
 
     try{
 

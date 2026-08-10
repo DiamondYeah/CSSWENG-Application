@@ -54,7 +54,7 @@ const photoStorage = multer.diskStorage({
 const upload = multer({ storage: photoStorage, limits: { fileSize: MAX_MEDIA_FILE_SIZE }});
 
 
-router.post("/photoUpload", findAccountAuth, findTikTokAccount, upload.array("photos", 35), async (req: AuthUserRequest, res: Response) => {
+router.post("/photoUpload", findAccountAuth, upload.array("photos", 35), findTikTokAccount, async (req: AuthUserRequest, res: Response) => {
 
     // Coerce a to bool expression 
     const toBool = (v: unknown) => v === true || v === "true";
