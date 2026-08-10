@@ -26,6 +26,7 @@ router.post("/upload", findAccountAuth, upload.array("media"), async (req: AuthU
     const account: IAccount = req.account as IAccount;
     const { 
         title, 
+        caption,
         connectionId,
         scheduleMode,
         scheduledDate 
@@ -63,7 +64,8 @@ router.post("/upload", findAccountAuth, upload.array("media"), async (req: AuthU
             publishMediaStatus: "awaiting_schedule",
             scheduledDate: new Date(`${scheduledDate}+08:00`),
             title,
-            description: title,
+            description: caption,
+            caption,
             localFilePath: localFilePath,
             localFilePaths: localFilePaths,
         });

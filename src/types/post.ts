@@ -22,6 +22,10 @@ export interface ScheduledPost {
   time: string;
   title?: string;
   snippet?: string;
+  media?: {
+    url: string;
+    type: "image" | "video";
+  }[];
   hasComment?: boolean;
   status?: PostMediaStatus;
 

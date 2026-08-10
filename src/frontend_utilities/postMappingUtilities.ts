@@ -33,6 +33,37 @@ export function mapPostToSchedulePost(post: any): ScheduledPost{
         title: post.title ?? "No Title",
         snippet: post.description || undefined,
 
+        media: (post.localFilePaths ?? []).map((filePath: string) => {
+            const cleanPath = filePath.replace(/\\/g, "/");
+
+            let url = "";
+
+            if (cleanPath.includes("/publicfiles/")) {
+                const relativePath = cleanPath.split("/publicfiles/")[1];
+                url = `${import.meta.env.VITE_API_BASE_URL}/publicfiles/${relativePath}`;
+            } 
+            else if (cleanPath.includes("/mediauploads/")) {
+                const relativePath = cleanPath.split("/mediauploads/")[1];
+                url = `${import.meta.env.VITE_API_BASE_URL}/mediauploads/${relativePath}`;
+            } 
+            else {
+                const fileName = cleanPath.split("/").pop();
+                url = `${import.meta.env.VITE_API_BASE_URL}/mediauploads/${fileName}`;
+            }
+
+            const type = /\.(mp4|mov|webm)$/i.test(cleanPath)
+                ? "video"
+                : "image";
+
+                console.log("Calendar media URL:", url);
+            console.log("Calendar media type:", type);
+
+            return {
+                url,
+                type,
+            };
+        }),
+
         approvalStatus: (post.postApprovalStatus as PostApprovalStatus) ?? "pending",
         rejectionReason: post.rejectionReason  ?? undefined,
         comments: mappedComments,

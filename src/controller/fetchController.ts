@@ -735,6 +735,7 @@ export async function performPostUpdateToFilePath(publishID: string, localFilePa
 
 export async function uploadToLinkedIn(
     title: string,
+    caption: string,
     connectionId: string,
     mediaFiles?: File[],
     scheduleMode?: string,
@@ -744,6 +745,7 @@ export async function uploadToLinkedIn(
     const formData = new FormData();
 
     formData.append("title", title);
+    formData.append("caption", caption);
     formData.append("connectionId", connectionId);
 
     if (mediaFiles) {
@@ -770,11 +772,12 @@ export async function uploadToLinkedIn(
 
 }
 
-export async function uploadToFacebook(title: string, connectionId: string, mediaFiles?: File[], scheduleMode?: string, scheduledDate?: string, firstComment?: string) {
+export async function uploadToFacebook(title: string, caption: string, connectionId: string, mediaFiles?: File[], scheduleMode?: string, scheduledDate?: string, firstComment?: string) {
 
     const formData = new FormData();
 
     formData.append("title", title);
+    formData.append("caption", caption);
     formData.append("connectionId", connectionId);
 
     if (mediaFiles) {
@@ -805,11 +808,13 @@ export async function uploadToFacebook(title: string, connectionId: string, medi
 }
 
 
-export async function uploadToInstagram(title: string, connectionId: string, mediaFiles?: File[], scheduleMode?: string, scheduledDate?: string, firstComment?: string) {
+export async function uploadToInstagram(title: string, caption: string, connectionId: string, mediaFiles?: File[], scheduleMode?: string, scheduledDate?: string, firstComment?: string) {
 
     const formData = new FormData();
 
     formData.append("title", title);
+    formData.append("caption", caption);
+
     formData.append("connectionId", connectionId);
 
     if (mediaFiles) {

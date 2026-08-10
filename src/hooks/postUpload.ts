@@ -26,6 +26,7 @@ const POLL_INTERVALS = 12000;
 interface PostUpload{
 
     title: string;
+    caption: string;
     firstComment?: string;
     mediaFile?: File;   // only change: allow LinkedIn text posts
     mediaFiles?: File[];
@@ -80,6 +81,7 @@ export function usePostUpload(){
 
                     await uploadToLinkedIn(
                         postDetails.title,
+                        postDetails.caption,
                         connectionId,
                         postDetails.mediaFiles ??
                                 (postDetails.mediaFile ? [postDetails.mediaFile] : []),
@@ -115,6 +117,7 @@ export function usePostUpload(){
 
                     await uploadToFacebook(
                         postDetails.title,
+                        postDetails.caption,
                         connectionId,
                         postDetails.mediaFiles ?? 
                             (postDetails.mediaFile ? [postDetails.mediaFile] : []),
@@ -153,6 +156,7 @@ export function usePostUpload(){
 
                     await uploadToInstagram(
                         postDetails.title,
+                        postDetails.caption,
                         connectionId,
                         postDetails.mediaFiles ??
                             (postDetails.mediaFile ? [postDetails.mediaFile] : []),

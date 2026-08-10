@@ -17,6 +17,7 @@ interface PostInput{
     scheduledDate?: Date;
     title?: string;
     description?: string;
+    caption?: string;
 
     publishMediaStatus: PublishMediaStatus 
     localFilePath?: string;
@@ -87,6 +88,7 @@ export async function createUserPost(postDetails: PostInput): Promise<IPost>{
         scheduledDate: postDetails.scheduledDate,
         title: postDetails.title ?? "",
         description: postDetails.description ?? "",
+        caption: postDetails.caption ?? "",
 
         publishMediaStatus: postDetails.publishMediaStatus ?? "published_to_platform",
         localFilePath: postDetails.localFilePath,
