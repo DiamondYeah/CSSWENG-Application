@@ -19,6 +19,8 @@ interface PostInput{
     description?: string;
     caption?: string;
 
+    instagramCollaborator?: string;
+
     publishMediaStatus: PublishMediaStatus 
     localFilePath?: string;
     localFilePaths?: string[]

@@ -18,6 +18,7 @@ import {useCategories} from "../store/categoryStore.ts";
 
 // Import Components for the CreatePost
 import TikTokSettings from "../components/TikTokSettings.tsx";
+import InstagramSettings from "../components/InstagramSettings.tsx";
 import DatePicker from "../components/DatePicker.tsx";
 import TimePicker from "../components/TimePicker.tsx";
 import TikTokConsent from "../components/TikTokConsent.tsx";
@@ -83,6 +84,7 @@ function CreatePost() {
   const [caption, setCaption] = useState<string>("");
   const [title, setTitle] = useState<string>("");
   const [firstComment, setFirstComment] = useState<string>("");
+  const [instagramCollaborator, setInstagramCollaborator] = useState("");
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
   const [scheduleMode, setScheduleMode] = useState<"now" | "schedule" | "queue">("schedule");
 
@@ -372,6 +374,7 @@ function CreatePost() {
       title: title,
       caption: caption,
       firstComment: firstComment,
+      instagramCollaborator: instagramCollaborator,
       mediaFiles: mediaFiles, // Pass both array and single instance of mediaFile
       mediaFile: mediaFiles[0],
 
@@ -747,7 +750,10 @@ scheduledDate:
                   )}
 
                   {uniquePlatforms.includes("instagram") && (
-                    <PlatformSettingsPlaceholder platformLabel="Instagram" />
+                    <InstagramSettings
+                      collaborator={instagramCollaborator}
+                      setCollaborator={setInstagramCollaborator}
+                    />
                   )}
                 </div>
               )}

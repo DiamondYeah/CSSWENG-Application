@@ -23,10 +23,13 @@ import {findAllSocialMediaAccounts} from "../dbcontrollers/socialMediaAccountRep
 import {validateAccountToken} from "../server_services/accountService.ts";
 
 import { getLinkedInUserInfo } from "../server_services/linkedinAuthService.ts";
+import axios from "axios";
 import { getFacebookPageInfo } from "../server_services/facebookAuthService.ts";
 import { getInstagramProfile } from "../server_services/instagramAuthService.ts";
 import { checkTokenIfExpired } from "../server_services/tiktokAuthService.ts";
 import { sendEmailToReceiver } from "../server_services/mailService.ts";
+
+const FACEBOOK_GRAPH_BASE = `https://graph.facebook.com/v21.0`;
 
 // Constants for expiraition of share token calendar
 const DAYS_UNTIL_SHARE_TOKEN_EXPIRY: number = 14;
@@ -215,7 +218,34 @@ router.get("/getconnectedaccounts", findAccountAuth, async (req: AuthUserRequest
             }
             else if (socialAccount.platform == "instagram") {
 
-                const instagramInfo = await getInstagramProfile(socialAccount.accessToken);
+                let instagramInfo;
+
+                if (socialAccount.scope.includes("instagram_basic")) {
+
+                    // Instagram connected through Facebook Login for Business
+                    const response = await axios.get(
+                        `${FACEBOOK_GRAPH_BASE}/${socialAccount.platformAccountID}`,
+                        {
+                            params: {
+                                fields: "id,username",
+                                access_token: socialAccount.accessToken,
+                            },
+                        }
+                    );
+
+                    instagramInfo = {
+                        user_id: response.data.id,
+                        username: response.data.username,
+                    };
+
+                } else {
+
+                    // Existing Instagram Login connection
+                    instagramInfo = await getInstagramProfile(
+                        socialAccount.accessToken
+                    );
+
+                }
 
                 accounts.push({
 
@@ -223,6 +253,7 @@ router.get("/getconnectedaccounts", findAccountAuth, async (req: AuthUserRequest
                     id: instagramInfo.user_id,
                     name: instagramInfo.username,
                     handle: `@${instagramInfo.username}`,
+
                 });
 
             }

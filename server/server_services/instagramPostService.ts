@@ -4,6 +4,7 @@ import path from "path";
 import crypto from "crypto";
 
 const IG_GRAPH_BASE = "https://graph.instagram.com";
+const FB_GRAPH_BASE = "https://graph.facebook.com/v21.0";
 
 export interface ContainerResult {
     id: string; // container id
@@ -15,12 +16,19 @@ export async function createMediaContainer(
     accessToken: string,
     mediaUrl: string,
     caption: string,
-    isVideo: boolean
+    isVideo: boolean,
+    instagramCollaborator?: string,
+    useFacebookGraph: boolean = false
 ): Promise<ContainerResult> {
     const params: Record<string, string> = {
         caption,
         access_token: accessToken,
     };
+
+    if (instagramCollaborator) {
+        params.collaborators = JSON.stringify([instagramCollaborator]);
+    }
+
 
     if (isVideo) {
         params.media_type = "REELS"; // VIDEO type is deprecated; use REELS for all video
@@ -29,7 +37,18 @@ export async function createMediaContainer(
         params.image_url = mediaUrl;
     }
 
-    const response = await axios.post(`${IG_GRAPH_BASE}/${igUserId}/media`, null, { params });
+    console.log("Instagram container params:", params);
+
+    const graphBase = useFacebookGraph ? FB_GRAPH_BASE : IG_GRAPH_BASE;
+    
+    const response = await axios.post(
+        `${graphBase}/${igUserId}/media`,
+        null,
+        { params }
+    );
+
+    console.log("Instagram container response:", response.data);
+    
     return response.data; // { id: containerId }
 }
 
@@ -37,25 +56,63 @@ export interface ContainerStatus {
     status_code: "IN_PROGRESS" | "FINISHED" | "ERROR" | "EXPIRED" | "PUBLISHED";
 }
 
-export async function checkContainerStatus(containerId: string, accessToken: string): Promise<ContainerStatus> {
-    const response = await axios.get(`${IG_GRAPH_BASE}/${containerId}`, {
-        params: { fields: "status_code", access_token: accessToken },
-    });
+
+export async function checkContainerStatus(
+    containerId: string,
+    accessToken: string,
+    useFacebookGraph: boolean = false
+): Promise<ContainerStatus> {
+
+    const graphBase = useFacebookGraph
+        ? FB_GRAPH_BASE
+        : IG_GRAPH_BASE;
+
+    const response = await axios.get(
+        `${graphBase}/${containerId}`,
+        {
+            params: {
+                fields: "status_code",
+                access_token: accessToken
+            }
+        }
+    );
+
     return response.data;
 }
 
-export async function publishContainer(igUserId: string, accessToken: string, containerId: string): Promise<string> {
-    const response = await axios.post(`${IG_GRAPH_BASE}/${igUserId}/media_publish`, null, {
-        params: { creation_id: containerId, access_token: accessToken },
-    });
-    return response.data.id; // published media id
+
+export async function publishContainer(
+    igUserId: string,
+    accessToken: string,
+    containerId: string,
+    useFacebookGraph: boolean = false
+): Promise<string> {
+
+    const graphBase = useFacebookGraph
+        ? FB_GRAPH_BASE
+        : IG_GRAPH_BASE;
+
+    const response = await axios.post(
+        `${graphBase}/${igUserId}/media_publish`,
+        null,
+        {
+            params: {
+                creation_id: containerId,
+                access_token: accessToken
+            }
+        }
+    );
+
+    return response.data.id;
 }
 
 export async function publishInstagramMedia(
     igUserId: string,
     accessToken: string,
     caption: string,
-    media: { buffer: Buffer; contentType: string; filename?: string }
+    media: { buffer: Buffer; contentType: string; filename?: string },
+    instagramCollaborator?: string,
+    useFacebookGraph: boolean = false
 ): Promise<string> {
     const publicMediaDir = path.join(process.cwd(), "publicfiles", "instagram");
     const isVideo = media.contentType.startsWith("video/");
@@ -72,15 +129,37 @@ export async function publishInstagramMedia(
         if (!publicUrl) throw new Error("PUBLIC_URL is required to publish Instagram media.");
 
         const mediaUrl = `${publicUrl.replace(/\/$/, "")}/publicfiles/instagram/${filename}`;
-        const container = await createMediaContainer(igUserId, accessToken, mediaUrl, caption, isVideo);
+        const container = await createMediaContainer(igUserId, accessToken, mediaUrl, caption, isVideo, instagramCollaborator, useFacebookGraph);
 
-        let status = await checkContainerStatus(container.id, accessToken);
+        let status = await checkContainerStatus(container.id, accessToken, useFacebookGraph);
+        console.log("Instagram container status:", status);
         let attempts = 0;
-        const maxAttempts = 20;
+        const maxAttempts = isVideo ? 60 : 20;
 
         while (status.status_code === "IN_PROGRESS" && attempts < maxAttempts) {
+
             await new Promise((resolve) => setTimeout(resolve, 3000));
-            status = await checkContainerStatus(container.id, accessToken);
+
+            try {
+                status = await checkContainerStatus(
+                    container.id,
+                    accessToken,
+                    false
+                );
+
+                console.log("Instagram container status:", status);
+
+            } catch (err: any) {
+
+                console.log(
+                    "Instagram status check temporarily failed. Retrying...",
+                    err?.response?.data ?? err?.message
+                );
+
+                attempts++;
+                continue;
+            }
+
             attempts++;
         }
 
@@ -91,7 +170,8 @@ export async function publishInstagramMedia(
             throw new Error("Instagram is still processing the media after the allowed wait time.");
         }
 
-        return await publishContainer(igUserId, accessToken, container.id);
+
+        return await publishContainer(igUserId, accessToken, container.id, useFacebookGraph);
     } finally {
         await fs.unlink(savedFilePath).catch(() => undefined);
     }
@@ -105,7 +185,11 @@ export async function publishInstagramCarousel(igUserId: string, accessToken: st
         contentType: string;
         filename?: 
         string; 
-    }[]): Promise<string> {
+    }[],
+    instagramCollaborator?: string,
+    useFacebookGraph: boolean = false
+
+): Promise<string> {
 
 
     const publicMediaDir = path.join(
@@ -147,26 +231,35 @@ export async function publishInstagramCarousel(igUserId: string, accessToken: st
             `${publicUrl.replace(/\/$/,"")}/publicfiles/instagram/${filename}`;
 
 
+        console.log("Creating carousel child:", mediaUrl);
+
         const containerID =
             await uploadInstagramImageContainer(
                 igUserId,
                 accessToken,
-                mediaUrl
+                mediaUrl,
+                false
             );
-
+        
+        console.log("Carousel child created:", containerID);
 
         children.push(containerID);
     }
 
+    const graphBase = IG_GRAPH_BASE;
+
     const carouselResponse = await axios.post(
-        `${IG_GRAPH_BASE}/${igUserId}/media`,
+        `${graphBase}/${igUserId}/media`,
         null,
         {
             params: {
                 media_type:"CAROUSEL",
                 caption,
                 children: children.join(","),
-                access_token: accessToken
+                access_token: accessToken,
+                ...(instagramCollaborator
+                    ? { collaborators: JSON.stringify([instagramCollaborator]) }
+                    : {})
             }
         }
     );
@@ -175,7 +268,8 @@ export async function publishInstagramCarousel(igUserId: string, accessToken: st
 
     let status = await checkContainerStatus(
         carouselContainerId,
-        accessToken
+        accessToken,
+        false
     );
 
     let attempts = 0;
@@ -185,7 +279,11 @@ export async function publishInstagramCarousel(igUserId: string, accessToken: st
 
         await new Promise(resolve => setTimeout(resolve, 3000));
 
-        status = await checkContainerStatus(carouselContainerId, accessToken);
+        status = await checkContainerStatus(
+            carouselContainerId,
+            accessToken,
+            false
+        );        
         
         attempts++;
     }
@@ -201,15 +299,18 @@ export async function publishInstagramCarousel(igUserId: string, accessToken: st
     return await publishContainer(
          igUserId,
         accessToken,
-        carouselContainerId
+        carouselContainerId,
+        false
     );
 }
 
 // image carousel children function
-async function uploadInstagramImageContainer( igUserId: string, accessToken: string, mediaUrl: string): Promise<string> {
+async function uploadInstagramImageContainer( igUserId: string, accessToken: string, mediaUrl: string, useFacebookGraph: boolean = false): Promise<string> {
+
+    const graphBase = useFacebookGraph ? FB_GRAPH_BASE : IG_GRAPH_BASE;
 
     const response = await axios.post(
-        `${IG_GRAPH_BASE}/${igUserId}/media`,
+        `${graphBase}/${igUserId}/media`,
         null,
         {
             params: {

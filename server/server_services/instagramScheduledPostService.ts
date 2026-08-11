@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-
+import axios from "axios";
 import SocialMediaAccount from "../models/socialMediaAccount.ts";
 
 import { updateInstagramPostPublished, updatePostStatus, findAwaitingSchedulePosts } from "../dbcontrollers/postRepository.ts";
@@ -46,6 +46,33 @@ export async function processInstagramScheduledPosts() {
                 continue;
             }
 
+            console.log("Scheduled Instagram account ID:", instagramAccount.platformAccountID);
+            console.log("Scheduled post account ID:", duePost.platformAccountID);
+            console.log("Scheduled Instagram token length:", instagramAccount.accessToken?.length);
+            console.log(
+                "Scheduled Instagram token ending:",
+                instagramAccount.accessToken?.slice(-6)
+            );
+
+            try {
+                const tokenTest = await axios.get(
+                    `https://graph.instagram.com/${instagramAccount.platformAccountID}`,
+                    {
+                        params: {
+                            fields: "id,username",
+                            access_token: instagramAccount.accessToken
+                        }
+                    }
+                );
+
+                console.log("Scheduled Instagram token TEST:", tokenTest.data);
+            } catch (error: any) {
+                console.error(
+                    "Scheduled Instagram token TEST ERROR:",
+                    error.response?.data || error.message
+                );
+            }
+
             let mediaFiles: {
                 buffer: Buffer;
                 contentType: string;
@@ -58,9 +85,22 @@ export async function processInstagramScheduledPosts() {
 
                     const buffer = fs.readFileSync(filePath);
 
+                    const ext = path.extname(filePath).toLowerCase();
+
+                    let contentType = "image/jpeg";
+
+                    if (ext === ".png")
+                        contentType = "image/png";
+                    else if (ext === ".gif")
+                        contentType = "image/gif";
+                    else if (ext === ".mp4")
+                        contentType = "video/mp4";
+                    else if (ext === ".mov")
+                        contentType = "video/quicktime";
+
                     mediaFiles.push({
                         buffer,
-                        contentType: "image/jpeg",
+                        contentType,
                         filename: path.basename(filePath)
                     });
                 }
@@ -96,8 +136,10 @@ export async function processInstagramScheduledPosts() {
                 publishID = await publishInstagramCarousel(
                     instagramAccount.platformAccountID,
                     instagramAccount.accessToken,
-                    duePost.title ?? "",
-                    mediaFiles
+                    duePost.caption ?? "",
+                    mediaFiles,
+                    duePost.instagramCollaborator,
+                    true
                 );
             } 
             else {
@@ -106,7 +148,8 @@ export async function processInstagramScheduledPosts() {
                     instagramAccount.platformAccountID,
                     instagramAccount.accessToken,
                     duePost.title ?? "",
-                    mediaFiles[0]
+                    mediaFiles[0],
+                    duePost.instagramCollaborator
                 );
             }
 
