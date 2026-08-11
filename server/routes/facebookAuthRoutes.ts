@@ -3,7 +3,13 @@ import type { Request, Response } from "express";
 import dotenv from "dotenv";
 dotenv.config();
 
-import { createFacebookAuth, obtainFacebookToken, exchangeForLongLivedToken, getManagedFacebookPages } from "../server_services/facebookAuthService.ts";
+import {
+    createFacebookAuth,
+    obtainFacebookToken,
+    exchangeForLongLivedToken,
+    getManagedFacebookPages,
+    getInstagramAccountForPage
+} from "../server_services/facebookAuthService.ts";
 
 import { createOwnerLinkToken, verifyOwnerLinkToken } from "../server_services/connectionLinkService.ts";
 import { createSocialMediaAccount } from "../dbcontrollers/socialMediaAccountRepository.ts";
@@ -128,6 +134,28 @@ router.get("/facebook/oauth2/callback", async (req: AuthUserRequest, res: Respon
                 tokenExpiresIn: 60 * 24 * 60 * 60,
 
             });
+
+            const instagramAccount = await getInstagramAccountForPage(
+                page.id,
+                page.access_token
+            );
+
+            if (instagramAccount) {
+
+                await createSocialMediaAccount(account._id.toString(), {
+
+                    platform: "instagram",
+                    platformAccountID: instagramAccount.id,
+                    accessToken: page.access_token,
+                    scope: "instagram_basic,instagram_content_publish",
+                    tokenExpiresIn: 60 * 24 * 60 * 60,
+
+                });
+
+                console.log(
+                    `Instagram account found: @${instagramAccount.username ?? instagramAccount.id}`
+                );
+            }
         }
 
         if (!ownerID) {

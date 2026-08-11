@@ -28,6 +28,7 @@ interface PostUpload{
     title: string;
     caption: string;
     firstComment?: string;
+    instagramCollaborator?: string;
     mediaFile?: File;   // only change: allow LinkedIn text posts
     mediaFiles?: File[];
 
@@ -162,7 +163,8 @@ export function usePostUpload(){
                             (postDetails.mediaFile ? [postDetails.mediaFile] : []),
                         postDetails.scheduleMode,
                         postDetails.scheduledDate,
-                        postDetails.firstComment
+                        postDetails.firstComment,
+                        postDetails.instagramCollaborator
                     );
                 }
 

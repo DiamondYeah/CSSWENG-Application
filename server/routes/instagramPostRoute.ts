@@ -16,7 +16,10 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 router.post("/upload", findAccountAuth, upload.array("media", 10), async (req: AuthUserRequest, res: Response) => {
     const account: IAccount = req.account as IAccount;
-    const { title, caption, connectionId, scheduleMode, scheduledDate, firstComment } = req.body;
+    const { title, caption, connectionId, scheduleMode, scheduledDate, firstComment, instagramCollaborator } = req.body;
+    
+    console.log("Instagram collaborator received:", instagramCollaborator);
+    
     const mediaFiles = req.files as Express.Multer.File[] || [];
     
     console.log("Instagram files received:", mediaFiles.length);
@@ -46,6 +49,8 @@ router.post("/upload", findAccountAuth, upload.array("media", 10), async (req: A
     const igUserId = connection.platformAccountID;
     const accessToken = connection.accessToken;
     const isVideo = mediaFile.mimetype.startsWith("video/");
+    const useFacebookGraph = connection.scope.includes("instagram_basic");
+
 
     try {
         if (scheduleMode === "schedule") {
@@ -90,6 +95,7 @@ router.post("/upload", findAccountAuth, upload.array("media", 10), async (req: A
                 description: caption,
                 caption,
                 firstComment,
+                instagramCollaborator,
                 localFilePaths:savedFilePaths,
             });  
 
@@ -110,7 +116,9 @@ router.post("/upload", findAccountAuth, upload.array("media", 10), async (req: A
                     buffer: file.buffer,
                     contentType: file.mimetype,
                     filename: file.originalname,
-                }))
+                })),
+                instagramCollaborator,
+                useFacebookGraph
             );
         } 
         else {
@@ -123,7 +131,9 @@ router.post("/upload", findAccountAuth, upload.array("media", 10), async (req: A
                     buffer: mediaFile.buffer,
                     contentType: mediaFile.mimetype,
                     filename: mediaFile.originalname,
-                }
+                },
+                instagramCollaborator,
+                useFacebookGraph
             );
         }
 
@@ -131,6 +141,8 @@ router.post("/upload", findAccountAuth, upload.array("media", 10), async (req: A
 
             await new Promise(resolve => setTimeout(resolve, 5000));
 
+            console.log("Adding first comment to Instagram media:", mediaId);
+            
             await addInstagramFirstComment(
                 mediaId,
                 accessToken,

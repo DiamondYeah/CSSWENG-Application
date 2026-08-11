@@ -808,7 +808,7 @@ export async function uploadToFacebook(title: string, caption: string, connectio
 }
 
 
-export async function uploadToInstagram(title: string, caption: string, connectionId: string, mediaFiles?: File[], scheduleMode?: string, scheduledDate?: string, firstComment?: string) {
+export async function uploadToInstagram(title: string, caption: string, connectionId: string, mediaFiles?: File[], scheduleMode?: string, scheduledDate?: string, firstComment?: string, instagramCollaborator?: string) {
 
     const formData = new FormData();
 
@@ -831,6 +831,10 @@ export async function uploadToInstagram(title: string, caption: string, connecti
 
     if (firstComment)
         formData.append("firstComment", firstComment);
+
+    // for the collab feature
+    if (instagramCollaborator)
+        formData.append("instagramCollaborator", instagramCollaborator);
 
     const res = await fetch(INSTAGRAM_UPLOAD_DIRECT, {
 

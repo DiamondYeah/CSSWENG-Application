@@ -26,15 +26,7 @@ export function createFacebookAuth(state: string): string {
         state,
         response_type: "code",
         auth_type: "reauthenticate",
-        scope: [
-            "pages_show_list",
-            "pages_manage_posts",
-            "pages_read_engagement",
-            "pages_manage_metadata",
-            "pages_manage_engagement",
-            "instagram_basic",
-            "instagram_content_publish",
-            ].join(",")
+        config_id: process.env.FACEBOOK_CONFIG_ID as string,
     });
 
     return `${FACEBOOK_AUTH_URL}?${params.toString()}`;
@@ -121,6 +113,24 @@ export async function getManagedFacebookPages(userAccessToken: string): Promise<
     );
 
     return pages;
+}
+
+export async function getInstagramAccountForPage(
+    pageId: string,
+    pageAccessToken: string
+): Promise<InstagramAccount | null> {
+
+    const response = await axios.get(
+        `${FACEBOOK_GRAPH_BASE}/${pageId}`,
+        {
+            params: {
+                fields: "instagram_business_account{id,username}",
+                access_token: pageAccessToken,
+            },
+        }
+    );
+
+    return response.data?.instagram_business_account ?? null;
 }
 
 // to display fb page info in accounts page

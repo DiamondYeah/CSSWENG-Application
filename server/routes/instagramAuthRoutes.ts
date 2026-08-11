@@ -86,6 +86,11 @@ router.get("/instagram/oauth2/callback", async (req: AuthUserRequest, res: Respo
         const longLived = await exchangeForLongLivedInstagramToken(shortLived.access_token);
         const profile = await getInstagramProfile(longLived.access_token);
 
+        console.log("Instagram long-lived token received:");
+        console.log("Token length:", longLived.access_token?.length);
+        console.log("Token ending:", longLived.access_token?.slice(-6));
+        console.log("Instagram profile:", profile);
+
         let ownerID: string | null = null;
 
         if (ownerToken) {
