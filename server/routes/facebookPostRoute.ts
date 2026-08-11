@@ -32,8 +32,6 @@ router.post("/upload", findAccountAuth, upload.array("media", 10), async (req: A
     
     const mediaFile = (mediaFiles.length === 1) ? mediaFiles[0] : undefined;
 
-    if (!title || !title.trim())
-        return res.status(400).json({ success: false, message: "Post text is required." });
 
     if (!connectionId)
         return res.status(400).json({ success: false, message: "No Facebook Page specified for this post." });

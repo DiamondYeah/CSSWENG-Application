@@ -107,7 +107,6 @@ function CreatePost() {
 
   // Stateful consts for storing errors in input
   const [validationMessage, setValidationMessage] = useState<string>("");
-  const [titleError, setTitleError] = useState<boolean>(false);
   const [mediaError, setMediaError] = useState<boolean>(false);
   const [privacyError, setPrivacyError] = useState<boolean>(false);
   const [scheduleError, setScheduleError] = useState<boolean>(false);
@@ -326,35 +325,25 @@ function CreatePost() {
   // Function handles the uploading of post with the given info
   async function handleSubmitUpload() {
 
-    const missingTitle = !title.trim();
     // Media is only required for platforms that need it
     const missingMedia = (selectedPlatforms.includes("tiktok") || selectedPlatforms.includes("instagram")) && mediaFiles.length <= 0;
+    const missingContent = !title.trim() && mediaFiles.length === 0; // Checks if there is content on the post
     const missingPrivacy = selectedPlatforms.includes("tiktok") && !privacyLevel;
     const missingSchedule = scheduleMode === "schedule" && (!scheduleDate || !scheduleTime);
     const missingCommercialContent = isCommercialContent && !isYourOwnBrand && !isBrandedContent;
 
-    setTitleError(missingTitle);
-    setMediaError(missingMedia);
+    setMediaError(missingMedia || missingContent);
     setPrivacyError(missingPrivacy);
     setScheduleError(missingSchedule);
     setCommericialContentError(missingCommercialContent);
 
     // PLEASE FIX TO MAKE IT MUCH BETTER. I GOT SO LAZY HERE :P
-    // Validation checking if media and/or title is empty
-    if (missingTitle && missingMedia && privacyError)
-      return setValidationMessage("Error! Please enter a title, upload a media and select a privacy level before posting!");
 
-    if (missingTitle && missingMedia)
-      return setValidationMessage("Error! Please enter a title before posting and upload a media!");
+    if (missingContent)
+          return setValidationMessage("Error! Please add content (title or media) before posting!");
 
     if (missingMedia && privacyError)
       return setValidationMessage("Error! Please upload a media and select a privacy level before posting!");
-
-    if (missingTitle && privacyError)
-      return setValidationMessage("Error! Please enter a title before posting and select a privacy level before posting!");
-
-    if (missingTitle)
-      return setValidationMessage("Error! Please enter a title before posting!");
 
     if (missingMedia)
       return setValidationMessage("Error! Please upload a media before posting!");
@@ -375,7 +364,6 @@ function CreatePost() {
 
     // Clear validation messages and remove errors
     setValidationMessage("");
-    setTitleError(false);
     setMediaError(false);
     setPrivacyError(false);
 
@@ -554,8 +542,8 @@ scheduledDate:
             {/* Right: main compose panel */}
             <div className="cp-main-col">
 
-              <div className={`cp-card ${titleError ? "cp-card-error" : ""}`}>
-                <div className="cp-section-title">Title<span className="required">*</span></div>
+              <div className={`cp-card`}>
+                <div className="cp-section-title">Title</div>
                 <div className="cp-section-sub">Enter the title of your post</div>
 
                 <div className="cp-textarea-wrapper">
@@ -563,7 +551,7 @@ scheduledDate:
                     className="cp-textarea"
                     placeholder="What do you want to share?"
                     value={title}
-                    onChange={(e) => { setTitle(e.target.value); setTitleError(false); }}
+                    onChange={(e) => { setTitle(e.target.value);}}
                     maxLength={MAX_TITLE_LENGTH}
                   />
                 </div>

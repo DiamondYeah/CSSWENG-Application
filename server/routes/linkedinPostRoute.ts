@@ -79,9 +79,6 @@ router.post("/upload", findAccountAuth, upload.array("media"), async (req: AuthU
         });
     }
 
-    if (!title || !title.trim()) {
-        return res.status(400).json({ success: false, message: "Post text is required." });
-    }
 
     if (!connectionId) {
         return res.status(400).json({ success: false, message: "No LinkedIn account specified for this post." });
