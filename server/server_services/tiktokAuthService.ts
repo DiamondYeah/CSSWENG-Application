@@ -15,7 +15,7 @@ const TIKTOK_AUTORIZE_URL = 'https://www.tiktok.com/v2/auth/authorize/';
 const TIKTOK_GETTOKEN_URL = 'https://open.tiktokapis.com/v2/oauth/token/';
 const TIKTOK_REFRESHTOKEN_URL = 'https://open.tiktokapis.com/v2/oauth/token/';
 const TIKTOK_DISCONNECT_URL = 'https://open.tiktokapis.com/v2/oauth/revoke/';
-const SCOPE = '&scope=user.info.basic,user.info.profile,user.info.stats,video.publish,video.upload'
+const SCOPE = '&scope=user.info.basic,video.publish'
 
 
 // Function creates URL for the tiktok authentication with csrfState and returns it to the router
