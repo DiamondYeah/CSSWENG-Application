@@ -127,6 +127,24 @@ export async function processInstagramScheduledPosts() {
 
             await updateInstagramPostPublished(String(duePost._id), publishID);
 
+
+            // Get files that will be removed from system
+            const filesToRemove = duePost.localFilePaths?.length
+                ? duePost.localFilePaths : duePost.localFilePath ? [duePost.localFilePath] : [];
+
+
+            // Remove link
+            filesToRemove.forEach((p : string) => {
+
+                fs.unlink(p, (err) => {
+
+                    if(err)
+                        console.error(`Error in deleting instagram post ${duePost._id} from fileSystem: `, err);
+
+                });
+
+            });
+
         } catch (err) {
 
             console.error("Instagram scheduled post error:", err);

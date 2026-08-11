@@ -131,6 +131,24 @@ router.post("/upload", findAccountAuth, upload.array("media", 10), async (req: A
     } catch (err: any) {
         console.error("Facebook post error: " + (err?.response?.data ? JSON.stringify(err.response.data) : err));
         return res.status(500).json({ success: false, message: "Unexpected error when posting to Facebook!" });
+    } finally {
+
+       // If not scheduled, unlink the file paths from system
+        if (scheduleMode !== "schedule") {
+
+            mediaFiles.forEach(file => {
+
+                fs.unlink(file.path, (err) => {
+
+                    if (err)
+                        console.error(`Error in deleting Facebook upload file ${file.path} from fileSystem: `, err);
+
+                });
+
+            });
+
+        }
+
     }
 });
 

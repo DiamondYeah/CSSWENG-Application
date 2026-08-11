@@ -23,8 +23,13 @@ export function mapPostToSchedulePost(post: any): ScheduledPost{
     }));
 
 
+    // Checks if files is still awaiting schedule and as such the file is in the disk
+    const filesOnAwaitingSchedule = post.publishMediaStatus === "awaiting_schedule";
+
     // Check plural array paths, if empty switch back to the singular localFIlePath
-    const rawMediaPath: string[] = post.localFilePaths?.length ? post.localFilePaths : (post.localFilePath ? [post.localFilePath] : []);
+    const rawMediaPath: string[] = filesOnAwaitingSchedule 
+        ? (post.localFilePaths?.length ? post.localFilePaths : (post.localFilePath ? [post.localFilePath] : [])) 
+        : [];
     
     // Return a mapped version of post instance to ScheduledPost
     return{
@@ -35,7 +40,7 @@ export function mapPostToSchedulePost(post: any): ScheduledPost{
         date: date.toLocaleDateString("en-CA"),
         time: date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', }),
         title: post.title ?? "No Title",
-        snippet: post.description || undefined,
+        snippet: post.description || (post.platform == "tiktok" ? post.title : undefined),
 
         media: rawMediaPath.map((filePath: string) => {
 

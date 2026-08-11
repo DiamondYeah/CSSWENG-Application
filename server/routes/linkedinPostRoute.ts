@@ -3,6 +3,7 @@ import type { Response } from "express";
 import { ObjectId } from "mongodb";
 import { createLinkedInPost, publishLinkedInMedia } from "../server_services/linkedinPostService.ts";
 import multer from "multer";
+import fs from "fs";
 import Post from "../models/post.ts";
 import { type IAccount } from "../models/account.ts";
 import { findAccountAuth } from "../middleware/accountAuthMiddleware.ts";
@@ -139,6 +140,20 @@ try {
 
         console.error("LinkedIn post error: " + (err?.response?.data ? JSON.stringify(err.response.data) : err));
         return res.status(500).json({ success: false, message: "Unexpected error when posting to LinkedIn!" });
+
+    } finally {
+
+        // Unlink the file paths from system
+        mediaFiles.forEach(file => {
+
+            fs.unlink(file.path, (err) => {
+
+                if (err)
+                    console.error(`Error in deleting LinkedIn upload file ${file.path} from fileSystem: `, err);
+
+            });
+
+        });
 
     }
 

@@ -1,3 +1,4 @@
+import fs from "fs"
 
 import { 
     findAwaitingSchedulePosts,
@@ -101,6 +102,24 @@ export async function processLinkedInScheduledPosts(){
                 String(duePost._id),
                 postURN
             );
+
+
+            // Get files that will be removed from system
+            const filesToRemove = duePost.localFilePaths?.length
+                ? duePost.localFilePaths : duePost.localFilePath ? [duePost.localFilePath] : [];
+
+
+            // Remove link
+            filesToRemove.forEach((p : string) => {
+
+                fs.unlink(p, (err) => {
+
+                    if(err)
+                        console.error(`Error in deleting linkedin post ${duePost._id} from fileSystem: `, err);
+
+                });
+
+            });
 
             
         }

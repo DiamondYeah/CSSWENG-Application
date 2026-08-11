@@ -116,6 +116,20 @@ export async function processFacebookScheduledPosts() {
                 publishID
             );
 
+
+            // Remove link
+            mediaFiles.forEach(file => {
+
+                fs.unlink(file.path, (err) => {
+
+                    if(err)
+                        console.error(`Error in deleting facebook post ${duePost._id} from fileSystem: `, err);
+
+                });
+
+            });
+            
+
         } catch (err) {
 
             console.error("Facebook scheduled post error:", err);

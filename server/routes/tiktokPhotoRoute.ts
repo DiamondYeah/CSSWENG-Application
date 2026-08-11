@@ -95,7 +95,7 @@ router.post("/photoUpload", findAccountAuth, upload.array("photos", 35), findTik
 
     try{
 
-     // Loop through tiktokAccounts
+        // Loop through tiktokAccounts
         for(const tiktokAccount of selectedTikTokAccounts){
 
             // Checks if the post is scheduled to be posted at a later date. If so, create a document and return it
@@ -220,6 +220,24 @@ router.post("/photoUpload", findAccountAuth, upload.array("photos", 35), findTik
 
         console.error("Error: " + err);
         return res.status(500).json({ success: false, message: "Unexpected error when performing photo upload!" });
+
+    }finally{
+
+        // If not scheduled, unlink the file paths from system
+        if(!isScheduledForLaterDate){
+
+            files.forEach(file => {
+
+                fs.unlink(file.path, (err) => {
+
+                    if(err)
+                        console.error(`Error in deleting photo file ${file.path} from fileSystem: `, err);
+
+                });
+
+            });
+
+        }
 
     }
 
